@@ -15,7 +15,7 @@ metadata:
 
 # Surgical Media (v1.0.0)
 
-Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 80 tests including a rendered-and-verified MP4 integration pass and pixel-level visual smoke checks).
+Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 104 tests including a rendered-and-verified MP4 integration pass and pixel-level visual smoke checks).
 
 ## When to Use
 
@@ -42,9 +42,15 @@ Blend per scene via the `archetype` field; see `references/archetypes.md` for th
 
 ## Procedure
 
-### Stage 1 — Investigate & Extract Visual Anchors
+### Stage 1 — Investigate & Extract Visual Anchors (and Fetch Subject Imagery)
 
-Research the subject before writing any script. Emit a brief conforming to `schemas/investigation_brief.schema.json` with ≥3 verifiable facts (with sources), each mapped to a concrete visual primitive — never a static text slide. Pick the format: `1920x1080@30/60` (16:9), `1080x1920` (9:16), or `1080x1080` (1:1); defaults live in `references/ffmpeg-encoding.md`.
+Research the subject **as a producer would**: facts **and** footage. Emit a brief conforming to `schemas/investigation_brief.schema.json` with ≥3 verifiable facts (with sources), each mapped to a concrete visual primitive — never a static text slide — and fetch licensed subject imagery before writing any script:
+
+```bash
+python3 scripts/fetch_assets.py --query "<subject>" --out-dir assets --count 3
+```
+
+`fetch_assets.py` searches Openverse (240k+ CC assets), rejects non-remixable licenses (`by-nc*`, `by-nd*`), verifies each file decodes, and writes `assets/manifest.json` with per-image attribution strings — paste those verbatim into storyboard `image` elements. **A subject video with no image of the subject is a failure**; fetch ≥1 photograph unless the format is deliberately typographic-only. Never hotlink images into a render — download and attribute. Pick the format: `1920x1080@30/60` (16:9), `1080x1920` (9:16), or `1080x1080` (1:1); defaults live in `references/ffmpeg-encoding.md`.
 
 ### Stage 2 — Audio-First Timing
 
@@ -88,7 +94,7 @@ Inspect thumbnails before spending a full render; the bundled demo takes ~60–9
 ## Verification
 
 ```bash
-python3 -m pytest tests/ -q                                   # 80 tests
+python3 -m pytest tests/ -q                                   # 104 tests
 python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + QC
 python3 scripts/verify_output.py --input /tmp/demo.mp4 --storyboard examples/tri_archetype_storyboard.json
 ```
@@ -106,6 +112,7 @@ python3 scripts/verify_output.py --input /tmp/demo.mp4 --storyboard examples/tri
 
 - `references/archetypes.md` — full archetype field guide (palettes, beat density, SFX vocabulary, exemplar videos)
 - `references/storyboard-guide.md` — element catalog, camera semantics, easings, safe zones, word timing
+- `scripts/fetch_assets.py` — Openverse fetch: license-filtered (`by`/`by-sa`/`cc0`/`pdm` only), PIL-verified, writes `assets/manifest.json` with ready-to-use attribution strings
 - `references/ffmpeg-encoding.md` — encoder/loudness/QC reference, platform targets
 - `schemas/{storyboard,script,investigation_brief}.schema.json` — Draft 2020-12 contracts
 - `examples/tri_archetype_storyboard.json` — renderable 3-scene showcase (`scripts/build_demo.py` regenerates)

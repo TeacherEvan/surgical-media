@@ -39,6 +39,7 @@ python3 scripts/render_engine.py --storyboard storyboard.json --output final.mp4
 | [`scripts/audio_dsp.py`](scripts/audio_dsp.py) | Stdlib SFX synth (chime/pop/whoosh/click/buzz), just-intonation pad, sidechain ducking, −1 dBFS ceiling, stereo WAV I/O |
 | [`scripts/easings.py`](scripts/easings.py) | `ease_out_expo` / `ease_in_out_cubic` / `spring_pop` / … |
 | [`scripts/verify_output.py`](scripts/verify_output.py) | ffprobe assertions (streams, H.264, yuv420p, fps, ≤150 ms A/V drift) |
+| [`scripts/fetch_assets.py`](scripts/fetch_assets.py) | Stage 1 subject imagery: Openverse CC-allowlist fetch, PIL-verified, writes `assets/manifest.json` with attribution strings |
 | [`scripts/build_demo.py`](scripts/build_demo.py) | Regenerates `examples/tri_archetype_storyboard.json` |
 | [`schemas/`](schemas/) | Draft 2020-12 contracts for the investigation brief, beat script, and storyboard |
 | [`references/`](references/) | Archetype field guide, storyboard element catalog, ffmpeg/loudness reference |

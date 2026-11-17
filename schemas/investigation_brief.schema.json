@@ -5,13 +5,25 @@
   "description": "Stage 1 research brief: verified facts and visual anchors extracted from the subject before any scripting or rendering.",
   "type": "object",
   "unevaluatedProperties": false,
-  "required": ["subject", "facts", "visual_anchors", "target_format"],
+  "required": [
+    "subject",
+    "facts",
+    "visual_anchors",
+    "target_format"
+  ],
   "properties": {
-    "subject": { "type": "string", "minLength": 1, "maxLength": 300 },
+    "subject": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
     "sources": {
       "type": "array",
       "maxItems": 20,
-      "items": { "type": "string", "maxLength": 500 }
+      "items": {
+        "type": "string",
+        "maxLength": 500
+      }
     },
     "facts": {
       "type": "array",
@@ -20,11 +32,25 @@
       "items": {
         "type": "object",
         "unevaluatedProperties": false,
-        "required": ["claim", "source"],
+        "required": [
+          "claim",
+          "source"
+        ],
         "properties": {
-          "claim": { "type": "string", "minLength": 1, "maxLength": 500 },
-          "source": { "type": "string", "minLength": 1, "maxLength": 500 },
-          "metric": { "type": "string", "maxLength": 120 }
+          "claim": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "metric": {
+            "type": "string",
+            "maxLength": 120
+          }
         }
       }
     },
@@ -35,25 +61,120 @@
       "items": {
         "type": "object",
         "unevaluatedProperties": false,
-        "required": ["claim_index", "primitive"],
+        "required": [
+          "claim_index",
+          "primitive"
+        ],
         "properties": {
-          "claim_index": { "type": "integer", "minimum": 0 },
-          "primitive": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "archetype": { "type": "string", "enum": ["geometry_rig", "doc_essay", "code_report", "mixed"] }
+          "claim_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "primitive": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "archetype": {
+            "type": "string",
+            "enum": [
+              "geometry_rig",
+              "doc_essay",
+              "code_report",
+              "mixed"
+            ]
+          }
+        }
+      }
+    },
+    "visual_assets": {
+      "type": "array",
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "unevaluatedProperties": false,
+        "required": [
+          "file",
+          "license",
+          "attribution"
+        ],
+        "properties": {
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "creator": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "license": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "license_url": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "source_url": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "attribution": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
         }
       }
     },
     "target_format": {
       "type": "object",
       "unevaluatedProperties": false,
-      "required": ["aspect"],
+      "required": [
+        "aspect"
+      ],
       "properties": {
-        "aspect": { "type": "string", "enum": ["16:9", "9:16", "1:1"] },
-        "width": { "type": "integer", "minimum": 160 },
-        "height": { "type": "integer", "minimum": 160 },
-        "fps": { "type": "integer", "enum": [24, 25, 30, 50, 60] },
-        "max_duration_sec": { "type": "number", "exclusiveMinimum": 0, "maximum": 3600 },
-        "platform": { "type": "string", "maxLength": 40 }
+        "aspect": {
+          "type": "string",
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1"
+          ]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 160
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 160
+        },
+        "fps": {
+          "type": "integer",
+          "enum": [
+            24,
+            25,
+            30,
+            50,
+            60
+          ]
+        },
+        "max_duration_sec": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 3600
+        },
+        "platform": {
+          "type": "string",
+          "maxLength": 40
+        }
       }
     }
   }

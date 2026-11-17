@@ -8,6 +8,7 @@ Agent instructions for working inside the `surgical-media` skill repository. `RE
 - `Concept/` is the input transcript (design history). It is not the contract — code and `tests/` are.
 - Runtime deps: **Pillow ≥ 10.1 + ffmpeg/ffprobe on PATH** (`requirements.txt`). `edge-tts` is optional (`requirements-tts.txt`) and **tests never use it** (offline by design). Audio/geometry are stdlib-only — no NumPy (`docs/adr/0001-stdlib-first-verified-pipeline.md`).
 - `SKILL.md` must stay ≤ 120 lines (agent manifest: stages/invariants/gotchas). Element catalog and parameter specs live in `references/storyboard-guide.md` — don't duplicate them here or in `SKILL.md`.
+- Stage 1 acquires **subject imagery**, not just facts: `scripts/fetch_assets.py --query "<subject>" --out-dir assets --count 3` pulls Openverse CC-allowlisted photos (`by`/`by-sa`/`cc0`/`pdm`; `*-nd`/`*-nc` rejected), PIL-verifies them, and writes `assets/manifest.json` whose `attribution` strings go verbatim into `image` elements. Hotlinking into a render is never acceptable; record the manifest.
 
 ## Commands (all run green locally; CI parity noted)
 
@@ -15,7 +16,7 @@ Agent instructions for working inside the `surgical-media` skill repository. `RE
 python3 scripts/storyboard.py examples/tri_archetype_storyboard.json   # demo must always validate
 ruff check --no-cache scripts/ tests/
 ruff format --check --no-cache scripts/ tests/
-python3 -m pytest tests/ -q                                            # 80 tests, all green
+python3 -m pytest tests/ -q                                            # 104 tests, all green
 check-jsonschema --check-metaschema schemas/*.schema.json
 python3 scripts/render_engine.py --demo --thumbnails /tmp/sm_thumbs     # seconds — visual smoke, no ffmpeg needed
 python3 scripts/render_engine.py --demo --output /tmp/sm_gate.mp4       # only when render code changed; exit 0 + QC ok:true
@@ -41,6 +42,7 @@ python3 scripts/render_engine.py --demo --output /tmp/sm_gate.mp4       # only w
 - **Zero PII** — synthetic placeholders only.
 - **Scope:** don't edit sibling skills (`surgical-audit/`, etc.) from this repo. Don't run `install_surgical_media.sh` (installs to `~/.hermes/skills/creative/surgical-media`) without asking.
 - **No golden-image tests** by design (fonts drift across hosts) — CI guards on pixel-presence smoke tests instead. Don't bless PNGs.
+- **AI image generation is not a fallback** for imagery (credentials unreliable; dishonest for factual documentary content). Fetch open-licensed photos; label every asset with its source license in-frame.
 
 ## Demo regeneration
 
