@@ -88,6 +88,7 @@ def paint_frame(
     seed: int,
     local_idx: int,
     fps: int,
+    base_dir: str | None = None,
 ):
     """Render exactly one frame of a scene (used by --thumbnails)."""
     n_frames = scene_frames(scene, fps)
@@ -113,6 +114,7 @@ def paint_frame(
         seed=seed,
         trauma=trauma,
         zones=zones,
+        base_dir=base_dir,
     )
     for el in scene["elements"]:
         render_element(cv, el, ctx)
@@ -138,12 +140,15 @@ def render_thumbnails(board_path: Path, out_dir: Path, scale: int = 2) -> list[P
     fmt = board["format"]
     width, height, fps = int(fmt["width"]), int(fmt["height"]), int(fmt["fps"])
     seed = int(board.get("meta", {}).get("seed", 20261118))
+    base_dir = str(board_path.resolve().parent)
     out_dir.mkdir(parents=True, exist_ok=True)
     written = []
     for scene in board["scenes"]:
         n = scene_frames(scene, fps)
         idx = min(n - 1, max(0, round(0.55 * (n - 1))))
-        frame = paint_frame(scene, width, height, scale, seed, idx, fps)
+        frame = paint_frame(
+            scene, width, height, scale, seed, idx, fps, base_dir=base_dir
+        )
         out = out_dir / f"{scene['scene_id']}.png"
         frame.save(out)
         written.append(out)
@@ -336,6 +341,7 @@ def render(args: argparse.Namespace) -> int:
                     seed=seed,
                     trauma=trauma,
                     zones=zones,
+                    base_dir=str(board_path.parent),
                 )
                 for el in scene["elements"]:
                     render_element(cv, el, ctx)

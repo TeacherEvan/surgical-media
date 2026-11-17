@@ -92,6 +92,9 @@ Gold glyph, ≤ 4 wrapped lines (measured wrap, 4-line clip), slate `#111C31` ca
 ### `stick_rig` — `{ "x": 640, "y": 672, "height": 300, "reach_to": [640, 345], "reach_side": "right" }`
 Hollow-head IK figure (law-of-cosines two-bone solve). `reach_to` is a world-space design point the hand tracks; omit for idle sway. Feet at `y` (ground). Deterministic bob from scene-local time.
 
+### `image` — `{ "type": "image", "src": "assets/hero.png", "box": [0, 220, 720, 840], "fit": "cover", "kb_zoom": 1.10, "fade_in_sec": 0.8, "radius": 24, "attribution": "AI ILLUSTRATION" }`
+Raster imagery: cover (fills box, center-crop) or contain (letterbox), Ken Burns drift (`kb_zoom` 1.0→N over the scene), fade-in from black (`fade_in_sec`), optional rounded corners (`radius`). `src` is absolute or relative to the storyboard file. Painted screen-fixed (no camera transform — a full-bleed plate must not pan) with LRU caching by resolved path; pair camera pans on vector elements for parallax. `attribution` draws a dim credit line in the box's lower-left — use it for licenses or AI-illustration disclosure. Draw text/HUD over full-bleed images with `kinetic_captions` last for the caption backdrop.
+
 ### `kinetic_captions` — `{ "type": "kinetic_captions", "accent": "#FFD700", "size": 22 }`
 Reads the scene's `words` array; word-by-word karaoke in the caption band. `accent` (current word) and `size` optional.
 

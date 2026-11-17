@@ -13,10 +13,13 @@ frames.
 from __future__ import annotations
 
 import math
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from canvas import get_font, layout_zones, parse_color
 from easings import ease_out_expo, spring_pop
+from PIL import Image, ImageDraw
 from rig import draw_stick_figure
 
 TAU = math.tau
@@ -44,6 +47,7 @@ class ElementContext:
     seed: int = 0
     trauma: float = 0.0
     zones: dict = field(default_factory=dict)
+    base_dir: str | None = None
 
     def __post_init__(self) -> None:
         if not self.zones:
@@ -745,6 +749,134 @@ def paint_stick_rig(cv, el: dict, ctx: ElementContext) -> None:
     )
 
 
+_IMAGE_CACHE: dict[str, Image.Image] = {}
+
+
+def _load_image(path: str) -> Image.Image:
+    img = _IMAGE_CACHE.get(path)
+    if img is None:
+        img = Image.open(path)
+        img.load()
+        img = img.convert("RGB")
+        _IMAGE_CACHE[path] = img
+    return img
+
+
+def _rounded_mask(size: tuple[int, int], radius: int) -> Image.Image:
+    mask = Image.new("L", size, 0)
+    draw = ImageDraw.Draw(mask)
+    draw.rounded_rectangle((0, 0, size[0] - 1, size[1] - 1), radius=radius, fill=255)
+    return mask
+
+
+def paint_image(cv, el: dict, ctx: ElementContext) -> None:
+    """Raster image element: cover/contain, Ken Burns drift, fade-in, credit line.
+
+    Images are backdrop plates: painted screen-fixed in design space (no
+    camera transform — a full-bleed plate panning with the camera would
+    expose canvas edges). Motion comes from ``kb_zoom``. ``src`` is absolute
+    or relative to the storyboard file. Gradients/scrims are the caller's job.
+    """
+    src = el.get("src")
+    if not src:
+        print("image element missing 'src'", file=sys.stderr)
+        return
+    path = Path(str(src))
+    if not path.is_absolute():
+        path = Path(ctx.base_dir or ".") / path
+    if not path.is_file():
+        print(f"image element: src not found: {path}", file=sys.stderr)
+        return
+    img = _load_image(str(path))
+    iw, ih = img.size
+    if iw < 8 or ih < 8:
+        print(f"image element: {path} too small ({iw}x{ih})", file=sys.stderr)
+        return
+
+    raw_box = el.get("box", [0, 0, ctx.width, ctx.height])
+    if not isinstance(raw_box, (list, tuple)) or len(raw_box) != 4:
+        raw_box = [0, 0, ctx.width, ctx.height]
+    x0, y0, x1, y1 = (float(v) for v in raw_box)
+    if x1 <= x0 or y1 <= y0:
+        return
+
+    scale = cv.scale
+    bx0, by0 = round(x0 * scale), round(y0 * scale)
+    bx1, by1 = round(x1 * scale), round(y1 * scale)
+    bw, bh = bx1 - bx0, by1 - by0
+    if bw <= 0 or bh <= 0:
+        return
+
+    progress = ease_out_expo(_smoothstep(0.0, 1.0, ctx.t))
+    kb_zoom = float(el.get("kb_zoom", 1.08))
+    zoom = 1.0 + (kb_zoom - 1.0) * progress
+
+    fade_in = max(0.0, float(el.get("fade_in_sec", 0.6)))
+    reveal = (
+        1.0
+        if fade_in <= 0.0
+        else ease_out_expo(_smoothstep(0.0, fade_in, ctx.local_time))
+    )
+
+    fit = str(el.get("fit", "cover"))
+    if fit == "contain":
+        tile = Image.new("RGB", (bw, bh), (0, 0, 0))
+        fit_scale = min(bw / iw, bh / ih) / zoom
+        nw, nh = max(1, int(iw * fit_scale)), max(1, int(ih * fit_scale))
+        scaled = img.resize((nw, nh), Image.Resampling.LANCZOS)
+        tile.paste(scaled, ((bw - nw) // 2, (bh - nh) // 2))
+    else:  # cover — fill the box, crop around center
+        fill = max(bw / iw, bh / ih) * zoom
+        crop_w = min(iw, max(1, int(bw / fill)))
+        crop_h = min(ih, max(1, int(bh / fill)))
+        left, top = (iw - crop_w) // 2, (ih - crop_h) // 2
+        tile = img.crop((left, top, left + crop_w, top + crop_h)).resize(
+            (bw, bh), Image.Resampling.LANCZOS
+        )
+
+    if reveal < 1.0:
+        tile = Image.blend(Image.new("RGB", (bw, bh), (0, 0, 0)), tile, reveal)
+
+    radius = float(el.get("radius", 0.0))
+    if radius > 0.0:
+        r = max(1, int(radius * scale))
+        cv.image.paste(tile, (bx0, by0), _rounded_mask((bw, bh), r))
+    else:
+        cv.image.paste(tile, (bx0, by0))
+
+    attribution = el.get("attribution")
+    if attribution:
+        # screen-fixed draw on the buffer — the camera would push an
+        # edge-anchored credit off-canvas (it transforms position, not just scale)
+        size = max(9, int((y1 - y0) * 0.020)) * scale
+        max_w = int((x1 - x0) * scale) - int(24 * scale)
+        font = get_font(int(size))
+        while size > 8 * scale and font.getlength(str(attribution)) > max_w:
+            size -= max(1, round(0.5 * scale))
+            font = get_font(int(size))
+        draw = ImageDraw.Draw(cv.image)
+        draw.text(
+            (int(x0 * scale) + int(12 * scale), int(y1 * scale) - int(14 * scale)),
+            str(attribution),
+            font=font,
+            fill="#C7CEDE",
+            anchor="ld",
+            stroke_fill="#05070C",
+            stroke_width=max(1, round(1.5 * scale)),
+        )
+
+
+def render_element(cv, el: dict, ctx: ElementContext) -> None:
+    painter = RENDERERS.get(str(el.get("type")))
+    if painter is None:
+        print(
+            f"render_engine: warning — unknown element type {el.get('type')!r}; skipping",
+            flush=True,
+        )
+        return
+    painter(cv, el, ctx)
+
+
 RENDERERS = {
     "background": paint_background,
     "grid": paint_grid,
@@ -757,15 +889,5 @@ RENDERERS = {
     "quote_card": paint_quote_card,
     "kinetic_captions": paint_kinetic_captions,
     "stick_rig": paint_stick_rig,
+    "image": paint_image,
 }
-
-
-def render_element(cv, el: dict, ctx: ElementContext) -> None:
-    painter = RENDERERS.get(str(el.get("type")))
-    if painter is None:
-        print(
-            f"render_engine: warning — unknown element type {el.get('type')!r}; skipping",
-            flush=True,
-        )
-        return
-    painter(cv, el, ctx)

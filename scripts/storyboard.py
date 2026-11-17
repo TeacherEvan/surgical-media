@@ -38,6 +38,7 @@ KNOWN_ELEMENTS = {
     "quote_card",
     "kinetic_captions",
     "stick_rig",
+    "image",
 }
 MIN_DIM, MAX_DIM = 160, 3840
 

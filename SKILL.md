@@ -15,7 +15,7 @@ metadata:
 
 # Surgical Media (v1.0.0)
 
-Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 78 tests including a rendered-and-verified MP4 integration pass and pixel-level visual smoke checks).
+Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 80 tests including a rendered-and-verified MP4 integration pass and pixel-level visual smoke checks).
 
 ## When to Use
 
@@ -59,7 +59,7 @@ This voices each beat (edge-tts when reachable, otherwise a WPM estimate), probe
 
 ### Stage 3 — Storyboard
 
-Edit `storyboard.json` (schema: `schemas/storyboard.schema.json`, checked by `scripts/storyboard.py`). Every scene requires `scene_id`, `archetype`, `duration_sec`, and `elements[]`. Elements render in array order: `background`, `grid`, `scaling_chart`, `phi_divider`, `tesseract`, `system_architecture`, `code_terminal`, `quote_card`, `hud_badge`, `stick_rig`, `kinetic_captions` (catalog with parameters: `references/storyboard-guide.md`). Keep visual beats ≤3.0 s — split longer clauses into sub-beats.
+Edit `storyboard.json` (schema: `schemas/storyboard.schema.json`, checked by `scripts/storyboard.py`). Every scene requires `scene_id`, `archetype`, `duration_sec`, and `elements[]`. Elements render in array order: `background`, `grid`, `scaling_chart`, `phi_divider`, `tesseract`, `system_architecture`, `code_terminal`, `quote_card`, `hud_badge`, `stick_rig`, `kinetic_captions`, `image` (catalog with parameters: `references/storyboard-guide.md`). Keep visual beats ≤3.0 s — split longer clauses into sub-beats.
 
 ```bash
 python3 scripts/storyboard.py storyboard.json          # validate only
@@ -88,7 +88,7 @@ Inspect thumbnails before spending a full render; the bundled demo takes ~60–9
 ## Verification
 
 ```bash
-python3 -m pytest tests/ -q                                   # 78 tests
+python3 -m pytest tests/ -q                                   # 80 tests
 python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + QC
 python3 scripts/verify_output.py --input /tmp/demo.mp4 --storyboard examples/tri_archetype_storyboard.json
 ```
@@ -98,6 +98,7 @@ python3 scripts/verify_output.py --input /tmp/demo.mp4 --storyboard examples/tri
 - `edge-tts` needs network; Airplane mode ⇒ `--offline` (WPM-estimated timing; the online path carries measured edge-tts WordBoundary timestamps).
 - 60 fps doubles render cost; use 30 fps for Shorts unless motion demands otherwise.
 - `ImageDraw` has no alpha blend — scene fades are RGB `Image.blend`s; translucent panels use pre-blended slate tones, not RGBA overlays.
+- Raster subject imagery ships via the `image` element (`src` absolute or relative to the storyboard; `fit` cover|contain; `kb_zoom` Ken Burns; `fade_in_sec`; `attribution` credit line — use it for license/AI-illustration disclosure). Full-bleed hero frames beat chart-only explainers for anything with a living subject.
 - Raw video pipe expects `rgb24`, not `rgba` — changing `-pix_fmt` without changing `frame.tobytes()` corrupts every frame.
 - `verify_output.py` drifting >150 ms almost always means `duration_sec` vs ffprobe VO mismatch — re-run `tts_align.py`, don't hand-tweak.
 

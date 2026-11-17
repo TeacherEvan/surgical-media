@@ -194,3 +194,58 @@ def test_quote_card_long_attribution_fits_card():
     # bloom spills a few px past the border; text overflow is a ~100px bleed.
     for x in range(320, W):
         assert sum(img.getpixel((x, 135))) <= 60
+
+
+def test_image_element_composites_raster(tmp_path):
+    """A synthetic PNG must land inside its box with its blue tone visible."""
+    png = tmp_path / "hero.png"
+    Image.new("RGB", (200, 300), (30, 120, 200)).save(png)
+
+    cv = SupersampledCanvas(W, H, scale=2, background="#050508")
+    cv.set_frame(1.0, 1.0)
+    ctx = ElementContext(
+        width=W,
+        height=H,
+        t=1.0,
+        scene_time=1.0,
+        local_time=1.0,
+        words=[],
+        seed=1,
+        zones=layout_zones(W, H),
+        base_dir=str(tmp_path),
+    )
+    render_element(
+        cv,
+        {
+            "type": "image",
+            "src": "hero.png",
+            "box": [20, 20, 300, 170],
+            "fit": "cover",
+            "fade_in_sec": 0.0,
+            "attribution": "TEST CREDIT",
+        },
+        ctx,
+    )
+    img = cv.final().convert("RGB")
+    px = img.getpixel((160, 90))
+    assert px[2] > px[0] + 40  # blue-dominant, not the near-black canvas
+
+
+def test_image_element_missing_src_does_not_crash(tmp_path):
+    cv = SupersampledCanvas(W, H, scale=2, background="#050508")
+    cv.set_frame(0.5, 1.0)
+    ctx = ElementContext(
+        width=W,
+        height=H,
+        t=0.5,
+        scene_time=1.0,
+        local_time=1.0,
+        words=[],
+        seed=1,
+        zones=layout_zones(W, H),
+        base_dir=str(tmp_path),
+    )
+    render_element(cv, {"type": "image", "src": "nope.png", "box": [0, 0, W, H]}, ctx)
+    render_element(cv, {"type": "image", "src": "", "box": [0, 0, W, H]}, ctx)
+    img = cv.final().convert("RGB")
+    assert img.size == (W, H)  # panelless frame still exports
