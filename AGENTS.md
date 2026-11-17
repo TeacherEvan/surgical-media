@@ -16,7 +16,7 @@ Agent instructions for working inside the `surgical-media` skill repository. `RE
 python3 scripts/storyboard.py examples/tri_archetype_storyboard.json   # demo must always validate
 ruff check --no-cache scripts/ tests/
 ruff format --check --no-cache scripts/ tests/
-python3 -m pytest tests/ -q                                            # 104 tests, all green
+python3 -m pytest tests/ -q                                            # 105 tests, all green
 check-jsonschema --check-metaschema schemas/*.schema.json
 python3 scripts/render_engine.py --demo --thumbnails /tmp/sm_thumbs     # seconds — visual smoke, no ffmpeg needed
 python3 scripts/render_engine.py --demo --output /tmp/sm_gate.mp4       # only when render code changed; exit 0 + QC ok:true

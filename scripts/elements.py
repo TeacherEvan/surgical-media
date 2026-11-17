@@ -854,9 +854,15 @@ def paint_image(cv, el: dict, ctx: ElementContext) -> None:
         while size > 8 * scale and font.getlength(str(attribution)) > max_w:
             size -= max(1, round(0.5 * scale))
             font = get_font(int(size))
+        attr_y = el.get("attribution_y")
+        if attr_y is not None:
+            # explicit design-space y (e.g. 9:16 safe-zone above Shorts bottom chrome)
+            credit_y = int(float(attr_y) * scale)
+        else:
+            credit_y = int(y1 * scale) - int(14 * scale)
         draw = ImageDraw.Draw(cv.image)
         draw.text(
-            (int(x0 * scale) + int(12 * scale), int(y1 * scale) - int(14 * scale)),
+            (int(x0 * scale) + int(12 * scale), credit_y),
             str(attribution),
             font=font,
             fill="#C7CEDE",

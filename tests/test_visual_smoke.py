@@ -249,3 +249,48 @@ def test_image_element_missing_src_does_not_crash(tmp_path):
     render_element(cv, {"type": "image", "src": "", "box": [0, 0, W, H]}, ctx)
     img = cv.final().convert("RGB")
     assert img.size == (W, H)  # panelless frame still exports
+
+
+def test_image_element_attribution_y_lifts_credit(tmp_path):
+    """attribution_y must anchor the credit at the given design-space y, not the box bottom."""
+    png = tmp_path / "dark.png"
+    Image.new("RGB", (160, 320), (12, 12, 12)).save(png)
+
+    cv = SupersampledCanvas(W, H, scale=2, background="#050508")
+    cv.set_frame(1.0, 1.0)
+    ctx = ElementContext(
+        width=W,
+        height=H,
+        t=1.0,
+        scene_time=1.0,
+        local_time=1.0,
+        words=[],
+        seed=1,
+        zones=layout_zones(W, H),
+        base_dir=str(tmp_path),
+    )
+    render_element(
+        cv,
+        {
+            "type": "image",
+            "src": "dark.png",
+            "box": [0, 0, W, H],
+            "fit": "cover",
+            "fade_in_sec": 0.0,
+            "attribution": "LIFTED CREDIT",
+            "attribution_y": 60,
+        },
+        ctx,
+    )
+    img = cv.final().convert("RGB")
+
+    def bright_count(y0, y1):
+        return sum(
+            1
+            for y in range(y0, y1)
+            for x in range(0, W, 2)
+            if sum(img.getpixel((x, y))) > 150
+        )
+
+    assert bright_count(46, 72) > 0  # credit lives at the lifted y
+    assert bright_count(H - 20, H) == 0  # and not at the box bottom
