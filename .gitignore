@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+node_modules/
+.DS_Store
+
+# rendered outputs & scratch work dirs
+demo_showcase.mp4
+*.mp4
+*_work/
+audio/

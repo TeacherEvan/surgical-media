@@ -1,0 +1,213 @@
+#!/usr/bin/env python3
+"""verify_output.py — ffprobe QC assertions for rendered MP4s.
+
+Fails hard (exit 1) if:
+  * video or audio stream is missing
+  * video pixel format is not yuv420p (breaks iOS / Safari / Instagram / TikTok)
+  * resolution or fps deviates from expectation
+  * integrated duration drifts from the storyboard by more than 150 ms
+  * video codec is not H.264
+
+Usage:
+    verify_output.py --input out.mp4 [--storyboard board.json]
+                     [--expect-width 1920] [--expect-height 1080] [--expect-fps 30]
+                     [--expect-duration 14.0] [--json report.json]
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+DRIFT_TOLERANCE_SEC = 0.150
+
+
+def _ffprobe_json(path: Path) -> dict:
+    proc = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-print_format",
+            "json",
+            "-show_format",
+            "-show_streams",
+            str(path),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=60,
+        text=True,
+    )
+    return json.loads(proc.stdout)
+
+
+def _fps_of(stream: dict) -> float:
+    rate = stream.get("r_frame_rate") or stream.get("avg_frame_rate") or "0/1"
+    num, _, den = str(rate).partition("/")
+    try:
+        return float(num) / float(den or 1)
+    except (ValueError, ZeroDivisionError):
+        return 0.0
+
+
+def verify_mp4(
+    path: str | Path,
+    expected_width: int | None = None,
+    expected_height: int | None = None,
+    expected_fps: float | None = None,
+    expected_duration: float | None = None,
+    storyboard: str | Path | None = None,
+) -> dict:
+    path = Path(path)
+    report: dict = {"input": str(path), "checks": [], "ok": True}
+
+    def check(name: str, passed: bool, detail: str = "") -> None:
+        report["checks"].append({"check": name, "ok": bool(passed), "detail": detail})
+        if not passed:
+            report["ok"] = False
+
+    if storyboard is not None:
+        try:
+            board = json.loads(Path(storyboard).read_text(encoding="utf-8"))
+            fmt = board.get("format", {})
+            expected_width = expected_width or int(fmt.get("width", 0)) or None
+            expected_height = expected_height or int(fmt.get("height", 0)) or None
+            expected_fps = expected_fps or float(fmt.get("fps", 0)) or None
+            if expected_duration is None:
+                expected_duration = sum(
+                    float(s["duration_sec"]) for s in board.get("scenes", [])
+                )
+        except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+            check("storyboard_readable", False, str(exc))
+
+    if not path.is_file():
+        check("file_exists", False, f"no such file: {path}")
+        return report
+
+    try:
+        probe = _ffprobe_json(path)
+    except (subprocess.SubprocessError, json.JSONDecodeError, OSError) as exc:
+        check("ffprobe_runs", False, str(exc))
+        return report
+
+    streams = probe.get("streams", [])
+    video = next((s for s in streams if s.get("codec_type") == "video"), None)
+    audio = next((s for s in streams if s.get("codec_type") == "audio"), None)
+
+    check("video_stream_present", video is not None)
+    check("audio_stream_present", audio is not None)
+
+    duration = None
+    try:
+        duration = float(probe.get("format", {}).get("duration"))
+    except (TypeError, ValueError):
+        pass
+
+    if video:
+        check(
+            "codec_h264",
+            video.get("codec_name") == "h264",
+            f"codec={video.get('codec_name')}",
+        )
+        check(
+            "pix_fmt_yuv420p",
+            video.get("pix_fmt") == "yuv420p",
+            f"pix_fmt={video.get('pix_fmt')} (yuv420p required for iOS/Safari/IG/TikTok)",
+        )
+        if expected_width:
+            check(
+                "width",
+                int(video.get("width", 0)) == expected_width,
+                f"{video.get('width')} != {expected_width}",
+            )
+        if expected_height:
+            check(
+                "height",
+                int(video.get("height", 0)) == expected_height,
+                f"{video.get('height')} != {expected_height}",
+            )
+        if expected_fps:
+            fps = _fps_of(video)
+            check("fps", abs(fps - expected_fps) < 0.01, f"{fps:.3f} != {expected_fps}")
+        if duration is None:
+            try:
+                duration = float(video.get("duration"))
+            except (TypeError, ValueError):
+                pass
+
+    if audio:
+        check(
+            "audio_codec_aac",
+            audio.get("codec_name") == "aac",
+            f"codec={audio.get('codec_name')}",
+        )
+        sr = int(audio.get("sample_rate", 0))
+        check("audio_48k", sr == 48000, f"sample_rate={sr}")
+
+    if expected_duration is not None and duration is not None:
+        drift = abs(duration - expected_duration)
+        check(
+            "duration_drift_le_150ms",
+            drift <= DRIFT_TOLERANCE_SEC,
+            f"|{duration:.3f} - {expected_duration:.3f}| = {drift * 1000:.0f} ms",
+        )
+
+    report["streams"] = {
+        "video": {
+            k: video.get(k)
+            for k in ("codec_name", "pix_fmt", "width", "height", "r_frame_rate")
+        }
+        if video
+        else None,
+        "audio": {k: audio.get(k) for k in ("codec_name", "sample_rate", "channels")}
+        if audio
+        else None,
+    }
+    report["duration_sec"] = duration
+    return report
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="QC-verify a rendered MP4.")
+    parser.add_argument("--input", required=True, type=Path)
+    parser.add_argument("--storyboard", type=Path, default=None)
+    parser.add_argument("--expect-width", type=int, default=None)
+    parser.add_argument("--expect-height", type=int, default=None)
+    parser.add_argument("--expect-fps", type=float, default=None)
+    parser.add_argument("--expect-duration", type=float, default=None)
+    parser.add_argument(
+        "--json", type=Path, default=None, help="Also write the report JSON here"
+    )
+    args = parser.parse_args()
+
+    if shutil.which("ffprobe") is None:
+        print("verify_output: ffprobe not found on PATH", file=sys.stderr)
+        return 2
+
+    report = verify_mp4(
+        args.input,
+        expected_width=args.expect_width,
+        expected_height=args.expect_height,
+        expected_fps=args.expect_fps,
+        expected_duration=args.expect_duration,
+        storyboard=args.storyboard,
+    )
+    text = json.dumps(report, indent=2)
+    print(text)
+    if args.json:
+        args.json.write_text(text, encoding="utf-8")
+    if not report["ok"]:
+        failed = [c["check"] for c in report["checks"] if not c["ok"]]
+        print(f"verify_output: FAIL — {', '.join(failed)}", file=sys.stderr)
+        return 1
+    print("verify_output: PASS", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
