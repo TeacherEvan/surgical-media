@@ -377,3 +377,13 @@ def test_image_backdrop_blur_anchor_y_moves_plate(tmp_path):
     # plate height = W * (100/200) = 0.5*W; for anchors 0 / 1 it hugs the edges
     assert sum(top_img.getpixel((W // 2, 8))) > sum(top_img.getpixel((W // 2, H - 8)))
     assert sum(bot_img.getpixel((W // 2, H - 8))) > sum(bot_img.getpixel((W // 2, 8)))
+
+
+def test_bundled_inter_is_the_default_face():
+    """Bundled OFL Inter must win over system fonts for sans text."""
+    import canvas
+
+    path = canvas.find_font(mono=False)
+    assert path is not None and "Inter-" in path
+    font = canvas.get_font(24)
+    assert "Inter" in (font.getname()[0] or "")

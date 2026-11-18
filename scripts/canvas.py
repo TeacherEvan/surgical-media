@@ -61,7 +61,15 @@ def _parse_color_uncached(value: str | Sequence[int], default_alpha: int = 255) 
     raise ValueError(f"unparseable color {value!r}; expected #RRGGBB[AA]")
 
 
+_BUNDLED_FONTS = Path(__file__).resolve().parent.parent / "assets" / "fonts"
+_BUNDLED_CANDIDATES = [
+    str(_BUNDLED_FONTS / "Inter-Bold.ttf"),
+    str(_BUNDLED_FONTS / "Inter-SemiBold.ttf"),
+    str(_BUNDLED_FONTS / "Inter-Regular.ttf"),
+]
+
 _FONT_CANDIDATES = [
+    *_BUNDLED_CANDIDATES,
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",

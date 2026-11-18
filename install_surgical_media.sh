@@ -7,6 +7,7 @@
 #   LICENSE
 #   AGENTS.md
 #   scripts/ (all runtime CLIs + engine library)
+#   assets/fonts/ (bundled OFL Inter — captions/HUD face)
 #   references/ (archetypes, storyboard guide, ffmpeg encoding)
 #   schemas/ (investigation_brief, script, storyboard)
 #   examples/ (renderable tri-archetype storyboard)
@@ -26,6 +27,7 @@ echo
 
 mkdir -p \
   "${HERMES_SKILL_DIR}/scripts" \
+  "${HERMES_SKILL_DIR}/assets/fonts" \
   "${HERMES_SKILL_DIR}/references" \
   "${HERMES_SKILL_DIR}/schemas" \
   "${HERMES_SKILL_DIR}/examples" \
@@ -38,6 +40,7 @@ done
 cp "${SCRIPT_DIR}/scripts/"*.py "${HERMES_SKILL_DIR}/scripts/"
 cp "${SCRIPT_DIR}/references/"*.md "${HERMES_SKILL_DIR}/references/"
 cp "${SCRIPT_DIR}/schemas/"*.json "${HERMES_SKILL_DIR}/schemas/"
+cp "${SCRIPT_DIR}/assets/fonts/"*.ttf "${SCRIPT_DIR}/assets/fonts/"*.txt "${SCRIPT_DIR}/assets/fonts/README.md" "${HERMES_SKILL_DIR}/assets/fonts/"
 cp "${SCRIPT_DIR}/examples/"*.json "${HERMES_SKILL_DIR}/examples/"
 cp "${SCRIPT_DIR}/docs/adr/"*.md "${HERMES_SKILL_DIR}/docs/adr/"
 
