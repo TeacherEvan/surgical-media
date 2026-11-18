@@ -21,6 +21,9 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 - `.pre-commit-config.yaml` — optional ruff/format/whitespace hooks; explicitly
   documented as NOT a replacement for `scripts/ci_gates.sh`.
 
+### Changed
+- `main` branch protection enabled on GitHub: required linear history, force-push and deletion blocked, `enforce_admins: true`. Fast-forward pushes unchanged.
+
 ### Fixed
 - Advisory mypy pass (not enforced): `blender_plate.build_scene` annotated to
   return the scene (TYPE_CHECKING bpy import); `build_demo.board` annotated as

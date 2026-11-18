@@ -4,6 +4,7 @@ Agent instructions for working inside the `surgical-media` skill repository. `RE
 
 ## Repo shape
 
+- `main` is protected: required linear history, no force-push, no branch deletion, enforced for admins. Fast-forward pushes stay legal — never create merge commits.
 - `surgical-media` is a Hermes **skill** (deterministic video pipeline: storyboard → MP4), not a published package. This directory **is** the public repo `github.com/TeacherEvan/surgical-media` (branch `main`, repo-local identity `TeacherEvan <…noreply.github.com>`). Ask before rewriting or force-pushing history.
 - `Concept/` is the input transcript (design history). It is not the contract — code and `tests/` are.
 - Runtime deps: **Pillow ≥ 10.1 + ffmpeg/ffprobe on PATH** (`requirements.txt`). `edge-tts` is optional (`requirements-tts.txt`) and **tests never use it** (offline by design). Audio/geometry are stdlib-only — no NumPy (`docs/adr/0001-stdlib-first-verified-pipeline.md`).
