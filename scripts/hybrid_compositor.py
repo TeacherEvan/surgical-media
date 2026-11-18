@@ -47,22 +47,43 @@ def composite_3d_tracked_hud(
 
     title = str(scene_title)
     title_w = hud_font.getlength(title)
-    hud_w = max(620.0, title_w + 52.0)
 
-    locked_boxes = [
-        LayoutBox(
-            "hud_header", 96.0, 42.0, 96.0 + hud_w, 100.0, locked=True, padding=16.0
-        ),
-        LayoutBox(
-            "center_3d_repulsor",
-            w * 0.29,
-            h * 0.18,
-            w * 0.71,
-            h * 0.78,
-            locked=True,
-            padding=20.0,
-        ),
-    ]
+    # 9:16 has no room for the 16:9 peripheral gutters: place a full-width
+    # header inside the Shorts safe zone and dock cards in a two-column band
+    # directly above the central 3D stage (otherwise the solver strands cards
+    # at the canvas edges and the leader lines cross the whole frame).
+    vertical = aspect_ratio == "9:16"
+    if vertical:
+        hud_box = (84.0, 226.0, w - 84.0, 302.0)
+        card_h = _CARD_H
+        locked_boxes = [
+            LayoutBox("hud_header", *hud_box, locked=True, padding=12.0),
+            LayoutBox(
+                "center_3d_repulsor",
+                84.0,
+                820.0,
+                w - 84.0,
+                1400.0,
+                locked=True,
+                padding=16.0,
+            ),
+        ]
+    else:
+        hud_w = max(620.0, title_w + 52.0)
+        hud_box = (96.0, 42.0, 96.0 + hud_w, 100.0)
+        card_h = _CARD_H
+        locked_boxes = [
+            LayoutBox("hud_header", *hud_box, locked=True, padding=16.0),
+            LayoutBox(
+                "center_3d_repulsor",
+                w * 0.29,
+                h * 0.18,
+                w * 0.71,
+                h * 0.78,
+                locked=True,
+                padding=20.0,
+            ),
+        ]
 
     visible_anchors = [a for a in tracked_anchors if a.get("visible", True)]
 
@@ -75,17 +96,22 @@ def composite_3d_tracked_hud(
         metric = str(anchor.get("metric", ""))
         label_w = label_font.getlength(label)
         metric_w = metric_font.getlength(metric)
-        card_w = max(290.0, max(label_w, metric_w) + 44.0)
-        put_left = idx % 2 == 1
-        cx0 = 104.0 if put_left else (w - 104.0 - card_w)
-        cy0 = _clamp(ay - _CARD_H / 2.0, 135.0, h * 0.72)
+        if vertical:
+            card_w = min(440.0, max(340.0, max(label_w, metric_w) + 44.0))
+            cx0 = 84.0 if idx % 2 == 0 else (w - 84.0 - card_w)
+            cy0 = 560.0 + (idx // 2) * (card_h + 24.0)
+        else:
+            card_w = max(290.0, max(label_w, metric_w) + 44.0)
+            put_left = idx % 2 == 1
+            cx0 = 104.0 if put_left else (w - 104.0 - card_w)
+            cy0 = _clamp(ay - card_h / 2.0, 135.0, h * 0.72)
         card_boxes.append(
             LayoutBox(
                 f"anchor_card_{idx}",
                 cx0,
                 cy0,
                 cx0 + card_w,
-                cy0 + _CARD_H,
+                cy0 + card_h,
                 locked=False,
                 padding=18.0,
             )
@@ -172,12 +198,13 @@ def composite_3d_tracked_hud(
             (box.x0 + 20.0, box.y0 + 44.0), metric, accent, size=22.0, mono=True
         )
 
-    # Top HUD bar — painted even with zero visible anchors.
+    # HUD bar — painted even with zero visible anchors.
+    hx0, hy0, hx1, hy1 = hud_box
     canvas.rectangle(
-        (96.0, 42.0, 96.0 + hud_w, 100.0),
+        (hx0, hy0, hx1, hy1),
         fill=_HUD_FILL,
         outline=_HUD_ACCENT,
         width=1.6,
         radius=10.0,
     )
-    canvas.text((118.0, 58.0), title, _HUD_ACCENT, size=21.0, mono=True)
+    canvas.text((hx0 + 22.0, hy0 + 16.0), title, _HUD_ACCENT, size=21.0, mono=True)

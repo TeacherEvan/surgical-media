@@ -15,7 +15,7 @@ metadata:
 
 # Surgical Media (v1.3.0)
 
-Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 277 tests including a rendered-and-verified MP4 integration pass and pixel-level visual smoke checks).
+Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 278 tests including a rendered-and-verified MP4 integration pass and pixel-level visual smoke checks).
 
 ## When to Use
 
@@ -97,7 +97,7 @@ A scene may replace `elements[]` with a `scene_spec` object routing it to a para
 ## Verification
 
 ```bash
-python3 -m pytest tests/ -q                                   # 277 tests
+python3 -m pytest tests/ -q                                   # 278 tests
 python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + QC
 python3 scripts/verify_output.py --input /tmp/demo.mp4 --storyboard examples/tri_archetype_storyboard.json
 ```

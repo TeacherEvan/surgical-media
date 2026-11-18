@@ -49,8 +49,9 @@ Examples: [`examples/tri_archetype_storyboard.json`](../examples/tri_archetype_s
 | Docs scaffolding: this plan + [`index.md`](index.md); version metadata synced (pyproject, installer, README, SKILL) | this file; `git diff pyproject.toml install_surgical_media.sh` |
 | Legal note: Blender GPL subprocess / edge-tts LGPL-3.0 optional / MIT unchanged | README → Dependencies & Licensing; ADR 0003 Consequences |
 | Gate hardening: all `examples/*.json` validated (gates 1/6); hybrid thumbnail smoke (gate 7) | `scripts/ci_gates.sh` |
-| Full local gate run green (8/8): 277 tests collected (266 passed, 11 clean jsonschema skips); draft render + ffprobe QC `ok:true`, 0 ms A/V drift | `bash scripts/ci_gates.sh` run 2026-11-19 |
+| Full local gate run green (8/8): 278 tests — all pass with `jsonschema` installed (gate venv), 266 passed + 11 clean skips without it; draft render + ffprobe QC `ok:true`, 0 ms A/V drift | `bash scripts/ci_gates.sh` run 2026-11-19 (two environments, same host) |
 | Hybrid board renders end-to-end **without Blender** (forced `BLENDER_BIN` fallback): QC `ok:true`, 3.0 s / 720p30 / yuv420p | `BLENDER_BIN=/nonexistent-blender python scripts/render_engine.py --storyboard examples/hybrid_3d_storyboard.json --output … --quality draft` |
+| Hybrid board renders end-to-end **with Blender 5.3.0**: both scenes pre-baked (45 frames each), no fallback warnings, QC `ok:true`, 0 ms drift | same command without `BLENDER_BIN` override, run 2026-11-19 |
 
 ### Pending / open (explicit gaps — not hidden)
 
@@ -62,7 +63,7 @@ Examples: [`examples/tri_archetype_storyboard.json`](../examples/tri_archetype_s
 | P-04 | `manim_math` backend accepted-with-warning, renders as `canvas_2d` | Manim deliberately excluded (ADR 0001/0003); no action unless policy changes | — |
 | P-05 | mypy advisory only (configured, not enforced, not installed in gate venv) | Optional: enforce after a clean strict pass | Evan |
 | P-06 | markdownlint fails on pre-existing house docs (MD022/MD031/MD034/MD060) | Fix `references/` + `docs/adr/` formatting before ever adding it as a gate | future |
-| P-07 | Blender-path verification is host-dependent | Blender 5.3 present on this host; capability probes in `blender_runner.py` must keep passing on 4.2–4.5/5.x hosts | agents |
+| P-07 | Blender-path verification is host-dependent | Blender 5.3 present on this host; capability probes in `blender_runner.py` must keep passing on 4.2–4.5/5.x hosts. Measured 2026-11-19 (CPU-only N150): EEVEE bake ≈ 6–10 s/frame — a 45-frame scene takes ~5–8 min, the 3 s hybrid board ~16 min with Blender vs ~2 min software-only. The per-scene bake timeout is 600 s (`render_engine._prerender_blender_plates`); slower scenes fall back to software by design — keep hero scenes short. | agents |
 
 ## 4. Invariants (do not regress)
 

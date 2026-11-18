@@ -75,6 +75,36 @@ def _changed_pixels(region) -> int:
     )
 
 
+def test_composite_9_16_keeps_cards_inside_short_safe_zone(monkeypatch):
+    import hybrid_compositor
+    from layout_solver import LayoutBox
+
+    w, h = 1080, 1920
+    captured: dict[str, LayoutBox] = {}
+
+    def fake_solve(boxes, **kwargs):
+        captured.update({box.box_id: box for box in boxes})
+        return captured
+
+    monkeypatch.setattr(hybrid_compositor.SATLayoutSolver, "solve", fake_solve)
+    cv = SupersampledCanvas(w, h, scale=1, background=BACKGROUND)
+    composite_3d_tracked_hud(
+        cv,
+        _synthetic_anchors(),
+        "FOOD WEB // PREDATOR AND PREY",
+        1.0,
+        aspect_ratio="9:16",
+    )
+    hud = captured["hud_header"]
+    assert hud.x0 >= 84 and hud.x1 <= w - 84
+    assert hud.y0 >= 220 and hud.y1 <= h - 440
+    for box in captured.values():
+        if box.box_id.startswith("anchor_card_"):
+            assert 84 <= box.x0 < box.x1 <= w - 84
+            assert 560 <= box.y0 < box.y1 <= 820
+            assert box.y0 > hud.y1
+
+
 def test_composite_paints_cards_and_leaders():
     cv = SupersampledCanvas(W, H, scale=2, background=BACKGROUND)
     cv.set_frame(0.75, 3.0)

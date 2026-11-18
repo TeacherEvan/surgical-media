@@ -22,7 +22,7 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 - Schema + validator: `backend`/`scene_spec` on scenes; `scene_spec` satisfies the elements requirement (`anyOf` — elements-or-scene_spec); `tests/test_scene_spec_integration.py` pins both validators to parity.
 - `examples/hybrid_3d_storyboard.json` — 2-scene showcase (CoWoS-style stack, stellarator torus); renders end-to-end with and without Blender.
 - ADR 0003 (`docs/adr/0003-optional-3d-scene-backends.md`); `references/storyboard-guide.md` scene-backend section.
-- `tests/test_layout_solver.py`, `tests/test_scene_router.py`, `tests/test_blender_runner.py`, `tests/test_software_3d_projection.py`, `tests/test_hybrid_compositor.py` — 59 new tests (277 total).
+- `tests/test_layout_solver.py`, `tests/test_scene_router.py`, `tests/test_blender_runner.py`, `tests/test_software_3d_projection.py`, `tests/test_hybrid_compositor.py` — 59 new tests (278 total).
 - ADR 0002 (`docs/adr/0002-local-first-verification.md`) — the decision record for removing hosted CI in favor of local-first gates (supersedes the removed GitHub Actions workflow).
 - `SECURITY.md` — scope (offline, no network service), license-compliance and URL-safety reporting paths, supported versions.
 - `.pre-commit-config.yaml` — optional ruff/format/whitespace hooks; explicitly documented as NOT a replacement for `scripts/ci_gates.sh`.
@@ -32,9 +32,10 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 - `storyboard.schema.json` scene `required` is now `["scene_id","archetype","duration_sec"]`; scenes require `elements` **or** `scene_spec`.
 - `scripts/ci_gates.sh`: gates 1/6 validate **every** `examples/*.json` board (runtime validator + JSON Schema); gate 7 adds a hybrid-3D thumbnail smoke alongside the 2D demo.
 - Docs scaffolding: `docs/project-plan.md` (living plan + task status) and `docs/index.md` (docs entrypoint); version metadata synced to 1.3.0 (`pyproject.toml`, installer); README gains a Dependencies & Licensing section (Blender GPL subprocess note).
-- 218 → 277 tests; all gates pass locally (8/8).
+- 218 → 278 tests; all gates pass locally (8/8).
 
 ### Fixed
+- 9:16 hybrid HUD: telemetry cards now dock in a two-column band above the 3D stage inside Shorts/Reels safe zones (previously the 16:9 gutter layout stranded cards at the canvas edges); regression test added.
 - Advisory mypy pass (not enforced): `blender_plate.build_scene` annotated to
   return the scene (TYPE_CHECKING bpy import); `build_demo.board` annotated as
   `dict`; `audio_dsp` redundant re-annotation removed; `camera.zoom_at` coerces

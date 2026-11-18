@@ -19,7 +19,7 @@ python3 scripts/storyboard.py examples/tri_archetype_storyboard.json   # demo mu
 python3 scripts/storyboard.py examples/hybrid_3d_storyboard.json      # 3D/HUD showcase must validate too
 ruff check --no-cache scripts/ tests/
 ruff format --check --no-cache scripts/ tests/
-python3 -m pytest tests/ -q                                            # 277 tests, all green
+python3 -m pytest tests/ -q                                            # 278 tests, all green
 check-jsonschema --check-metaschema schemas/*.schema.json
 python3 scripts/render_engine.py --demo --thumbnails /tmp/sm_thumbs     # seconds — visual smoke, no ffmpeg needed
 python3 scripts/render_engine.py --storyboard examples/hybrid_3d_storyboard.json --thumbnails /tmp/sm_hybrid_thumbs   # software 3D + HUD smoke
@@ -27,7 +27,7 @@ python3 scripts/render_engine.py --demo --output /tmp/sm_gate.mp4       # only w
 ```
 
 - Single test: `python3 -m pytest "tests/test_visual_smoke.py::test_box_downsample_keeps_thin_lines" -q`
-- Verification is **local-first**: `scripts/ci_gates.sh` is the single gate (storyboard → ruff → format → 277 tests → schema metaschema → both example-vs-schema → thumbnails for 2D + hybrid 3D → draft render → ffprobe QC) and is what “green” means for this repo. GitHub Actions was removed 2026-11-18 (billing-locked; permanently red). An optional GitLab mirror (`.gitlab-ci.yml`) runs the same script on import — it has **NOT run** yet; never claim a green pipeline until one passes. Change the script, never the providers. ffmpeg is apt/pip-installed there and integration tests **skip cleanly** without it.
+- Verification is **local-first**: `scripts/ci_gates.sh` is the single gate (storyboard → ruff → format → 278 tests → schema metaschema → both example-vs-schema → thumbnails for 2D + hybrid 3D → draft render → ffprobe QC) and is what “green” means for this repo. GitHub Actions was removed 2026-11-18 (billing-locked; permanently red). An optional GitLab mirror (`.gitlab-ci.yml`) runs the same script on import — it has **NOT run** yet; never claim a green pipeline until one passes. Change the script, never the providers. ffmpeg is apt/pip-installed there and integration tests **skip cleanly** without it.
 - **mypy** is configured in `pyproject.toml` but not enforced and not installed in the usual scratch venv — ruff + pytest are the enforced gates; mypy runs are advisory only.
 - **markdownlint** (npm, v0.49.1) fails on *pre-existing* house docs (`references/`, `docs/adr/`: MD022/MD031/MD034/MD060) — it is not a gate. Don't present it as one, and don't add it to CI without fixing those files first.
 - Before spending a full render: `--estimate` (frame count / audio cost) and `--thumbnails DIR` (one PNG per scene). `final` = crf 18, demo/draft = crf 26. Rendering is deterministic only per machine/Pillow build — diff frames, not hashes.
