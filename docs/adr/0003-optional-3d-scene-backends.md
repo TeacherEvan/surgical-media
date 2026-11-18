@@ -74,6 +74,6 @@ Manim (math), or 2D canvas. Two hard constraints shaped the adoption:
   is invoked only as an external subprocess (`blender -b -P`); repo code never
   imports `bpy` or links Blender (`blender_runner.py` executes inside Blender's
   own Python). No new Python dependencies — the repo stays MIT (`LICENSE`);
-  optional user-installed `edge-tts` (GPL-3.0) serves only the online TTS path
+  optional user-installed `edge-tts` (LGPL-3.0) serves only the online TTS path
   and is never bundled. See README → Dependencies & Licensing.
 - Living plan and task status: [`docs/project-plan.md`](../project-plan.md).

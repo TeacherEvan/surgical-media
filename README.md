@@ -86,7 +86,7 @@ URL-safety issues via GitHub advisories or labeled issues.
 
 - Repo code: **MIT** ([`LICENSE`](LICENSE)). Runtime deps: Pillow ≥ 10.1 + ffmpeg/ffprobe on PATH; audio and geometry are stdlib-only ([ADR 0001](docs/adr/0001-stdlib-first-verified-pipeline.md)).
 - **Blender** (GNU GPL, Blender Foundation) is optional and invoked only as an external subprocess (`blender -b -P scripts/blender_runner.py`); nothing here imports `bpy` or links Blender, so the MIT footprint is unchanged ([ADR 0003](docs/adr/0003-optional-3d-scene-backends.md)).
-- **edge-tts** (GPL-3.0) is an optional, user-installed extra (`requirements-tts.txt`) for the online voice path only — never bundled; the offline timing path is stdlib.
+- **edge-tts** (LGPL-3.0) is an optional, user-installed extra (`requirements-tts.txt`) for the online voice path only — never bundled; the offline timing path is stdlib.
 - Bundled fonts: OFL-1.1 (Inter, JetBrains Mono), licenses verbatim in [`assets/fonts/`](assets/fonts/).
 
 ## Design Notes

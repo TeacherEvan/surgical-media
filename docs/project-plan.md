@@ -47,8 +47,10 @@ Examples: [`examples/tri_archetype_storyboard.json`](../examples/tri_archetype_s
 | Hybrid example board validates + paints | `examples/hybrid_3d_storyboard.json`, gates 1/6/7 in `scripts/ci_gates.sh` |
 | ADR 0003 + storyboard-guide scene-backend section | [`adr/0003-optional-3d-scene-backends.md`](adr/0003-optional-3d-scene-backends.md), [`references/storyboard-guide.md`](../references/storyboard-guide.md) |
 | Docs scaffolding: this plan + [`index.md`](index.md); version metadata synced (pyproject, installer, README, SKILL) | this file; `git diff pyproject.toml install_surgical_media.sh` |
-| Legal note: Blender GPL subprocess / edge-tts GPL-3.0 optional / MIT unchanged | README → Dependencies & Licensing; ADR 0003 Consequences |
+| Legal note: Blender GPL subprocess / edge-tts LGPL-3.0 optional / MIT unchanged | README → Dependencies & Licensing; ADR 0003 Consequences |
 | Gate hardening: all `examples/*.json` validated (gates 1/6); hybrid thumbnail smoke (gate 7) | `scripts/ci_gates.sh` |
+| Full local gate run green (8/8): 277 tests collected (266 passed, 11 clean jsonschema skips); draft render + ffprobe QC `ok:true`, 0 ms A/V drift | `bash scripts/ci_gates.sh` run 2026-11-19 |
+| Hybrid board renders end-to-end **without Blender** (forced `BLENDER_BIN` fallback): QC `ok:true`, 3.0 s / 720p30 / yuv420p | `BLENDER_BIN=/nonexistent-blender python scripts/render_engine.py --storyboard examples/hybrid_3d_storyboard.json --output … --quality draft` |
 
 ### Pending / open (explicit gaps — not hidden)
 
