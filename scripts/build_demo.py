@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 OUT = SCRIPT_DIR.parent / "examples" / "tri_archetype_storyboard.json"
@@ -19,14 +20,15 @@ FPS = 30
 W, H = 1280, 720
 
 
-def words(text: str, start: float, dur: float) -> list[dict]:
+def words(text: str, start: float, dur: float) -> list[dict[str, Any]]:
     """Scene-relative karaoke words (local seconds into the scene)."""
     import sys
 
     sys.path.insert(0, str(SCRIPT_DIR))
     from tts_align import align_words
 
-    return align_words(text, dur)
+    result: list[dict[str, Any]] = align_words(text, dur)
+    return result
 
 
 S1_NARR = "Numbers do not lie. Watch the spiral lock on."
@@ -35,7 +37,7 @@ S3_NARR = "The balancer held. The pool did not. Five hundred, zero, three."
 
 
 def main() -> None:
-    board: dict = {
+    board: dict[str, Any] = {
         "meta": {
             "title": "Surgical Media — Three Archetypes",
             "author": "surgical-media",

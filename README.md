@@ -8,6 +8,7 @@
 # system deps: python>=3.10, ffmpeg + ffprobe on PATH
 python3 -m pip install -r requirements.txt          # Pillow ≥ 10
 python3 -m pip install -r requirements-tts.txt      # optional: edge-tts voice synthesis
+python3 -m pip install -r requirements-dev.txt      # hacking on this repo: pytest/jsonschema/ruff/mypy/check-jsonschema
 
 python3 scripts/build_demo.py                       # (re)generate the example board
 python3 scripts/render_engine.py --demo --thumbnails /tmp/sm_thumbs   # seconds — see each scene first
@@ -67,7 +68,7 @@ Or everything, in one call: `bash scripts/ci_gates.sh`
 
 ### Verification (local-first)
 
-- **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → 285 tests → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC. Run it before pushing; its green exit *is* this repo's quality bar.
+- **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → `mypy --strict` → 302 tests → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC (9 gates). Run it before pushing; its green exit *is* this repo's quality bar. Install the toolchain with `requirements-dev.txt`.
 - `main` is protected on GitHub: required linear history, force-push and branch deletion blocked, enforced for admins too. Direct fast-forward pushes remain allowed (the current flow).
 - The decision is recorded in [ADR 0002](docs/adr/0002-local-first-verification.md). An optional GitLab mirror ([`.gitlab-ci.yml`](.gitlab-ci.yml)) executes the identical script once a project is imported: **New project → Import project → Repository by URL** → paste this repo's URL → create. Optionally enable *Settings → Repository → Mirroring* to auto-sync `main`. The mirror is **configured, not verified** — do not treat its presence as a green pipeline until one passes.
 

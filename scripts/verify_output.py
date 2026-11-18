@@ -24,6 +24,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 DRIFT_TOLERANCE_SEC = 0.150
 MAX_SILENCE_FRACTION = (
@@ -58,7 +59,7 @@ def silence_coverage(intervals: list[tuple[float, float]], duration: float) -> f
     return min(1.0, sum(max(0.0, end - start) for start, end in intervals) / duration)
 
 
-def _ffprobe_json(path: Path) -> dict:
+def _ffprobe_json(path: Path) -> dict[str, Any]:
     proc = subprocess.run(
         [
             "ffprobe",
@@ -75,10 +76,10 @@ def _ffprobe_json(path: Path) -> dict:
         timeout=60,
         text=True,
     )
-    return json.loads(proc.stdout)
+    return cast(dict[str, Any], json.loads(proc.stdout))
 
 
-def _fps_of(stream: dict) -> float:
+def _fps_of(stream: dict[str, Any]) -> float:
     rate = stream.get("r_frame_rate") or stream.get("avg_frame_rate") or "0/1"
     num, _, den = str(rate).partition("/")
     try:
@@ -95,9 +96,9 @@ def verify_mp4(
     expected_duration: float | None = None,
     storyboard: str | Path | None = None,
     max_silence_fraction: float = MAX_SILENCE_FRACTION,
-) -> dict:
+) -> dict[str, Any]:
     path = Path(path)
-    report: dict = {"input": str(path), "checks": [], "ok": True}
+    report: dict[str, Any] = {"input": str(path), "checks": [], "ok": True}
 
     def check(name: str, passed: bool, detail: str = "") -> None:
         report["checks"].append({"check": name, "ok": bool(passed), "detail": detail})

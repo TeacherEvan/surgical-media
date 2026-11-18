@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Any
 
-from canvas import get_font
+from canvas import SupersampledCanvas, get_font
 from easings import ease_out_expo
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
@@ -31,7 +32,9 @@ def _rounded_mask(size: tuple[int, int], radius: int) -> Image.Image:
     return mask
 
 
-def paint_image(cv, el: dict, ctx: ElementContext) -> None:
+def paint_image(
+    cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext
+) -> None:
     """Raster image element: cover/contain, Ken Burns drift, fade-in, credit line.
 
     Images are backdrop plates: painted screen-fixed in design space (no

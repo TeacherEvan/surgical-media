@@ -250,7 +250,7 @@ def search_commons(query: str, page_size: int, timeout: float) -> list[dict[str,
             continue
         md = ii.get("extmetadata", {}) or {}
 
-        def mdv(key: str, md: dict = md) -> str:
+        def mdv(key: str, md: dict[str, Any] = md) -> str:
             return str((md.get(key) or {}).get("value", "") or "")
 
         key, version = parse_commons_license(mdv("LicenseShortName"))

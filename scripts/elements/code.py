@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 
-from canvas import get_font
+from canvas import SupersampledCanvas, get_font
 
 from elements._shared import (
     CYAN,
@@ -24,7 +25,9 @@ _NODE_W = 210.0
 _NODE_H = 64.0
 
 
-def paint_system_architecture(cv, el: dict, ctx: ElementContext) -> None:
+def paint_system_architecture(
+    cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext
+) -> None:
     nodes = el.get("nodes", [])
     if not nodes:
         return
@@ -36,7 +39,7 @@ def paint_system_architecture(cv, el: dict, ctx: ElementContext) -> None:
     mono = True
 
     # failure cascade order: targets in declaration order
-    def node_state(node) -> tuple[str, float]:
+    def node_state(node: dict[str, Any]) -> tuple[str, float]:
         role = node.get("role", "exchange")
         if role == "source":
             return "ok", 0.0
@@ -250,7 +253,14 @@ def _syntax_tokens(text: str, default_fg: str) -> list[tuple[str, str]]:
     return spans
 
 
-def _draw_syntax(cv, x: float, y: float, text: str, default_fg: str, font_size: float):
+def _draw_syntax(
+    cv: SupersampledCanvas,
+    x: float,
+    y: float,
+    text: str,
+    default_fg: str,
+    font_size: float,
+) -> float:
     """Paint syntax-spans; returns the design-space x where the line ended.
 
     cv.text applies the supersample/camera transform internally, so design-space
@@ -268,7 +278,9 @@ def _draw_syntax(cv, x: float, y: float, text: str, default_fg: str, font_size: 
 # --- end syntax highlighting ---------------------------------------------------
 
 
-def paint_code_terminal(cv, el: dict, ctx: ElementContext) -> None:
+def paint_code_terminal(
+    cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext
+) -> None:
     box = el.get(
         "box",
         [ctx.width * 0.14, ctx.height * 0.24, ctx.width * 0.86, ctx.height * 0.72],

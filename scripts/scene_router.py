@@ -25,6 +25,7 @@ import os
 import re
 import shutil
 import subprocess
+from typing import Any
 
 # Shared camera defaults — consumed by both the software 3D renderer and the
 # Blender pre-bake adapter so an underspecified scene looks identical either way.
@@ -109,10 +110,10 @@ _VERSION_RE = re.compile(r"Blender\s+(\d+)\.(\d+)(?:\.(\d+))?")
 
 # Module-level probe cache. ``None`` means "not probed yet". Tests reset this
 # (or call the uncached variant) to avoid re-execing Blender.
-_blender_probe_cache: dict | None = None
+_blender_probe_cache: dict[str, Any] | None = None
 
 
-def _unavailable_probe() -> dict:
+def _unavailable_probe() -> dict[str, Any]:
     return {
         "available": False,
         "binary": None,
@@ -121,7 +122,7 @@ def _unavailable_probe() -> dict:
     }
 
 
-def _probe_blender_environment_uncached() -> dict:
+def _probe_blender_environment_uncached() -> dict[str, Any]:
     """Probe Blender without touching the module-level cache.
 
     Locates the binary via the ``BLENDER_BIN`` environment variable, falling
@@ -160,7 +161,7 @@ def _probe_blender_environment_uncached() -> dict:
     }
 
 
-def probe_blender_environment() -> dict:
+def probe_blender_environment() -> dict[str, Any]:
     """Return the cached Blender probe result, probing once if needed.
 
     The result is cached in a module-level private variable; repeated calls
@@ -185,7 +186,7 @@ def _as_float(value: object, default: float = 0.0) -> float:
         return default
 
 
-def route_scene(scene: dict) -> str:
+def route_scene(scene: dict[str, Any]) -> str:
     """Route a scene dict to a backend: ``blender_hybrid`` | ``blender_3d`` |
     ``manim_math`` | ``canvas_2d``.
 

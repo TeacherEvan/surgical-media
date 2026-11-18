@@ -49,7 +49,7 @@ def build_scene(kind: str, seed: int) -> bpy.types.Scene:
     shading.cavity_type = "BOTH"
     shading.show_shadows = False
 
-    def mat(name: str, hex_color: str):
+    def mat(name: str, hex_color: str) -> bpy.types.Material:
         m = bpy.data.materials.new(name)
         rgb = tuple(int(hex_color[i : i + 2], 16) / 255 for i in (1, 3, 5))
         m.diffuse_color = (*rgb, 1.0)
@@ -120,7 +120,7 @@ def build_scene(kind: str, seed: int) -> bpy.types.Scene:
     return scene
 
 
-def render(scene, out: Path, width: int, height: int) -> None:
+def render(scene: bpy.types.Scene, out: Path, width: int, height: int) -> None:
     scene.render.resolution_x = width
     scene.render.resolution_y = height
     scene.render.resolution_percentage = 100

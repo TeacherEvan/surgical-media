@@ -13,6 +13,10 @@ bending bias — deterministic, no physics state.
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from canvas import SupersampledCanvas
 
 ORANGE = "#FF6B00"
 WHITE = "#FFFFFF"
@@ -53,7 +57,7 @@ def two_bone_ik(
 
 
 def draw_stick_figure(
-    canvas,
+    canvas: SupersampledCanvas,
     root_x: float,
     root_y: float,
     height: float,
@@ -96,7 +100,7 @@ def draw_stick_figure(
     shoulder_r = (shoulder_c[0] + height * 0.17, shoulder_y + height * 0.02)
     arm_l1 = arm_l2 = height * 0.24
 
-    def relaxed_hand(side: str):
+    def relaxed_hand(side: str) -> tuple[float, float]:
         sway = math.sin(t * math.tau * bob_hz * 0.5 + (0.0 if side == "left" else 1.7))
         if side == "left":
             return (

@@ -11,13 +11,18 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 
 ## [Unreleased]
 
-### Added
-- `organic_serpent_3d` — a genuine parametric snake asset: tapered undulating S-curve body (26×8 polygon tube with jade scale bands, gold head and emissive eyes) in `software_3d_projection.py`, and a headless-bpy curve/bevel builder with per-frame spine animation in `blender_runner.py`. Registered in router, runtime validator and storyboard schema; head/body/tail anchors track the moving spine. 7 new tests; suite now 285.
-- SKILL.md/AGENTS.md now state the design-history rule: plans are *templates for creating assets*, never assets to copy; new subjects require new generators in both renderers with tests and docs in the same change.
-
 ## [1.3.0] — 2026-11-19
 
 ### Added
+- `tests/test_fallback_paths.py` — 16 failure-path tests: software-3D exception containment, broken/unusable Blender plates falling back to the software pass, plate pre-render timeout / non-zero exit (never an abort), anchor-track loading & metadata merging, and `blender_runner` pure helpers (hex→linear, ease curve, spine/anchor math).
+- `tests/test_build_demo.py` — pins the "example board is never hand-edited" contract: regenerating `examples/tri_archetype_storyboard.json` from `build_demo` must be byte-identical to what is checked in. 285 → 302 tests.
+- `requirements-dev.txt` — the verification "gate venv" as code (pytest, pytest-cov, jsonschema, ruff, mypy, check-jsonschema), mirrored by `[project.optional-dependencies].dev`; the GitLab mirror and pre-commit now use it instead of ad-hoc pip installs.
+- **mypy strict, enforced**: `scripts/` passes `mypy --strict` (249 errors → 0). New gate 4/9 in `scripts/ci_gates.sh`; pre-commit gains a local mypy hook; the gate runs it as part of every change.
+- `pyproject.toml` now declares `dependencies` (`Pillow>=10.1`), `tts`/`dev` extras, and coverage configuration (`[tool.coverage.run] source = ["scripts"]`).
+- `.editorconfig`; `.gitignore` now covers coverage, egg-info, `build/`, `dist/`, `.venv/`.
+- Project-local `opencode.json` — version-pinned official MCP server for agent-assisted work on this repo: `context7` (docs grounding; sends documentation queries to a remote API). No secrets; removable at any time. (`sequential-thinking` was wired but removed: its npx install times out in this network — see commit history.)
+- `organic_serpent_3d` — a genuine parametric snake asset: tapered undulating S-curve body (26×8 polygon tube with jade scale bands, gold head and emissive eyes) in `software_3d_projection.py`, and a headless-bpy curve/bevel builder with per-frame spine animation in `blender_runner.py`. Registered in router, runtime validator and storyboard schema; head/body/tail anchors track the moving spine. 7 new tests; suite now 285.
+- SKILL.md/AGENTS.md now state the design-history rule: plans are *templates for creating assets*, never assets to copy; new subjects require new generators in both renderers with tests and docs in the same change.
 - **Optional parametric 3D scene backends** (`scene_spec` + `backend` on scenes): procedural `exploded_hardware_3d` and `orbital_or_field_3d` categories rendered by `scripts/software_3d_projection.py` (stdlib 4×4 look-at view matrix, Painter's-algorithm Z sort, diffuse shading, bloom-fed emissives) with normalized 3D→2D anchor tracks — Blender not required.
 - `scripts/scene_router.py` — `auto`/`blender_hybrid`/`blender_3d`/`canvas_2d`/`manim_math` routing + Blender ≥3.6 capability probe (version-sniffed EEVEE id; `BLENDER_BIN` override; cached).
 - `scripts/blender_runner.py` — optional headless-Blender bake (`blender -b -P`): EEVEE/Cycles selection, motion blur, compositor glare with host-API probes (4.2–4.5/5.x), `world_to_camera_view` anchor export, `anchor_tracks.json` for HUD compositing. Exploded-hardware and stellarator generators only; anything else raises `NotImplementedError`.
@@ -26,7 +31,7 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 - Schema + validator: `backend`/`scene_spec` on scenes; `scene_spec` satisfies the elements requirement (`anyOf` — elements-or-scene_spec); `tests/test_scene_spec_integration.py` pins both validators to parity.
 - `examples/hybrid_3d_storyboard.json` — 2-scene showcase (CoWoS-style stack, stellarator torus); renders end-to-end with and without Blender.
 - ADR 0003 (`docs/adr/0003-optional-3d-scene-backends.md`); `references/storyboard-guide.md` scene-backend section.
-- `tests/test_layout_solver.py`, `tests/test_scene_router.py`, `tests/test_blender_runner.py`, `tests/test_software_3d_projection.py`, `tests/test_hybrid_compositor.py` — 59 new tests (285 total).
+- `tests/test_layout_solver.py`, `tests/test_scene_router.py`, `tests/test_blender_runner.py`, `tests/test_software_3d_projection.py`, `tests/test_hybrid_compositor.py` — 59 new tests.
 - ADR 0002 (`docs/adr/0002-local-first-verification.md`) — the decision record for removing hosted CI in favor of local-first gates (supersedes the removed GitHub Actions workflow).
 - `SECURITY.md` — scope (offline, no network service), license-compliance and URL-safety reporting paths, supported versions.
 - `.pre-commit-config.yaml` — optional ruff/format/whitespace hooks; explicitly documented as NOT a replacement for `scripts/ci_gates.sh`.
@@ -36,15 +41,14 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 - `storyboard.schema.json` scene `required` is now `["scene_id","archetype","duration_sec"]`; scenes require `elements` **or** `scene_spec`.
 - `scripts/ci_gates.sh`: gates 1/6 validate **every** `examples/*.json` board (runtime validator + JSON Schema); gate 7 adds a hybrid-3D thumbnail smoke alongside the 2D demo.
 - Docs scaffolding: `docs/project-plan.md` (living plan + task status) and `docs/index.md` (docs entrypoint); version metadata synced to 1.3.0 (`pyproject.toml`, installer); README gains a Dependencies & Licensing section (Blender GPL subprocess note).
-- 218 → 285 tests; all gates pass locally (8/8).
+- 218 → 285 tests; all gates pass locally.
 
 ### Fixed
 - 9:16 hybrid HUD: telemetry cards now dock in a two-column band above the 3D stage inside Shorts/Reels safe zones (previously the 16:9 gutter layout stranded cards at the canvas edges); regression test added.
-- Advisory mypy pass (not enforced): `blender_plate.build_scene` annotated to
-  return the scene (TYPE_CHECKING bpy import); `build_demo.board` annotated as
-  `dict`; `audio_dsp` redundant re-annotation removed; `camera.zoom_at` coerces
-  its `Any`-typed easing call to `float` at the boundary. No runtime behavior
-  change; mypy remains advisory only.
+- Non-numeric `camera.zoom_start`/`zoom_end`/`pan_x`/`pan_y`/`shake_amplitude_px` values in a board now produce a validation message instead of raising `ValueError` mid-validation (they crashed `validate_storyboard` before).
+- `validate_storyboard` decomposed into per-section validators (max complexity 12, was 64); error messages byte-identical, pinned by the schema-parity contract tests.
+- **mypy strict enforced** (was advisory-only): entire `scripts/` tree annotated (249 errors → 0). `scripts/ci_gates.sh` gained gate 4/9; pre-commit gained a local mypy hook. No runtime behavior change.
+- 302 tests; all gates pass locally (9/9).
 
 ## [1.2.0] — 2026-11-18
 

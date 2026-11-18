@@ -13,6 +13,7 @@ explicitly requested in the storyboard.
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 
 
 def clamp01(t: float) -> float:
@@ -66,7 +67,7 @@ def spring_pop(t: float) -> float:
     return min(1.0 + 0.35, max(0.0, value))
 
 
-EASINGS = {
+EASINGS: dict[str, Callable[..., float]] = {
     "linear": linear,
     "ease_out_expo": ease_out_expo,
     "ease_in_out_cubic": ease_in_out_cubic,
@@ -76,7 +77,7 @@ EASINGS = {
 }
 
 
-def get_easing(name: str):
+def get_easing(name: str) -> Callable[..., float]:
     """Resolve an easing by name, raising ValueError listing valid names."""
     try:
         return EASINGS[name]

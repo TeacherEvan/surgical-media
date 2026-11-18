@@ -1,0 +1,18 @@
+# Editor defaults — keeps diffs clean across editors. Mirrors .gitignore and
+# the ruff line-length (88) / 4-space convention.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml,json}]
+indent_size = 2
+
+# Markdown: trailing double-space is a hard line break.
+[*.md]
+trim_trailing_whitespace = false

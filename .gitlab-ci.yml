@@ -19,7 +19,7 @@ default:
 cache:
   key:
     files:
-      - requirements.txt
+      - requirements-dev.txt
     paths:
       - .cache/pip
 
@@ -34,7 +34,7 @@ validate:
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends ffmpeg
     - python -m pip install --upgrade pip
-    - pip install pytest ruff pillow jsonschema check-jsonschema
+    - pip install -r requirements-dev.txt
   script:
     - bash scripts/ci_gates.sh
   rules:

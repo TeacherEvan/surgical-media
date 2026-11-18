@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from canvas import get_font
+from typing import Any
+
+from canvas import SupersampledCanvas, get_font
 from easings import ease_out_expo, spring_pop
 
 from elements._shared import DIM, GOLD, INK, ElementContext, _smoothstep, _wrap_text
 
 
-def paint_hud_badge(cv, el: dict, ctx: ElementContext) -> None:
+def paint_hud_badge(
+    cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext
+) -> None:
     text = str(el.get("text", ""))
     if not text:
         return
@@ -38,7 +42,9 @@ def paint_hud_badge(cv, el: dict, ctx: ElementContext) -> None:
     cv.text((cx, cy), text, GOLD, size=font_size, mono=True, anchor="mm")
 
 
-def paint_quote_card(cv, el: dict, ctx: ElementContext) -> None:
+def paint_quote_card(
+    cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext
+) -> None:
     box = el.get(
         "box",
         [ctx.width * 0.16, ctx.height * 0.52, ctx.width * 0.84, ctx.height * 0.78],
@@ -91,7 +97,9 @@ def paint_quote_card(cv, el: dict, ctx: ElementContext) -> None:
         )
 
 
-def paint_kinetic_captions(cv, el: dict, ctx: ElementContext) -> None:
+def paint_kinetic_captions(
+    cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext
+) -> None:
     words = ctx.words
     if not words:
         return

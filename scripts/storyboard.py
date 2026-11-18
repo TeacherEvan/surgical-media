@@ -127,26 +127,264 @@ def lint_storyboard(data: Any, board_dir: Path | None = None) -> list[str]:
     return warnings
 
 
+def _validate_meta(meta: Any, errors: list[str]) -> None:
+    if not isinstance(meta, dict) or not str(meta.get("title", "")).strip():
+        errors.append("meta.title is required (non-empty string)")
+
+
+def _validate_format(fmt: Any, errors: list[str]) -> None:
+    if not isinstance(fmt, dict):
+        errors.append("format object is required (width, height, fps)")
+        return
+    w, h, fps = fmt.get("width"), fmt.get("height"), fmt.get("fps")
+    if not isinstance(w, int) or not MIN_DIM <= w <= MAX_DIM:
+        errors.append(f"format.width must be an integer in [{MIN_DIM}, {MAX_DIM}]")
+    if not isinstance(h, int) or not MIN_DIM <= h <= MAX_DIM:
+        errors.append(f"format.height must be an integer in [{MIN_DIM}, {MAX_DIM}]")
+    if fps not in VALID_FPS:
+        errors.append(f"format.fps must be one of {sorted(VALID_FPS)}")
+
+
+def _validate_camera(cam: Any, where: str, errors: list[str]) -> None:
+    if cam is None:
+        return
+    if not isinstance(cam, dict):
+        errors.append(f"{where}: camera must be an object")
+        return
+    for key in ("zoom_start", "zoom_end"):
+        if key in cam and (
+            not _is_num(cam[key]) or not (1.0 <= float(cam[key]) <= 10.0)
+        ):
+            errors.append(f"{where}: camera.{key} must be in [1.0, 10.0]")
+    for key in ("pan_x", "pan_y"):
+        if key in cam and (
+            not _is_num(cam[key]) or not (0.0 <= float(cam[key]) <= 1.0)
+        ):
+            errors.append(f"{where}: camera.{key} must be normalized to [0, 1]")
+    if cam.get("easing", "ease_out_expo") not in VALID_EASINGS:
+        errors.append(f"{where}: camera.easing must be one of {sorted(VALID_EASINGS)}")
+    amp = cam.get("shake_amplitude_px", 0.0)
+    if not (_is_num(amp) and 0.0 <= float(amp) <= 80.0):
+        errors.append(f"{where}: camera.shake_amplitude_px must be in [0, 80]")
+
+
+def _validate_camera_3d(camera_3d: Any, where: str, errors: list[str]) -> None:
+    if camera_3d is None:
+        return
+    if not isinstance(camera_3d, dict):
+        errors.append(f"{where}: scene_spec.camera_3d must be an object")
+        return
+    mode = camera_3d.get("mode")
+    if mode is not None and mode not in VALID_CAMERA_MODES:
+        errors.append(
+            f"{where}: scene_spec.camera_3d.mode must be one of "
+            f"{sorted(VALID_CAMERA_MODES)}"
+        )
+    for key, lo, hi in _CAMERA_3D_RANGES:
+        if key in camera_3d and (
+            not _is_num(camera_3d[key]) or not (lo <= float(camera_3d[key]) <= hi)
+        ):
+            errors.append(
+                f"{where}: scene_spec.camera_3d.{key} must be a number in [{lo}, {hi}]"
+            )
+
+
+def _validate_anchors_3d(anchors: Any, where: str, errors: list[str]) -> None:
+    if anchors is None:
+        return
+    if not isinstance(anchors, list) or len(anchors) > 8:
+        errors.append(
+            f"{where}: scene_spec.anchors_3d must be an array of at most 8 items"
+        )
+        return
+    for j, anchor in enumerate(anchors):
+        if not isinstance(anchor, dict):
+            errors.append(f"{where}: scene_spec.anchors_3d[{j}] must be an object")
+            continue
+        for req in ("anchor_id", "label", "metric", "local_pos"):
+            if req not in anchor:
+                errors.append(f"{where}: scene_spec.anchors_3d[{j}].{req} is required")
+        aid = anchor.get("anchor_id")
+        if aid is not None and (
+            not isinstance(aid, str) or not ANCHOR_ID_RE.match(aid)
+        ):
+            errors.append(
+                f"{where}: scene_spec.anchors_3d[{j}].anchor_id must match "
+                "^[a-z0-9_-]{1,64}$"
+            )
+        for text_key in ("label", "metric"):
+            tv = anchor.get(text_key)
+            if tv is not None and (not isinstance(tv, str) or len(tv) > 96):
+                errors.append(
+                    f"{where}: scene_spec.anchors_3d[{j}].{text_key} "
+                    "must be a string of <= 96 chars"
+                )
+        local_pos = anchor.get("local_pos")
+        if local_pos is not None and (
+            not isinstance(local_pos, list)
+            or len(local_pos) != 3
+            or not all(_is_num(v) for v in local_pos)
+        ):
+            errors.append(
+                f"{where}: scene_spec.anchors_3d[{j}].local_pos must be "
+                "an array of 3 numbers"
+            )
+        accent = anchor.get("accent_hex")
+        if accent is not None and not (
+            isinstance(accent, str) and ACCENT_HEX_RE.match(accent)
+        ):
+            errors.append(
+                f"{where}: scene_spec.anchors_3d[{j}].accent_hex must "
+                "match ^#[0-9A-Fa-f]{6}$"
+            )
+
+
+def _validate_scene_spec(spec: Any, where: str, errors: list[str]) -> None:
+    if spec is None:
+        return
+    if not isinstance(spec, dict):
+        errors.append(f"{where}: scene_spec must be an object")
+        return
+    if spec.get("category") not in VALID_3D_CATEGORIES:
+        errors.append(
+            f"{where}: scene_spec.category must be one of {sorted(VALID_3D_CATEGORIES)}"
+        )
+    elif spec.get("category") not in IMPLEMENTED_3D_CATEGORIES:
+        errors.append(
+            f"{where}: scene_spec.category {spec['category']!r} is not "
+            f"implemented; supported: {sorted(IMPLEMENTED_3D_CATEGORIES)}"
+        )
+    be = spec.get("blender_engine")
+    if be is not None and be not in VALID_BLENDER_ENGINES:
+        errors.append(
+            f"{where}: scene_spec.blender_engine must be one of "
+            f"{sorted(VALID_BLENDER_ENGINES)}"
+        )
+    lp = spec.get("lighting_preset")
+    if lp is not None and lp not in VALID_LIGHTING_PRESETS:
+        errors.append(
+            f"{where}: scene_spec.lighting_preset must be one of "
+            f"{sorted(VALID_LIGHTING_PRESETS)}"
+        )
+    hud_title = spec.get("hud_title")
+    if hud_title is not None and (
+        not isinstance(hud_title, str) or len(hud_title) > 96
+    ):
+        errors.append(f"{where}: scene_spec.hud_title must be a string of <= 96 chars")
+    ef = spec.get("explode_factor")
+    if ef is not None and (not _is_num(ef) or not (0.0 <= float(ef) <= 5.0)):
+        errors.append(f"{where}: scene_spec.explode_factor must be a number in [0, 5]")
+    bc = spec.get("boolean_cutaway")
+    if bc is not None and not isinstance(bc, bool):
+        errors.append(f"{where}: scene_spec.boolean_cutaway must be a boolean")
+    tb = spec.get("transparent_bg")
+    if tb is not None and not isinstance(tb, bool):
+        errors.append(f"{where}: scene_spec.transparent_bg must be a boolean")
+    params = spec.get("params")
+    if params is not None and not isinstance(params, dict):
+        errors.append(f"{where}: scene_spec.params must be an object")
+    _validate_camera_3d(spec.get("camera_3d"), where, errors)
+    _validate_anchors_3d(spec.get("anchors_3d"), where, errors)
+
+
+def _validate_elements(elements: Any, spec: Any, where: str, errors: list[str]) -> None:
+    if elements is None:
+        if spec is None:
+            errors.append(f"{where}: scene must have elements or scene_spec")
+        return
+    if not isinstance(elements, list) or not elements:
+        errors.append(
+            f"{where}: elements must be a non-empty array when present "
+            "(omit the key entirely for scene_spec scenes)"
+        )
+        return
+    for j, el in enumerate(elements):
+        if not isinstance(el, dict) or not str(el.get("type", "")).strip():
+            errors.append(f"{where}: elements[{j}] requires a non-empty 'type'")
+
+
+def _validate_words(words: Any, where: str, errors: list[str]) -> None:
+    if words is None:
+        return
+    if not isinstance(words, list):
+        errors.append(f"{where}: words must be an array")
+        return
+    for j, w in enumerate(words):
+        ok = (
+            isinstance(w, dict)
+            and isinstance(w.get("word"), str)
+            and w["word"]
+            and isinstance(w.get("start"), (int, float))
+            and isinstance(w.get("end"), (int, float))
+            and float(w["end"]) >= float(w["start"])
+        )
+        if not ok:
+            errors.append(f"{where}: words[{j}] needs word/start/end with end >= start")
+
+
+def _validate_sfx_events(
+    scene: dict[str, Any], dur: Any, where: str, errors: list[str]
+) -> None:
+    for j, ev in enumerate(scene.get("sfx_events", []) or []):
+        if not isinstance(ev, dict):
+            errors.append(f"{where}: sfx_events[{j}] must be an object")
+            continue
+        if not isinstance(ev.get("t_sec"), (int, float)) or ev["t_sec"] < 0:
+            errors.append(f"{where}: sfx_events[{j}].t_sec must be >= 0")
+        if ev.get("sfx") not in VALID_SFX:
+            errors.append(
+                f"{where}: sfx_events[{j}].sfx must be one of {sorted(VALID_SFX)}"
+            )
+        if (
+            isinstance(dur, (int, float))
+            and isinstance(ev.get("t_sec"), (int, float))
+            and ev["t_sec"] > float(dur) + 1e-6
+        ):
+            errors.append(
+                f"{where}: sfx_events[{j}].t_sec ({ev['t_sec']}) exceeds scene duration"
+            )
+
+
+def _validate_scene(scene: Any, i: int, errors: list[str]) -> None:
+    where = f"scenes[{i}]"
+    if not isinstance(scene, dict):
+        errors.append(f"{where} must be an object")
+        return
+    sid = scene.get("scene_id", f"#{i}")
+    where = f"scene {sid!r}"
+
+    if not str(scene.get("scene_id", "")).strip():
+        errors.append(f"{where}: scene_id is required")
+    if scene.get("archetype") not in VALID_ARCHETYPES:
+        errors.append(f"{where}: archetype must be one of {sorted(VALID_ARCHETYPES)}")
+    dur = scene.get("duration_sec")
+    if not isinstance(dur, (int, float)) or not (0.0 < float(dur) <= 600.0):
+        errors.append(f"{where}: duration_sec must be in (0, 600]")
+    if "start_sec" in scene and (
+        not isinstance(scene["start_sec"], (int, float)) or scene["start_sec"] < 0
+    ):
+        errors.append(f"{where}: start_sec must be >= 0")
+
+    _validate_camera(scene.get("camera"), where, errors)
+
+    backend = scene.get("backend")
+    if backend is not None and backend not in VALID_BACKENDS:
+        errors.append(f"{where}: backend must be one of {sorted(VALID_BACKENDS)}")
+
+    spec = scene.get("scene_spec")
+    _validate_scene_spec(spec, where, errors)
+    _validate_elements(scene.get("elements"), spec, where, errors)
+    _validate_words(scene.get("words"), where, errors)
+    _validate_sfx_events(scene, dur, where, errors)
+
+
 def validate_storyboard(data: Any) -> list[str]:
     errors: list[str] = []
     if not isinstance(data, dict):
         return ["top level must be a JSON object"]
 
-    meta = data.get("meta")
-    if not isinstance(meta, dict) or not str(meta.get("title", "")).strip():
-        errors.append("meta.title is required (non-empty string)")
-
-    fmt = data.get("format")
-    if not isinstance(fmt, dict):
-        errors.append("format object is required (width, height, fps)")
-    else:
-        w, h, fps = fmt.get("width"), fmt.get("height"), fmt.get("fps")
-        if not isinstance(w, int) or not MIN_DIM <= w <= MAX_DIM:
-            errors.append(f"format.width must be an integer in [{MIN_DIM}, {MAX_DIM}]")
-        if not isinstance(h, int) or not MIN_DIM <= h <= MAX_DIM:
-            errors.append(f"format.height must be an integer in [{MIN_DIM}, {MAX_DIM}]")
-        if fps not in VALID_FPS:
-            errors.append(f"format.fps must be one of {sorted(VALID_FPS)}")
+    _validate_meta(data.get("meta"), errors)
+    _validate_format(data.get("format"), errors)
 
     scenes = data.get("scenes")
     if not isinstance(scenes, list) or not scenes:
@@ -154,244 +392,14 @@ def validate_storyboard(data: Any) -> list[str]:
         return errors
 
     for i, scene in enumerate(scenes):
-        where = f"scenes[{i}]"
-        if not isinstance(scene, dict):
-            errors.append(f"{where} must be an object")
-            continue
-        sid = scene.get("scene_id", f"#{i}")
-        where = f"scene {sid!r}"
-
-        if not str(scene.get("scene_id", "")).strip():
-            errors.append(f"{where}: scene_id is required")
-        if scene.get("archetype") not in VALID_ARCHETYPES:
-            errors.append(
-                f"{where}: archetype must be one of {sorted(VALID_ARCHETYPES)}"
-            )
-        dur = scene.get("duration_sec")
-        if not isinstance(dur, (int, float)) or not (0.0 < float(dur) <= 600.0):
-            errors.append(f"{where}: duration_sec must be in (0, 600]")
-        if "start_sec" in scene and (
-            not isinstance(scene["start_sec"], (int, float)) or scene["start_sec"] < 0
-        ):
-            errors.append(f"{where}: start_sec must be >= 0")
-
-        cam = scene.get("camera")
-        if cam is not None:
-            if not isinstance(cam, dict):
-                errors.append(f"{where}: camera must be an object")
-            else:
-                for key in ("zoom_start", "zoom_end"):
-                    if key in cam and not (1.0 <= float(cam[key]) <= 10.0):
-                        errors.append(f"{where}: camera.{key} must be in [1.0, 10.0]")
-                for key in ("pan_x", "pan_y"):
-                    if key in cam and not (0.0 <= float(cam[key]) <= 1.0):
-                        errors.append(
-                            f"{where}: camera.{key} must be normalized to [0, 1]"
-                        )
-                if cam.get("easing", "ease_out_expo") not in VALID_EASINGS:
-                    errors.append(
-                        f"{where}: camera.easing must be one of {sorted(VALID_EASINGS)}"
-                    )
-                amp = cam.get("shake_amplitude_px", 0.0)
-                if not (0.0 <= float(amp) <= 80.0):
-                    errors.append(
-                        f"{where}: camera.shake_amplitude_px must be in [0, 80]"
-                    )
-
-        backend = scene.get("backend")
-        if backend is not None and backend not in VALID_BACKENDS:
-            errors.append(f"{where}: backend must be one of {sorted(VALID_BACKENDS)}")
-
-        spec = scene.get("scene_spec")
-        if spec is not None:
-            if not isinstance(spec, dict):
-                errors.append(f"{where}: scene_spec must be an object")
-            else:
-                if spec.get("category") not in VALID_3D_CATEGORIES:
-                    errors.append(
-                        f"{where}: scene_spec.category must be one of "
-                        f"{sorted(VALID_3D_CATEGORIES)}"
-                    )
-                elif spec.get("category") not in IMPLEMENTED_3D_CATEGORIES:
-                    errors.append(
-                        f"{where}: scene_spec.category {spec['category']!r} is not "
-                        f"implemented; supported: {sorted(IMPLEMENTED_3D_CATEGORIES)}"
-                    )
-                be = spec.get("blender_engine")
-                if be is not None and be not in VALID_BLENDER_ENGINES:
-                    errors.append(
-                        f"{where}: scene_spec.blender_engine must be one of "
-                        f"{sorted(VALID_BLENDER_ENGINES)}"
-                    )
-                lp = spec.get("lighting_preset")
-                if lp is not None and lp not in VALID_LIGHTING_PRESETS:
-                    errors.append(
-                        f"{where}: scene_spec.lighting_preset must be one of "
-                        f"{sorted(VALID_LIGHTING_PRESETS)}"
-                    )
-                hud_title = spec.get("hud_title")
-                if hud_title is not None and (
-                    not isinstance(hud_title, str) or len(hud_title) > 96
-                ):
-                    errors.append(
-                        f"{where}: scene_spec.hud_title must be a string of <= 96 chars"
-                    )
-                ef = spec.get("explode_factor")
-                if ef is not None and (
-                    not _is_num(ef) or not (0.0 <= float(ef) <= 5.0)
-                ):
-                    errors.append(
-                        f"{where}: scene_spec.explode_factor must be a number in [0, 5]"
-                    )
-                bc = spec.get("boolean_cutaway")
-                if bc is not None and not isinstance(bc, bool):
-                    errors.append(
-                        f"{where}: scene_spec.boolean_cutaway must be a boolean"
-                    )
-                tb = spec.get("transparent_bg")
-                if tb is not None and not isinstance(tb, bool):
-                    errors.append(
-                        f"{where}: scene_spec.transparent_bg must be a boolean"
-                    )
-                params = spec.get("params")
-                if params is not None and not isinstance(params, dict):
-                    errors.append(f"{where}: scene_spec.params must be an object")
-
-                camera_3d = spec.get("camera_3d")
-                if camera_3d is not None:
-                    if not isinstance(camera_3d, dict):
-                        errors.append(
-                            f"{where}: scene_spec.camera_3d must be an object"
-                        )
-                    else:
-                        mode = camera_3d.get("mode")
-                        if mode is not None and mode not in VALID_CAMERA_MODES:
-                            errors.append(
-                                f"{where}: scene_spec.camera_3d.mode must be one of "
-                                f"{sorted(VALID_CAMERA_MODES)}"
-                            )
-                        for key, lo, hi in _CAMERA_3D_RANGES:
-                            if key in camera_3d and (
-                                not _is_num(camera_3d[key])
-                                or not (lo <= float(camera_3d[key]) <= hi)
-                            ):
-                                errors.append(
-                                    f"{where}: scene_spec.camera_3d.{key} must be a "
-                                    f"number in [{lo}, {hi}]"
-                                )
-
-                anchors = spec.get("anchors_3d")
-                if anchors is not None:
-                    if not isinstance(anchors, list) or len(anchors) > 8:
-                        errors.append(
-                            f"{where}: scene_spec.anchors_3d must be an array of at most 8 items"
-                        )
-                    else:
-                        for j, anchor in enumerate(anchors):
-                            if not isinstance(anchor, dict):
-                                errors.append(
-                                    f"{where}: scene_spec.anchors_3d[{j}] must be an object"
-                                )
-                                continue
-                            for req in ("anchor_id", "label", "metric", "local_pos"):
-                                if req not in anchor:
-                                    errors.append(
-                                        f"{where}: scene_spec.anchors_3d[{j}].{req} is required"
-                                    )
-                            aid = anchor.get("anchor_id")
-                            if aid is not None and (
-                                not isinstance(aid, str) or not ANCHOR_ID_RE.match(aid)
-                            ):
-                                errors.append(
-                                    f"{where}: scene_spec.anchors_3d[{j}].anchor_id must match "
-                                    "^[a-z0-9_-]{1,64}$"
-                                )
-                            for text_key in ("label", "metric"):
-                                tv = anchor.get(text_key)
-                                if tv is not None and (
-                                    not isinstance(tv, str) or len(tv) > 96
-                                ):
-                                    errors.append(
-                                        f"{where}: scene_spec.anchors_3d[{j}].{text_key} "
-                                        "must be a string of <= 96 chars"
-                                    )
-                            local_pos = anchor.get("local_pos")
-                            if local_pos is not None and (
-                                not isinstance(local_pos, list)
-                                or len(local_pos) != 3
-                                or not all(_is_num(v) for v in local_pos)
-                            ):
-                                errors.append(
-                                    f"{where}: scene_spec.anchors_3d[{j}].local_pos must be "
-                                    "an array of 3 numbers"
-                                )
-                            accent = anchor.get("accent_hex")
-                            if accent is not None and not (
-                                isinstance(accent, str) and ACCENT_HEX_RE.match(accent)
-                            ):
-                                errors.append(
-                                    f"{where}: scene_spec.anchors_3d[{j}].accent_hex must "
-                                    "match ^#[0-9A-Fa-f]{6}$"
-                                )
-
-        elements = scene.get("elements")
-        if elements is None:
-            if spec is None:
-                errors.append(f"{where}: scene must have elements or scene_spec")
-        elif not isinstance(elements, list) or not elements:
-            errors.append(
-                f"{where}: elements must be a non-empty array when present "
-                "(omit the key entirely for scene_spec scenes)"
-            )
-        else:
-            for j, el in enumerate(elements):
-                if not isinstance(el, dict) or not str(el.get("type", "")).strip():
-                    errors.append(f"{where}: elements[{j}] requires a non-empty 'type'")
-
-        words = scene.get("words")
-        if words is not None:
-            if not isinstance(words, list):
-                errors.append(f"{where}: words must be an array")
-            else:
-                for j, w in enumerate(words):
-                    ok = (
-                        isinstance(w, dict)
-                        and isinstance(w.get("word"), str)
-                        and w["word"]
-                        and isinstance(w.get("start"), (int, float))
-                        and isinstance(w.get("end"), (int, float))
-                        and float(w["end"]) >= float(w["start"])
-                    )
-                    if not ok:
-                        errors.append(
-                            f"{where}: words[{j}] needs word/start/end with end >= start"
-                        )
-
-        for j, ev in enumerate(scene.get("sfx_events", []) or []):
-            if not isinstance(ev, dict):
-                errors.append(f"{where}: sfx_events[{j}] must be an object")
-                continue
-            if not isinstance(ev.get("t_sec"), (int, float)) or ev["t_sec"] < 0:
-                errors.append(f"{where}: sfx_events[{j}].t_sec must be >= 0")
-            if ev.get("sfx") not in VALID_SFX:
-                errors.append(
-                    f"{where}: sfx_events[{j}].sfx must be one of {sorted(VALID_SFX)}"
-                )
-            if (
-                isinstance(dur, (int, float))
-                and isinstance(ev.get("t_sec"), (int, float))
-                and ev["t_sec"] > float(dur) + 1e-6
-            ):
-                errors.append(
-                    f"{where}: sfx_events[{j}].t_sec ({ev['t_sec']}) exceeds scene duration"
-                )
+        _validate_scene(scene, i, errors)
 
     return errors
 
 
-def assign_start_times(data: dict) -> dict:
+def assign_start_times(data: dict[str, Any]) -> dict[str, Any]:
     """Fill missing start_sec by accumulating scene durations. Mutates a copy."""
-    out = json.loads(json.dumps(data))
+    out: dict[str, Any] = json.loads(json.dumps(data))
     cursor = 0.0
     for scene in out.get("scenes", []):
         if scene.get("start_sec") is None:
@@ -400,7 +408,7 @@ def assign_start_times(data: dict) -> dict:
     return out
 
 
-def total_duration(data: dict) -> float:
+def total_duration(data: dict[str, Any]) -> float:
     total = 0.0
     for scene in assign_start_times(data).get("scenes", []):
         total = max(total, float(scene["start_sec"]) + float(scene["duration_sec"]))

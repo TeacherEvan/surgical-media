@@ -8,31 +8,34 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "== gate 1/8: example storyboards validate =="
+echo "== gate 1/9: example storyboards validate =="
 for board in examples/*.json; do
   python3 scripts/storyboard.py "$board"
 done
 
-echo "== gate 2/8: lint =="
+echo "== gate 2/9: lint =="
 ruff check --no-cache scripts/ tests/
 
-echo "== gate 3/8: format check =="
+echo "== gate 3/9: format check =="
 ruff format --check --no-cache scripts/ tests/
 
-echo "== gate 4/8: test suite =="
+echo "== gate 4/9: typecheck (mypy --strict, config in pyproject.toml) =="
+python3 -m mypy scripts/
+
+echo "== gate 5/9: test suite =="
 python3 -m pytest tests/ -q
 
-echo "== gate 5/8: JSON Schemas are valid Draft 2020-12 =="
+echo "== gate 6/9: JSON Schemas are valid Draft 2020-12 =="
 check-jsonschema --check-metaschema schemas/*.schema.json
 
-echo "== gate 6/8: example storyboards validate against their JSON Schema =="
+echo "== gate 7/9: example storyboards validate against their JSON Schema =="
 check-jsonschema --schemafile schemas/storyboard.schema.json examples/*.json
 
-echo "== gate 7/8: thumbnail smoke gate (visual path, both 2D and hybrid 3D) =="
+echo "== gate 8/9: thumbnail smoke gate (visual path, both 2D and hybrid 3D) =="
 python3 scripts/render_engine.py --demo --thumbnails /tmp/sm_thumbs
 python3 scripts/render_engine.py --storyboard examples/hybrid_3d_storyboard.json --thumbnails /tmp/sm_hybrid_thumbs
 
-echo "== gate 8/8: draft render + QC =="
+echo "== gate 9/9: draft render + QC =="
 python3 scripts/render_engine.py --demo --output /tmp/sm_ci_gate.mp4 --quality draft
 python3 scripts/verify_output.py --input /tmp/sm_ci_gate.mp4 --storyboard examples/tri_archetype_storyboard.json
 

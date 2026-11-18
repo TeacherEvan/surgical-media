@@ -28,6 +28,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
@@ -118,9 +119,11 @@ def word_weight(word: str) -> float:
     return weight
 
 
-def word_boundaries_from_events(events: list[tuple[str, int, int]]) -> list[dict]:
+def word_boundaries_from_events(
+    events: list[tuple[str, int, int]],
+) -> list[dict[str, Any]]:
     """Convert edge-tts WordBoundary events (100 ns ticks) to word dicts."""
-    words: list[dict] = []
+    words: list[dict[str, Any]] = []
     for token, offset, duration in events:
         token = str(token).strip()
         if not token:
@@ -131,7 +134,7 @@ def word_boundaries_from_events(events: list[tuple[str, int, int]]) -> list[dict
     return words
 
 
-def align_words(text: str, duration_sec: float) -> list[dict]:
+def align_words(text: str, duration_sec: float) -> list[dict[str, Any]]:
     words = text.split()
     if not words:
         return []
@@ -182,7 +185,7 @@ async def _edge_tts_capture(
 
 def synthesize_voice(
     text: str, voice: str, media_dir: Path, scene_id: str, trim_silence: bool
-) -> tuple[Path | None, float | None, list[dict] | None]:
+) -> tuple[Path | None, float | None, list[dict[str, Any]] | None]:
     """Returns (wav_path, duration_sec, words_or_None)."""
     raw_mp3 = media_dir / f"{scene_id}.mp3"
     wav_out = media_dir / f"{scene_id}.wav"

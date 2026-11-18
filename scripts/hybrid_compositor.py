@@ -10,7 +10,9 @@ ImageDraw cannot blend, so translucency is baked into opaque hex).
 
 from __future__ import annotations
 
-from canvas import get_font
+from typing import Any
+
+from canvas import SupersampledCanvas, get_font
 from easings import spring_pop
 from layout_solver import LayoutBox, SATLayoutSolver
 
@@ -27,9 +29,9 @@ def _clamp(value: float, lo: float, hi: float) -> float:
 
 
 def composite_3d_tracked_hud(
-    canvas,
-    tracked_anchors,
-    scene_title,
+    canvas: SupersampledCanvas,
+    tracked_anchors: list[dict[str, Any]],
+    scene_title: str,
     t_norm: float,
     aspect_ratio: str = "16:9",
 ) -> None:

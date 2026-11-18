@@ -40,8 +40,9 @@ import argparse
 import json
 import math
 import sys
+from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:  # bpy exists only inside Blender
     from bpy.types import Object
@@ -54,10 +55,10 @@ try:  # Blender-provided modules; absent under the repo's interpreter.
 
     INSIDE_BLENDER = True
 except Exception:  # noqa: BLE001 - any failure means "not inside Blender"
-    bpy = None  # type: ignore[assignment]
-    bmesh = None  # type: ignore[assignment]
-    world_to_camera_view = None  # type: ignore[assignment]
-    Vector = None  # type: ignore[assignment]
+    bpy = None
+    bmesh = None
+    world_to_camera_view = None
+    Vector = None
     INSIDE_BLENDER = False
 
 SUPPORTED_CATEGORIES = (
@@ -73,7 +74,9 @@ UNIMPLEMENTED_CATEGORIES = (
 )
 
 
-def hex_to_linear_rgba(hex_str, alpha=1.0):
+def hex_to_linear_rgba(
+    hex_str: str, alpha: float = 1.0
+) -> tuple[float, float, float, float]:
     """Convert an sRGB hex color (#RGB or #RRGGBB, lenient about case/'#')
     to a linear-space RGBA tuple."""
     s = str(hex_str).strip().removeprefix("#")
@@ -90,7 +93,7 @@ def hex_to_linear_rgba(hex_str, alpha=1.0):
         c = channel / 255.0
         if c <= 0.04045:
             return c / 12.92
-        return ((c + 0.055) / 1.055) ** 2.4
+        return float(((c + 0.055) / 1.055) ** 2.4)
 
     return (
         _srgb_to_linear(r8),
@@ -100,7 +103,7 @@ def hex_to_linear_rgba(hex_str, alpha=1.0):
     )
 
 
-def set_bsdf_socket(bsdf_node, candidates, value):
+def set_bsdf_socket(bsdf_node: Any, candidates: Iterable[str], value: Any) -> bool:
     """Set the first matching Principled BSDF input by name. Returns True on hit."""
     inputs = bsdf_node.inputs
     for name in candidates:
@@ -116,15 +119,15 @@ def set_bsdf_socket(bsdf_node, candidates, value):
 
 
 def create_pbr_material(
-    name,
-    base_hex,
-    metallic=0.0,
-    roughness=0.5,
-    emission_hex="#000000",
-    emission_strength=0.0,
-    transmission=0.0,
-    coat=0.0,
-):
+    name: str,
+    base_hex: str,
+    metallic: float = 0.0,
+    roughness: float = 0.5,
+    emission_hex: str = "#000000",
+    emission_strength: float = 0.0,
+    transmission: float = 0.0,
+    coat: float = 0.0,
+) -> Any:
     """Create a Principled-BSDF material with linear-space inputs."""
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
@@ -146,7 +149,7 @@ def create_pbr_material(
     return mat
 
 
-def _try_set(obj, attr, value):
+def _try_set(obj: Any, attr: str, value: Any) -> bool:
     try:
         setattr(obj, attr, value)
         return True
@@ -154,7 +157,7 @@ def _try_set(obj, attr, value):
         return False
 
 
-def _configure_cycles(scene):
+def _configure_cycles(scene: Any) -> None:
     scene.render.engine = "CYCLES"
     cycles = scene.cycles
     cycles.samples = 64
@@ -179,7 +182,7 @@ def _configure_cycles(scene):
         _try_set(cycles, "device", "CPU")
 
 
-def _configure_eevee(scene):
+def _configure_eevee(scene: Any) -> None:
     version = tuple(bpy.app.version)
     if (4, 2) <= version < (5, 0):
         engine = "BLENDER_EEVEE_NEXT"
@@ -199,7 +202,9 @@ def _configure_eevee(scene):
             _try_set(eevee, attr, value)
 
 
-def _set_glare_option(glare, socket_name, legacy_attr, values):
+def _set_glare_option(
+    glare: Any, socket_name: str, legacy_attr: str, values: Iterable[Any]
+) -> bool:
     """Set a glare option via socket (Blender 5+) or property (Blender <=4.x)."""
     sock = glare.inputs.get(socket_name) if hasattr(glare, "inputs") else None
     for value in values:
@@ -214,12 +219,12 @@ def _set_glare_option(glare, socket_name, legacy_attr, values):
     return False
 
 
-def _link_glare_chain(tree, rl, glare, comp):
+def _link_glare_chain(tree: Any, rl: Any, glare: Any, comp: Any) -> None:
     tree.links.new(rl.outputs["Image"], glare.inputs["Image"])
     tree.links.new(glare.outputs["Image"], comp.inputs["Image"])
 
 
-def _setup_compositor_glare(scene):
+def _setup_compositor_glare(scene: Any) -> None:
     """RLayers -> Glare(FOG_GLOW) -> composite. Tolerates Blender 4 and 5."""
     _try_set(scene, "use_nodes", True)
     if hasattr(scene, "node_tree"):  # Blender <= 4.x classic compositor
@@ -262,14 +267,14 @@ def _setup_compositor_glare(scene):
 
 
 def configure_render_pipeline(
-    scene,
-    width,
-    height,
-    fps,
-    total_frames,
-    engine_pref="AUTO_EEVEE",
-    transparent_bg=False,
-):
+    scene: Any,
+    width: float,
+    height: float,
+    fps: float,
+    total_frames: float,
+    engine_pref: str = "AUTO_EEVEE",
+    transparent_bg: bool = False,
+) -> None:
     """Apply resolution/fps/range/motion-blur/engine/color/compositor settings."""
     scene.render.resolution_x = int(width)
     scene.render.resolution_y = int(height)
@@ -315,7 +320,9 @@ def configure_render_pipeline(
         print(f"warning: compositor glare setup skipped: {exc}")
 
 
-def setup_lighting_and_world(scene, preset="cyber_studio_volumetric"):
+def setup_lighting_and_world(
+    scene: Any, preset: str = "cyber_studio_volumetric"
+) -> None:
     """World background + three area lights (linear-space colors)."""
     world = scene.world
     if world is None:
@@ -353,7 +360,9 @@ def _cubic_ease_in_out(u: float) -> float:
     return 1.0 - ((-2.0 * u + 2.0) ** 3) / 2.0
 
 
-def setup_camera_rig(scene, cam_spec, total_frames):
+def setup_camera_rig(
+    scene: Any, cam_spec: dict[str, Any] | None, total_frames: float
+) -> Any:
     """Focus-target empty + DoF camera on a keyframed eased orbit."""
     cam_spec = cam_spec or {}
     target = cam_spec.get("target_pos", [0.0, 0.0, 0.0])
@@ -399,7 +408,7 @@ def setup_camera_rig(scene, cam_spec, total_frames):
     return cam_obj
 
 
-_LAYER_SPECS = [
+_LAYER_SPECS: list[dict[str, Any]] = [
     {
         "anchor_id": "anchor_substrate",
         "name": "Package Substrate",
@@ -451,7 +460,7 @@ _LAYER_SPECS = [
 ]
 
 
-def _new_beveled_cube(name, z, size):
+def _new_beveled_cube(name: str, z: float, size: Sequence[float]) -> Any:
     bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0.0, 0.0, z))
     obj = bpy.context.active_object
     obj.name = name
@@ -466,7 +475,9 @@ def _new_beveled_cube(name, z, size):
     return obj
 
 
-def _keyframe_explode(obj, base_z, exp_dz, explode_amp, total_frames):
+def _keyframe_explode(
+    obj: Any, base_z: float, exp_dz: float, explode_amp: float, total_frames: float
+) -> None:
     n = max(1, int(total_frames))
     for frame in range(1, n + 1):
         u = (frame - 1) / max(1, n - 1)
@@ -475,7 +486,11 @@ def _keyframe_explode(obj, base_z, exp_dz, explode_amp, total_frames):
         obj.keyframe_insert(data_path="location", frame=frame)
 
 
-def _create_anchor_empties(scene, spec, base_map=None):
+def _create_anchor_empties(
+    scene: Any,
+    spec: dict[str, Any],
+    base_map: dict[str, Any] | None = None,
+) -> "dict[str, Object]":
     anchors = dict(base_map or {})
     for anchor in spec.get("anchors_3d", []) or []:
         if not isinstance(anchor, dict):
@@ -496,11 +511,13 @@ def _create_anchor_empties(scene, spec, base_map=None):
     return anchors
 
 
-def build_exploded_hardware_3d(scene, spec, total_frames) -> "dict[str, Object]":
+def build_exploded_hardware_3d(
+    scene: Any, spec: dict[str, Any] | None, total_frames: float
+) -> "dict[str, Object]":
     """Four beveled layer cubes with a sinusoidal explode; returns anchor map."""
     explode_amp = float((spec or {}).get("explode_factor", 1.0))
     n = max(1, int(total_frames))
-    layer_objects = {}
+    layer_objects: dict[str, Any] = {}
     for layer in _LAYER_SPECS:
         obj = _new_beveled_cube(layer["name"], layer["z"], layer["size"])
         material = create_pbr_material(
@@ -519,7 +536,9 @@ def build_exploded_hardware_3d(scene, spec, total_frames) -> "dict[str, Object]"
     return _create_anchor_empties(scene, spec or {}, layer_objects)
 
 
-def build_orbital_or_field_3d(scene, spec, total_frames) -> "dict[str, Object]":
+def build_orbital_or_field_3d(
+    scene: Any, spec: dict[str, Any] | None, total_frames: float
+) -> "dict[str, Object]":
     """Plasma torus + 12 twisted coil tori on a rig; returns anchor map."""
     n = max(1, int(total_frames))
 
@@ -588,7 +607,7 @@ _SERPENT_HEAD_BULGE_U = 0.90
 _SERPENT_HEAD_BULGE_WIDTH = 0.08
 
 
-def _serpent_spine(u, phase):
+def _serpent_spine(u: float, phase: float) -> tuple[float, float, float]:
     """Point on the S-shaped spine in rig-local space for arc position ``u``.
 
     ``phase`` (radians) advances the travelling wave; geometry is deterministic
@@ -600,7 +619,7 @@ def _serpent_spine(u, phase):
     return (x, y, z)
 
 
-def _serpent_radius(u):
+def _serpent_radius(u: float) -> float:
     """Tail -> head taper (0.10 -> 0.30) with a subtle bulge near the head."""
     base = _SERPENT_TAIL_RADIUS + (_SERPENT_BODY_RADIUS - _SERPENT_TAIL_RADIUS) * u
     bulge = _SERPENT_HEAD_BULGE * math.exp(
@@ -609,7 +628,7 @@ def _serpent_radius(u):
     return base + bulge
 
 
-def _serpent_anchor_u(anchor_id):
+def _serpent_anchor_u(anchor_id: str) -> float:
     """Pick a spine arc position for an anchor whose ``local_pos`` is absent."""
     lowered = str(anchor_id).lower()
     if "head" in lowered:
@@ -619,7 +638,9 @@ def _serpent_anchor_u(anchor_id):
     return 0.5
 
 
-def build_organic_serpent_3d(scene, spec, total_frames) -> "dict[str, Object]":
+def build_organic_serpent_3d(
+    scene: Any, spec: dict[str, Any] | None, total_frames: float
+) -> "dict[str, Object]":
     """Animated jade serpent: tapered curve spine + gold head rig; anchor map."""
     n = max(1, int(total_frames))
 
@@ -731,7 +752,7 @@ def build_organic_serpent_3d(scene, spec, total_frames) -> "dict[str, Object]":
     )
     tongue.data.materials.append(tongue_mat)
 
-    anchors = {}
+    anchors: dict[str, Any] = {}
     for anchor in (spec or {}).get("anchors_3d", []) or []:
         if not isinstance(anchor, dict):
             continue
@@ -760,13 +781,13 @@ def build_organic_serpent_3d(scene, spec, total_frames) -> "dict[str, Object]":
 
 
 def export_anchor_tracks(
-    scene,
-    cam_obj,
-    spec,
-    anchor_objs,
-    total_frames,
-    out_json_path,
-):
+    scene: Any,
+    cam_obj: Any,
+    spec: dict[str, Any] | None,
+    anchor_objs: dict[str, Any] | None,
+    total_frames: float,
+    out_json_path: str | Path,
+) -> Path:
     """Project every anchor to camera space per frame; dump JSON."""
     if not INSIDE_BLENDER:
         raise RuntimeError(
@@ -776,11 +797,11 @@ def export_anchor_tracks(
     anchor_defs = (spec or {}).get("anchors_3d", []) or []
     n = max(1, int(total_frames))
     view_layer = scene.view_layers[0]
-    frames_out = []
+    frames_out: list[dict[str, Any]] = []
     for frame in range(1, n + 1):
         scene.frame_set(frame)
         view_layer.update()
-        anchor_entries = []
+        anchor_entries: list[dict[str, Any]] = []
         for anchor in anchor_defs:
             if not isinstance(anchor, dict):
                 continue
@@ -814,7 +835,14 @@ def export_anchor_tracks(
     return out_path
 
 
-def run_blender_scene(spec_path, out_dir, width, height, fps, total_frames):
+def run_blender_scene(
+    spec_path: str | Path,
+    out_dir: str | Path,
+    width: int,
+    height: int,
+    fps: int,
+    total_frames: int,
+) -> Path:
     """Build the scene, export anchor tracks, render the animation."""
     if not INSIDE_BLENDER:
         raise RuntimeError(

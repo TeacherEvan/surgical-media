@@ -24,6 +24,7 @@ import random
 import wave
 from array import array
 from pathlib import Path
+from typing import Any
 
 RATE = 48000
 FULL_SCALE = 32767
@@ -172,7 +173,7 @@ def measure_duration(path: str | Path) -> float:
         return w.getnframes() / float(w.getframerate())
 
 
-def write_wav_stereo(path: str | Path, interleaved: array) -> None:
+def write_wav_stereo(path: str | Path, interleaved: array[int]) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with wave.open(str(path), "wb") as w:
@@ -216,7 +217,7 @@ def mix_timeline(
     duck_depth: float = 0.72,
     sfx_events: list[tuple[float, str, float]] | None = None,
     sample_rate: int = RATE,
-) -> array:
+) -> array[int]:
     """Render the full 48 kHz stereo master for one video or scene."""
     if sample_rate != RATE:
         raise ValueError(f"mix_timeline works at {RATE} Hz; got {sample_rate}")
@@ -268,7 +269,7 @@ def mix_timeline(
 
 
 def build_master_wav(
-    scenes: list[dict],
+    scenes: list[dict[str, Any]],
     output_path: str | Path,
     *,
     pad: bool = True,

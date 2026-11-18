@@ -22,8 +22,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, cast
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
+
+if TYPE_CHECKING:
+    from camera import WorldCamera2D
 
 _COLOR_CACHE: dict[str, RGBA] = {}
 
@@ -49,7 +53,7 @@ def _parse_color_uncached(value: str | Sequence[int], default_alpha: int = 255) 
         if len(value) == 3:
             return (int(value[0]), int(value[1]), int(value[2]), default_alpha)
         if len(value) == 4:
-            return tuple(int(c) for c in value)  # type: ignore[return-value]
+            return cast(RGBA, tuple(int(c) for c in value))
         raise ValueError(f"color sequence must have 3 or 4 items, got {value!r}")
     s = str(value).strip().lstrip("#")
     if len(s) == 6:
@@ -57,7 +61,7 @@ def _parse_color_uncached(value: str | Sequence[int], default_alpha: int = 255) 
     if len(s) == 8:
         return (int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16), int(s[6:8], 16))
     if len(s) == 3:  # #RGB shorthand
-        return tuple(int(c * 2, 16) for c in s) + (default_alpha,)  # type: ignore[return-value]
+        return cast(RGBA, tuple(int(c * 2, 16) for c in s) + (default_alpha,))
     raise ValueError(f"unparseable color {value!r}; expected #RRGGBB[AA]")
 
 
@@ -200,7 +204,13 @@ class _Draw:
         return max(1, round(width_px * zoom * self.canvas.scale))
 
     # primitives ----------------------------------------------------------
-    def line(self, p0, p1, fill, width: float = 2.0) -> None:
+    def line(
+        self,
+        p0: tuple[float, float],
+        p1: tuple[float, float],
+        fill: str | Sequence[int],
+        width: float = 2.0,
+    ) -> None:
         self.draw.line(
             [self._tp(*p0), self._tp(*p1)],
             fill=rgb(fill),
@@ -211,7 +221,7 @@ class _Draw:
     def polyline(
         self,
         points: Iterable[tuple[float, float]],
-        fill,
+        fill: str | Sequence[int],
         width: float = 2.0,
         closed: bool = False,
     ) -> None:
@@ -221,7 +231,12 @@ class _Draw:
         self.draw.line(pts, fill=rgb(fill), width=self._tw(width), joint="curve")
 
     def rectangle(
-        self, box, outline=None, fill=None, width: float = 2.0, radius: float = 0.0
+        self,
+        box: tuple[float, float, float, float],
+        outline: str | Sequence[int] | None = None,
+        fill: str | Sequence[int] | None = None,
+        width: float = 2.0,
+        radius: float = 0.0,
     ) -> None:
         x0, y0, x1, y1 = box
         p0 = self._tp(x0, y0)
@@ -232,17 +247,27 @@ class _Draw:
             max(p0[0], p1[0]),
             max(p0[1], p1[1]),
         ]
-        kw = {
-            "outline": rgb(outline) if outline else None,
-            "fill": rgb(fill) if fill else None,
-            "width": self._tw(width),
-        }
+        outline_ink = rgb(outline) if outline else None
+        fill_ink = rgb(fill) if fill else None
+        width_ink = self._tw(width)
         if radius > 0:
-            self.draw.rounded_rectangle(xy, radius=radius * self.canvas.scale, **kw)
+            self.draw.rounded_rectangle(
+                xy,
+                radius=radius * self.canvas.scale,
+                outline=outline_ink,
+                fill=fill_ink,
+                width=width_ink,
+            )
         else:
-            self.draw.rectangle(xy, **kw)
+            self.draw.rectangle(xy, outline=outline_ink, fill=fill_ink, width=width_ink)
 
-    def ellipse(self, box, outline=None, fill=None, width: float = 2.0) -> None:
+    def ellipse(
+        self,
+        box: tuple[float, float, float, float],
+        outline: str | Sequence[int] | None = None,
+        fill: str | Sequence[int] | None = None,
+        width: float = 2.0,
+    ) -> None:
         x0, y0, x1, y1 = box
         p0 = self._tp(x0, y0)
         p1 = self._tp(x1, y1)
@@ -260,7 +285,12 @@ class _Draw:
         )
 
     def arc(
-        self, box, start_deg: float, end_deg: float, fill, width: float = 2.0
+        self,
+        box: tuple[float, float, float, float],
+        start_deg: float,
+        end_deg: float,
+        fill: str | Sequence[int],
+        width: float = 2.0,
     ) -> None:
         x0, y0, x1, y1 = box
         p0 = self._tp(x0, y0)
@@ -279,7 +309,12 @@ class _Draw:
             width=self._tw(width),
         )
 
-    def polygon(self, points, outline=None, fill=None) -> None:
+    def polygon(
+        self,
+        points: Iterable[tuple[float, float]],
+        outline: str | Sequence[int] | None = None,
+        fill: str | Sequence[int] | None = None,
+    ) -> None:
         pts = [self._tp(x, y) for x, y in points]
         self.draw.polygon(
             pts,
@@ -289,13 +324,13 @@ class _Draw:
 
     def text(
         self,
-        pos,
-        text,
-        fill,
+        pos: tuple[float, float],
+        text: object,
+        fill: str | Sequence[int],
         size: float = 32.0,
         mono: bool = False,
         anchor: str = "la",
-        stroke_fill=None,
+        stroke_fill: str | Sequence[int] | None = None,
         stroke_width: float = 0.0,
         camera_scaled: bool = True,
     ) -> None:
@@ -322,7 +357,7 @@ class SupersampledCanvas:
         width: int,
         height: int,
         scale: int = 2,
-        camera=None,
+        camera: WorldCamera2D | None = None,
         background: str = "#000000",
     ) -> None:
         if scale < 1:
@@ -367,44 +402,44 @@ class SupersampledCanvas:
             self._cy = self.height / 2.0
             self._ox = self._oy = 0.0
 
-    def line(self, *a, **kw):
+    def line(self, *a: Any, **kw: Any) -> None:
         self.draw_.line(*a, **kw)
 
-    def polyline(self, *a, **kw):
+    def polyline(self, *a: Any, **kw: Any) -> None:
         self.draw_.polyline(*a, **kw)
 
-    def rectangle(self, *a, **kw):
+    def rectangle(self, *a: Any, **kw: Any) -> None:
         self.draw_.rectangle(*a, **kw)
 
-    def ellipse(self, *a, **kw):
+    def ellipse(self, *a: Any, **kw: Any) -> None:
         self.draw_.ellipse(*a, **kw)
 
-    def arc(self, *a, **kw):
+    def arc(self, *a: Any, **kw: Any) -> None:
         self.draw_.arc(*a, **kw)
 
-    def polygon(self, *a, **kw):
+    def polygon(self, *a: Any, **kw: Any) -> None:
         self.draw_.polygon(*a, **kw)
 
-    def text(self, *a, **kw):
+    def text(self, *a: Any, **kw: Any) -> None:
         self.draw_.text(*a, **kw)
 
     # bloom buffer (additive light) -----------------------------------------
-    def bloom_line(self, *a, **kw):
+    def bloom_line(self, *a: Any, **kw: Any) -> None:
         self.bloom.line(*a, **kw)
 
-    def bloom_rectangle(self, *a, **kw):
+    def bloom_rectangle(self, *a: Any, **kw: Any) -> None:
         self.bloom.rectangle(*a, **kw)
 
-    def bloom_ellipse(self, *a, **kw):
+    def bloom_ellipse(self, *a: Any, **kw: Any) -> None:
         self.bloom.ellipse(*a, **kw)
 
-    def bloom_arc(self, *a, **kw):
+    def bloom_arc(self, *a: Any, **kw: Any) -> None:
         self.bloom.arc(*a, **kw)
 
-    def bloom_polygon(self, *a, **kw):
+    def bloom_polygon(self, *a: Any, **kw: Any) -> None:
         self.bloom.polygon(*a, **kw)
 
-    def bloom_text(self, *a, **kw):
+    def bloom_text(self, *a: Any, **kw: Any) -> None:
         self.bloom.text(*a, **kw)
 
     # export -----------------------------------------------------------------

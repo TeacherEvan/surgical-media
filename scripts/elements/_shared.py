@@ -6,9 +6,12 @@ Imported by every painter module. Keep painter-free: no drawing here.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass, field
+from typing import Any
 
 from canvas import layout_zones
+from PIL import ImageFont
 
 TAU = math.tau
 GOLD = "#FFD700"
@@ -31,10 +34,10 @@ class ElementContext:
     t: float  # scene-local normalized progress [0, 1]
     scene_time: float  # absolute seconds from video start
     local_time: float  # seconds into this scene
-    words: list[dict]  # karaoke words for this scene (may be empty)
+    words: list[dict[str, Any]]  # karaoke words for this scene (may be empty)
     seed: int = 0
     trauma: float = 0.0
-    zones: dict = field(default_factory=dict)
+    zones: dict[str, tuple[int, int, int, int]] = field(default_factory=dict)
     base_dir: str | None = None
 
     def __post_init__(self) -> None:
@@ -47,7 +50,11 @@ class ElementContext:
 # ---------------------------------------------------------------------------
 
 
-def _wrap_text(text: str, font, max_width_px: float) -> list[str]:
+def _wrap_text(
+    text: str,
+    font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    max_width_px: float,
+) -> list[str]:
     """Greedy word wrap measured with the actual font metrics."""
     words = str(text).split()
     if not words:
@@ -71,7 +78,13 @@ def _smoothstep(edge0: float, edge1: float, x: float) -> float:
     return u * u * (3.0 - 2.0 * u)
 
 
-def _bezier(p0, p1, p2, p3, t: float):
+def _bezier(
+    p0: Sequence[float],
+    p1: Sequence[float],
+    p2: Sequence[float],
+    p3: Sequence[float],
+    t: float,
+) -> tuple[float, float]:
     mt = 1.0 - t
     x = mt**3 * p0[0] + 3 * mt * mt * t * p1[0] + 3 * mt * t * t * p2[0] + t**3 * p3[0]
     y = mt**3 * p0[1] + 3 * mt * mt * t * p1[1] + 3 * mt * t * t * p2[1] + t**3 * p3[1]

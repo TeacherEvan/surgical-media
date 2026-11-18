@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import math
+from typing import Any
 
+from canvas import SupersampledCanvas
 from easings import ease_out_expo, spring_pop
 
 from elements._shared import (
@@ -19,7 +21,9 @@ from elements._shared import (
 )
 
 
-def paint_scaling_chart(cv, el: dict, ctx: ElementContext) -> None:
+def paint_scaling_chart(
+    cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext
+) -> None:
     box = el.get(
         "box",
         [ctx.width * 0.12, ctx.height * 0.28, ctx.width * 0.88, ctx.height * 0.72],
@@ -115,7 +119,9 @@ def paint_scaling_chart(cv, el: dict, ctx: ElementContext) -> None:
     )
 
 
-def paint_phi_divider(cv, el: dict, ctx: ElementContext) -> None:
+def paint_phi_divider(
+    cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext
+) -> None:
     box = el.get(
         "box", [ctx.width * 0.2, ctx.height * 0.32, ctx.width * 0.8, ctx.height * 0.62]
     )
@@ -203,7 +209,9 @@ def paint_phi_divider(cv, el: dict, ctx: ElementContext) -> None:
         )
 
 
-def _reveal_box(box, progress: float):
+def _reveal_box(
+    box: tuple[float, float, float, float], progress: float
+) -> tuple[float, float, float, float]:
     x0, y0, x1, y1 = box
     p = min(1.0, max(0.0, progress))
     return (x0, y0, x0 + (x1 - x0) * p, y1)
@@ -217,7 +225,9 @@ _TESSERACT_VERTS = [
 ]
 
 
-def paint_tesseract(cv, el: dict, ctx: ElementContext) -> None:
+def paint_tesseract(
+    cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext
+) -> None:
     cx = float(el.get("cx", ctx.width * 0.5))
     cy = float(el.get("cy", ctx.height * 0.42))
     size = float(el.get("size", min(ctx.width, ctx.height) * 0.16))
@@ -225,7 +235,9 @@ def paint_tesseract(cv, el: dict, ctx: ElementContext) -> None:
     ay = ctx.local_time * 1.15 + 0.7
     az = ctx.local_time * 0.65 + 1.9
 
-    def rot(v, angle, plane):
+    def rot(
+        v: tuple[float, float, float, float], angle: float, plane: str
+    ) -> tuple[float, float, float, float]:
         x, y, z, w = v
         c, s = math.cos(angle), math.sin(angle)
         if plane == "XW":
@@ -236,8 +248,8 @@ def paint_tesseract(cv, el: dict, ctx: ElementContext) -> None:
 
     pts2d = []
     depth = []
-    for v in _TESSERACT_VERTS:
-        v = rot(v, ax, "XW")
+    for vert in _TESSERACT_VERTS:
+        v = rot(vert, ax, "XW")
         v = rot(v, ay, "YZ")
         v = rot(v, az, "XY")
         x, y, z, w = v

@@ -2,18 +2,22 @@
 
 from __future__ import annotations
 
-from canvas import parse_color
+from typing import Any
+
+from canvas import SupersampledCanvas, parse_color
 
 from elements._shared import ElementContext
 
 
-def paint_background(cv, el: dict, ctx: ElementContext) -> None:
+def paint_background(
+    cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext
+) -> None:
     color = parse_color(el.get("color", "#000000"))
     big = max(ctx.width, ctx.height) * 4
     cv.draw_.rectangle([-big, -big, big, big], fill=color)
 
 
-def paint_grid(cv, el: dict, ctx: ElementContext) -> None:
+def paint_grid(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -> None:
     spacing = float(el.get("spacing", 90))
     color = el.get("color", "#131B2E")
     color = parse_color(color, default_alpha=int(255 * float(el.get("alpha", 1.0))))

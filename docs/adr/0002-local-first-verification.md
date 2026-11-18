@@ -6,6 +6,8 @@
 
 ## Context
 
+> **Update 2026-11-19 (v1.3.0):** the gate set grew to 9 gates — `mypy --strict` was inserted as gate 4 (the whole `scripts/` tree is annotated; zero issues enforced) — and the suite grew to 302 tests via `tests/test_fallback_paths.py`. The 285-test / 8-gate description below is the original 2026-11-18 snapshot of this decision.
+
 `surgical-media` is a solo-maintained public skill repo. Since v1.1.0 its GitHub
 Actions jobs had never run: the account is billing-locked, so every job was
 rejected before start. The repo still showed a permanent red check, which

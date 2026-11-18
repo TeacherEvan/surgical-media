@@ -23,9 +23,13 @@ Design notes:
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING, Any
 
 from canvas import parse_color
 from scene_router import CAMERA_3D_DEFAULTS
+
+if TYPE_CHECKING:
+    from canvas import SupersampledCanvas
 
 SUPPORTED_CATEGORIES = (
     "exploded_hardware_3d",
@@ -36,19 +40,22 @@ SUPPORTED_CATEGORIES = (
 _ZNEAR = 0.15
 _POLY_ZNEAR = 0.2
 
+Vec3 = tuple[float, float, float]
+MeshFace = dict[str, Any]
+
 
 # ---------------------------------------------------------------------------
 # Minimal 3-vector helpers (plain tuples — no numpy)
 # ---------------------------------------------------------------------------
-def _sub(a, b):
+def _sub(a: Vec3, b: Vec3) -> Vec3:
     return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
 
 
-def _dot(a, b) -> float:
+def _dot(a: Vec3, b: Vec3) -> float:
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 
 
-def _cross(a, b):
+def _cross(a: Vec3, b: Vec3) -> Vec3:
     return (
         a[1] * b[2] - a[2] * b[1],
         a[2] * b[0] - a[0] * b[2],
@@ -56,14 +63,14 @@ def _cross(a, b):
     )
 
 
-def _norm(a):
+def _norm(a: Vec3) -> Vec3:
     length = math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2])
     if length <= 0.0:
         raise ValueError("cannot normalize a zero-length vector")
     return (a[0] / length, a[1] / length, a[2] / length)
 
 
-def _rotate_z(pt, angle: float):
+def _rotate_z(pt: Vec3, angle: float) -> Vec3:
     c, s = math.cos(angle), math.sin(angle)
     return (pt[0] * c - pt[1] * s, pt[0] * s + pt[1] * c, pt[2])
 
@@ -88,9 +95,9 @@ class PerspectiveCamera3D:
 
     def __init__(
         self,
-        eye,
-        target=(0.0, 0.0, 0.0),
-        up=(0.0, 0.0, 1.0),
+        eye: Vec3,
+        target: Vec3 = (0.0, 0.0, 0.0),
+        up: Vec3 = (0.0, 0.0, 1.0),
         focal_length_mm: float = 50.0,
         sensor_width_mm: float = 36.0,
         aspect_ratio: float = 16.0 / 9.0,
@@ -128,7 +135,7 @@ class PerspectiveCamera3D:
             (0.0, 0.0, 0.0, 1.0),
         )
 
-    def project_point(self, pt) -> tuple[float, float, float, bool]:
+    def project_point(self, pt: Vec3) -> tuple[float, float, float, bool]:
         """Project a world-space point → (u, v, z_depth, visible).
 
         ``u, v`` are normalized device coordinates with a top-left origin
@@ -156,8 +163,8 @@ class PerspectiveCamera3D:
 # Parametric mesh generators
 # ---------------------------------------------------------------------------
 def generate_box_mesh(
-    center, scale, color_hex, edge_hex, emissive: bool = False
-) -> list[dict]:
+    center: Vec3, scale: Vec3, color_hex: str, edge_hex: str, emissive: bool = False
+) -> list[MeshFace]:
     """Axis-aligned box mesh with hardcoded outward quad normals.
 
     ``scale`` is the full (x, y, z) size. Returns 6 faces, each
@@ -194,7 +201,7 @@ def generate_box_mesh(
     ]
 
 
-def generate_torus_stellarator_mesh(t_norm: float) -> list[dict]:
+def generate_torus_stellarator_mesh(t_norm: float) -> list[MeshFace]:
     """Parametric stellarator torus with highlighted field coils.
 
     ``R = 1.65``, ``r = 0.36``, 32 major x 14 minor segments. The whole
@@ -213,7 +220,7 @@ def generate_torus_stellarator_mesh(t_norm: float) -> list[dict]:
     n_maj, n_min = 32, 14
     rot_z = _clamp01(float(t_norm)) * math.pi * 1.5
 
-    def tor_point(u: float, v: float, r_eff: float, coil: bool):
+    def tor_point(u: float, v: float, r_eff: float, coil: bool) -> Vec3:
         twist = 0.25 * math.sin(3.0 * u) if coil else 0.0
         vv = v + twist
         pt = (
@@ -223,7 +230,7 @@ def generate_torus_stellarator_mesh(t_norm: float) -> list[dict]:
         )
         return _rotate_z(pt, rot_z)
 
-    polys: list[dict] = []
+    polys: list[MeshFace] = []
     for i in range(n_maj):
         u0 = 2.0 * math.pi * i / n_maj
         u1 = 2.0 * math.pi * (i + 1) / n_maj
@@ -276,7 +283,7 @@ def serpent_spine_point(u: float, t_norm: float) -> tuple[float, float, float]:
     return (x, y, z)
 
 
-def generate_serpent_mesh(t_norm: float) -> list[dict]:
+def generate_serpent_mesh(t_norm: float) -> list[MeshFace]:
     """Parametric *living snake* tube — an open, tapering S-spine, NOT a ring.
 
     26 rings × 8 sides sweep a circular cross-section along the open spine
@@ -299,7 +306,7 @@ def generate_serpent_mesh(t_norm: float) -> list[dict]:
         bulge = 0.06 * math.exp(-(((u - 0.9) / 0.08) ** 2))
         return base + bulge
 
-    def tangent_at(u: float):
+    def tangent_at(u: float) -> Vec3:
         du = 1.0e-3
         u0 = max(0.0, u - du)
         u1 = min(1.0, u + du)
@@ -339,7 +346,7 @@ def generate_serpent_mesh(t_norm: float) -> list[dict]:
         ring_verts.append(rv)
         ring_normals.append(rn)
 
-    polys: list[dict] = []
+    polys: list[MeshFace] = []
     for i in range(rings - 1):
         is_head = i >= rings - 3  # last ~3 segments form the head
         if is_head:
@@ -395,7 +402,9 @@ def generate_serpent_mesh(t_norm: float) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Scene render + anchor tracking
 # ---------------------------------------------------------------------------
-def _exploded_layers(t_norm: float, explode_factor: float):
+def _exploded_layers(
+    t_norm: float, explode_factor: float
+) -> list[tuple[str, Vec3, Vec3, str, str, bool]]:
     amp = explode_factor * math.sin(min(1.0, t_norm * 1.15) * math.pi * 0.65)
     return [
         (
@@ -433,13 +442,15 @@ def _exploded_layers(t_norm: float, explode_factor: float):
     ]
 
 
-def _build_scene(scene_spec: dict, t_norm: float):
+def _build_scene(
+    scene_spec: dict[str, Any], t_norm: float
+) -> tuple[list[MeshFace], dict[str, Vec3]]:
     """Return (polys, dynamic_anchor_pos); raise on unsupported categories."""
     category = scene_spec.get("category")
     if category == "exploded_hardware_3d":
         explode_factor = float(scene_spec.get("explode_factor", 1.0))
-        polys: list[dict] = []
-        dynamic_anchor_pos: dict[str, tuple[float, float, float]] = {}
+        polys: list[MeshFace] = []
+        dynamic_anchor_pos: dict[str, Vec3] = {}
         for anchor_id, center, scale, color, edge, emissive in _exploded_layers(
             t_norm, explode_factor
         ):
@@ -464,7 +475,9 @@ def _build_scene(scene_spec: dict, t_norm: float):
     )
 
 
-def render_3d_scene_and_track(canvas, scene_spec: dict, t_norm: float) -> list[dict]:
+def render_3d_scene_and_track(
+    canvas: SupersampledCanvas, scene_spec: dict[str, Any], t_norm: float
+) -> list[dict[str, Any]]:
     """Render the parametric 3D scene and return tracked anchor screen positions.
 
     ``scene_spec`` keys: ``category`` (``"exploded_hardware_3d"``,
@@ -526,7 +539,7 @@ def render_3d_scene_and_track(canvas, scene_spec: dict, t_norm: float) -> list[d
 
     # Project every vertex; skip near/behind-plane polys; Painter's sort.
     light_dir = _norm((0.55, -0.45, 0.70))
-    draw_list = []
+    draw_list: list[tuple[float, MeshFace, list[tuple[float, float, float, bool]]]] = []
     for poly in polys:
         projected = [cam.project_point(v) for v in poly["verts"]]
         if any(p[2] <= _POLY_ZNEAR for p in projected):
@@ -549,7 +562,7 @@ def render_3d_scene_and_track(canvas, scene_spec: dict, t_norm: float) -> list[d
         if poly["emissive"]:
             canvas.bloom_polygon(points, outline=poly["edge_hex"])
 
-    tracked: list[dict] = []
+    tracked: list[dict[str, Any]] = []
     for a_def in scene_spec.get("anchors_3d", []):
         anchor_id = a_def["anchor_id"]
         local = a_def.get("local_pos", (0.0, 0.0, 0.0))

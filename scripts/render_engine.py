@@ -25,6 +25,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any, cast
 
 from PIL import Image
 
@@ -57,7 +58,9 @@ except OSError:  # non-glibc platform: gc alone still helps
         pass
 
 
-def build_camera(scene_cfg: dict, width: int, height: int, seed: int) -> WorldCamera2D:
+def build_camera(
+    scene_cfg: dict[str, Any], width: int, height: int, seed: int
+) -> WorldCamera2D:
     cam = scene_cfg.get("camera") or {}
     return WorldCamera2D(
         width,
@@ -72,11 +75,11 @@ def build_camera(scene_cfg: dict, width: int, height: int, seed: int) -> WorldCa
     )
 
 
-def scene_frames(scene: dict, fps: int) -> int:
+def scene_frames(scene: dict[str, Any], fps: int) -> int:
     return max(1, round(float(scene["duration_sec"]) * fps))
 
 
-def frame_counts(scenes: list[dict], fps: int) -> list[int]:
+def frame_counts(scenes: list[dict[str, Any]], fps: int) -> list[int]:
     """Bresenham-style cumulative frame quantization for a scene list.
 
     Per-scene ``round(duration * fps)`` lets each scene's ±0.5-frame error
@@ -98,7 +101,7 @@ def frame_counts(scenes: list[dict], fps: int) -> list[int]:
     return counts
 
 
-def trauma_at(scene: dict, local_time: float, fps: int) -> float:
+def trauma_at(scene: dict[str, Any], local_time: float, fps: int) -> float:
     """Replay the frame loop's trauma model deterministically for a single instant."""
     events = sorted(
         scene.get("sfx_events") or [], key=lambda ev: float(ev.get("t_sec", 0.0))
@@ -126,10 +129,12 @@ def trauma_at(scene: dict, local_time: float, fps: int) -> float:
 _MANIM_WARNED: set[str] = set()
 
 
-def _route_scene(scene: dict) -> str:
+def _route_scene(scene: dict[str, Any]) -> str:
     """Route a scene to its render backend; never raises."""
     try:
-        return scene_router.route_scene(scene)
+        # scene_router is not resolvable by mypy in this repo config;
+        # str() keeps this clean whether route_scene resolves or not
+        return str(scene_router.route_scene(scene))
     except ValueError as exc:
         print(
             f"render_engine: warning — {exc}; treating scene as canvas_2d",
@@ -138,7 +143,7 @@ def _route_scene(scene: dict) -> str:
         return "canvas_2d"
 
 
-def _warn_manim_once(scene: dict) -> None:
+def _warn_manim_once(scene: dict[str, Any]) -> None:
     sid = str(scene.get("scene_id", "?"))
     if sid in _MANIM_WARNED:
         return
@@ -150,7 +155,7 @@ def _warn_manim_once(scene: dict) -> None:
     )
 
 
-def _spec_route(scene: dict) -> str | None:
+def _spec_route(scene: dict[str, Any]) -> str | None:
     """Return the effective route for a scene_spec scene, or None otherwise."""
     spec = scene.get("scene_spec")
     if not isinstance(spec, dict) or not spec:
@@ -162,7 +167,7 @@ def _spec_route(scene: dict) -> str | None:
     return route
 
 
-def _blender_adapter_spec(spec: dict) -> dict:
+def _blender_adapter_spec(spec: dict[str, Any]) -> dict[str, Any]:
     """Map a board ``scene_spec`` to the spec shape ``blender_runner.py`` expects.
 
     The board schema uses ``camera_3d``/``fstop``/``blender_engine`` while
@@ -200,8 +205,8 @@ def _blender_adapter_spec(spec: dict) -> dict:
 
 
 def _load_blender_tracks(
-    tracks_path: Path, spec: dict, local_idx: int
-) -> list[dict] | None:
+    tracks_path: Path, spec: dict[str, Any], local_idx: int
+) -> list[dict[str, Any]] | None:
     """Read Blender's anchor_tracks.json and merge in label/metric/accent metadata."""
     try:
         payload = json.loads(Path(tracks_path).read_text(encoding="utf-8"))
@@ -215,7 +220,7 @@ def _load_blender_tracks(
             for a in (spec.get("anchors_3d") or [])
             if isinstance(a, dict)
         }
-        tracked: list[dict] = []
+        tracked: list[dict[str, Any]] = []
         for entry in entries:
             if not isinstance(entry, dict):
                 continue
@@ -234,12 +239,12 @@ def _load_blender_tracks(
 
 
 def _scene_spec_frame(
-    scene: dict,
+    scene: dict[str, Any],
     cv: SupersampledCanvas,
     local_idx: int,
     local_t: float,
     blender_dir: Path | None,
-) -> list[dict] | None:
+) -> list[dict[str, Any]] | None:
     """Paint the 3D pass for a scene_spec scene; return tracked HUD anchors.
 
     Prefers a pre-rendered Blender plate when ``blender_dir`` holds the frame
@@ -275,7 +280,11 @@ def _scene_spec_frame(
                     )
                 return tracks
     try:
-        return software_3d_projection.render_3d_scene_and_track(cv, spec, local_t)
+        # software_3d_projection is not resolvable by mypy in this repo config
+        return cast(
+            "list[dict[str, Any]] | None",
+            software_3d_projection.render_3d_scene_and_track(cv, spec, local_t),
+        )
     except NotImplementedError:
         # Unimplemented category must propagate: the validator rejects those
         # boards up front, so reaching here is a real bug, not a fallback.
@@ -290,7 +299,7 @@ def _scene_spec_frame(
 
 
 def _paint_scene_frame(
-    scene: dict,
+    scene: dict[str, Any],
     width: int,
     height: int,
     scale: int,
@@ -300,9 +309,9 @@ def _paint_scene_frame(
     trauma: float,
     base_dir: str | None = None,
     blender_dir: Path | None = None,
-    camera=None,
-    zones: dict | None = None,
-):
+    camera: WorldCamera2D | None = None,
+    zones: dict[str, tuple[int, int, int, int]] | None = None,
+) -> Image.Image:
     """Render one frame of a scene: 3D pass (if any), then elements on top, then fades."""
     n_frames = scene_frames(scene, fps)
     local_t = local_idx / max(1, n_frames - 1)
@@ -365,7 +374,7 @@ def _paint_scene_frame(
     )
     for el in scene.get("elements", []):
         render_element(cv, el, ctx)
-    frame = cv.final()
+    frame: Image.Image = cv.final()
 
     # scene edge fades (blend in RGB space — Pillow ImageDraw has no alpha blend)
     scene_dur = float(scene["duration_sec"])
@@ -383,7 +392,7 @@ def _paint_scene_frame(
 
 
 def paint_frame(
-    scene: dict,
+    scene: dict[str, Any],
     width: int,
     height: int,
     scale: int,
@@ -391,7 +400,7 @@ def paint_frame(
     local_idx: int,
     fps: int,
     base_dir: str | None = None,
-):
+) -> Image.Image:
     """Render exactly one frame of a scene (used by --thumbnails)."""
     trauma = trauma_at(scene, local_idx / fps, fps)
     return _paint_scene_frame(
@@ -432,7 +441,7 @@ def render_thumbnails(board_path: Path, out_dir: Path, scale: int = 2) -> list[P
     return written
 
 
-def estimate(board: dict) -> dict:
+def estimate(board: dict[str, Any]) -> dict[str, Any]:
     fmt = board["format"]
     fps = int(fmt["fps"])
     width, height = int(fmt["width"]), int(fmt["height"])
@@ -471,7 +480,7 @@ def estimate(board: dict) -> dict:
 
 
 def _prerender_blender_plates(
-    board: dict,
+    board: dict[str, Any],
     work_dir: Path,
     width: int,
     height: int,
@@ -784,7 +793,7 @@ def render(args: argparse.Namespace) -> int:
     return 0
 
 
-def _background_color(scene: dict) -> str:
+def _background_color(scene: dict[str, Any]) -> str:
     for el in scene.get("elements", []):
         if el.get("type") == "background":
             return str(el.get("color", "#000000"))
