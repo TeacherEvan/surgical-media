@@ -1,5 +1,8 @@
 name: Skill CI
 
+# NOTE: this account is billing-locked; runs start again when it is unlocked.
+# The identical gate suite is mirrored on GitLab (see .gitlab-ci.yml) — both
+# call scripts/ci_gates.sh so they cannot drift apart.
 "on":
   push:
     branches:
@@ -19,17 +22,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest ruff pillow jsonschema check-jsonschema
           sudo apt-get update && sudo apt-get install -y ffmpeg
-      - name: Validate example storyboard
-        run: python3 scripts/storyboard.py examples/tri_archetype_storyboard.json
-      - name: Lint
-        run: |
-          ruff check --no-cache scripts/ tests/
-          ruff format --check --no-cache scripts/ tests/
-      - name: Run unit tests
-        run: pytest -o cache_dir=/tmp/pytest_cache_sm -v tests/
-      - name: Validate Draft 2020-12 JSON Schemas
-        run: check-jsonschema --check-metaschema schemas/*.schema.json
-      - name: Thumbnail smoke gate (visual path, no ffmpeg needed)
-        run: python3 scripts/render_engine.py --demo --thumbnails /tmp/sm_thumbs
-      - name: Full-render smoke gate
-        run: python3 scripts/render_engine.py --demo --output /tmp/sm_ci.mp4 --quality draft
+      - name: Run the gate suite (scripts/ci_gates.sh)
+        run: bash scripts/ci_gates.sh

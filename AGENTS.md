@@ -4,7 +4,7 @@ Agent instructions for working inside the `surgical-media` skill repository. `RE
 
 ## Repo shape
 
-- `surgical-media` is a Hermes **skill** (deterministic video pipeline: storyboard → MP4), not a published package. **This directory is not under version control** — no `.git`; `.gitignore` and `.github/workflows/skill-ci.yml` are staged for a future repo. Ask before `git init` or committing anything.
+- `surgical-media` is a Hermes **skill** (deterministic video pipeline: storyboard → MP4), not a published package. This directory **is** the public repo `github.com/TeacherEvan/surgical-media` (branch `main`, repo-local identity `TeacherEvan <…noreply.github.com>`). Ask before rewriting or force-pushing history.
 - `Concept/` is the input transcript (design history). It is not the contract — code and `tests/` are.
 - Runtime deps: **Pillow ≥ 10.1 + ffmpeg/ffprobe on PATH** (`requirements.txt`). `edge-tts` is optional (`requirements-tts.txt`) and **tests never use it** (offline by design). Audio/geometry are stdlib-only — no NumPy (`docs/adr/0001-stdlib-first-verified-pipeline.md`).
 - `SKILL.md` must stay ≤ 120 lines (agent manifest: stages/invariants/gotchas). Element catalog and parameter specs live in `references/storyboard-guide.md` — don't duplicate them here or in `SKILL.md`.
@@ -23,7 +23,7 @@ python3 scripts/render_engine.py --demo --output /tmp/sm_gate.mp4       # only w
 ```
 
 - Single test: `python3 -m pytest "tests/test_visual_smoke.py::test_box_downsample_keeps_thin_lines" -q`
-- CI runs the same gates plus a full `render_engine.py --demo --… --quality draft` smoke gate; ffmpeg is apt-installed there and integration tests **skip cleanly** without it.
+- CI: `scripts/ci_gates.sh` is the single source of truth — both `.github/workflows/skill-ci.yml` and `.gitlab-ci.yml` call it (storyboard → ruff → pytest → schema metaschema → thumbnails → draft render → ffprobe QC). GitHub Actions is **currently blocked** (account billing lock; jobs rejected before start). The GitLab mirror is committed but **has not run** — it starts when the GitLab project is imported; don't claim a green pipeline until you see one. Change the script, never the providers. ffmpeg is apt/pip-installed there and integration tests **skip cleanly** without it.
 - **mypy** is configured in `pyproject.toml` but not enforced and not installed in the usual scratch venv — ruff + pytest are the enforced gates; mypy runs are advisory only.
 - **markdownlint** (npm, v0.49.1) fails on *pre-existing* house docs (`references/`, `docs/adr/`: MD022/MD031/MD034/MD060) — it is not a gate. Don't present it as one, and don't add it to CI without fixing those files first.
 - Before spending a full render: `--estimate` (frame count / audio cost) and `--thumbnails DIR` (one PNG per scene). `final` = crf 18, demo/draft = crf 26. Rendering is deterministic only per machine/Pillow build — diff frames, not hashes.

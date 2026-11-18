@@ -55,6 +55,14 @@ python3 scripts/storyboard.py examples/tri_archetype_storyboard.json
 check-jsonschema --check-metaschema schemas/*.schema.json
 ```
 
+Or everything, in one call: `bash scripts/ci_gates.sh`
+
+### CI parity
+
+- GitHub Actions ([`.github/workflows/skill-ci.yml`](.github/workflows/skill-ci.yml)) and GitLab CI ([`.gitlab-ci.yml`](.gitlab-ci.yml)) both run **the same** `scripts/ci_gates.sh` — they cannot drift apart.
+- **Status (2026-11-18):** GitHub Actions is blocked — the account is billing-locked, jobs are rejected before they start. The repo is public and honest local gates pass, but remote verification is pending.
+- The GitLab mirror starts automatically once a project is imported from this repo: **New project → Import project → Repository by URL** → paste this repo's URL → create. Optionally enable *Settings → Repository → Mirroring* to auto-sync `main`. Until the first pipeline passes, treat the mirror as configured-not-verified.
+
 ## Install as a Skill
 
 ```bash

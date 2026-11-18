@@ -1,0 +1,43 @@
+# GitLab CI mirror of the GitHub Actions workflow.
+#
+# Why: the GitHub account is billing-locked, so Actions jobs cannot start.
+# This pipeline enforces the identical gates — and cannot drift from GitHub,
+# because both call scripts/ci_gates.sh.
+#
+# Status: committed ahead of the first GitLab pipeline; it runs automatically
+# once a GitLab project is imported from https://github.com/TeacherEvan/surgical-media
+# (New project → Import project → Repository by URL). Set up repository
+# pull-mirroring (Settings → Repository → Mirroring) to auto-sync main.
+#
+# Honest claim: this pipeline has NOT run yet. Do not read the presence of
+# this file as a green pipeline — check the Pipelines page, and update this
+# comment + README when it passes.
+
+default:
+  image: python:3.12
+
+cache:
+  key:
+    files:
+      - requirements.txt
+    paths:
+      - .cache/pip
+
+stages:
+  - gate
+
+variables:
+  PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip
+
+validate:
+  stage: gate
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends ffmpeg
+    - python -m pip install --upgrade pip
+    - pip install pytest ruff pillow jsonschema check-jsonschema
+  script:
+    - bash scripts/ci_gates.sh
+  rules:
+    # main pushes and merge requests — same triggers as the GitHub workflow
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
