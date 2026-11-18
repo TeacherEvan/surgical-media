@@ -1,0 +1,97 @@
+{
+  "query": "snake",
+  "queries": [
+    "snake"
+  ],
+  "sources": [
+    "commons"
+  ],
+  "retrieved": "2026-11-18T20:08:55+00:00",
+  "count": 6,
+  "assets": [
+    {
+      "file": "01_086_wild_grass_snake_at_lake_geneva_photo_by_gil.jpg",
+      "title": "086 Wild Grass snake at Lake Geneva Photo by Giles Laurent.jpg",
+      "creator": "Giles Laurent",
+      "license": "by-sa",
+      "license_version": "4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:086_Wild_Grass_snake_at_Lake_Geneva_Photo_by_Giles_Laurent.jpg",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/086_Wild_Grass_snake_at_Lake_Geneva_Photo_by_Giles_Laurent.jpg/3840px-086_Wild_Grass_snake_at_Lake_Geneva_Photo_by_Giles_Laurent.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 2048,
+      "height": 1366,
+      "source": "commons",
+      "attribution": "Giles Laurent — 086 Wild Grass snake at Lake Geneva Photo by Giles Laurent.jpg · CC BY-SA 4.0 · https://commons.wikimedia.org/wiki/File:086_Wild_Grass_snake_at_Lake_Geneva_Photo_by_Giles_Laurent.jpg"
+    },
+    {
+      "file": "02_a_snake_coiled_in_the_cavity_of_a_tree_jpg.jpg",
+      "title": "A snake coiled in the cavity of a tree.jpg",
+      "creator": "Knowledge and philosophy",
+      "license": "by-sa",
+      "license_version": "4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:A_snake_coiled_in_the_cavity_of_a_tree.jpg",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/0/0d/A_snake_coiled_in_the_cavity_of_a_tree.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "width": 2048,
+      "height": 2868,
+      "source": "commons",
+      "attribution": "Knowledge and philosophy — A snake coiled in the cavity of a tree.jpg · CC BY-SA 4.0 · https://commons.wikimedia.org/wiki/File:A_snake_coiled_in_the_cavity_of_a_tree.jpg"
+    },
+    {
+      "file": "03_adams_the_tetons_and_the_snake_river_jpg.jpg",
+      "title": "Adams The Tetons and the Snake River.jpg",
+      "creator": "Ansel Adams",
+      "license": "pdm",
+      "license_version": "",
+      "license_url": "",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Adams_The_Tetons_and_the_Snake_River.jpg",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/21/Adams_The_Tetons_and_the_Snake_River.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "width": 2048,
+      "height": 1640,
+      "source": "commons",
+      "attribution": "Ansel Adams — Adams The Tetons and the Snake River.jpg · PUBLIC DOMAIN · https://commons.wikimedia.org/wiki/File:Adams_The_Tetons_and_the_Snake_River.jpg"
+    },
+    {
+      "file": "04_ahaetulla_prasina__oriental_whipsnake___kaeng_kr.jpg",
+      "title": "Ahaetulla prasina, oriental whipsnake - Kaeng Krachan National Park.jpg",
+      "creator": "www.thainationalparks.com/kaeng-krachan-national-park Thai National Parks Rushen",
+      "license": "by-sa",
+      "license_version": "2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Ahaetulla_prasina,_oriental_whipsnake_-_Kaeng_Krachan_National_Park.jpg",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Ahaetulla_prasina%2C_oriental_whipsnake_-_Kaeng_Krachan_National_Park.jpg/3840px-Ahaetulla_prasina%2C_oriental_whipsnake_-_Kaeng_Krachan_National_Park.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 2048,
+      "height": 1367,
+      "source": "commons",
+      "attribution": "www.thainationalparks.com/kaeng-krachan-national-park Thai National Parks Rushen — Ahaetulla prasina, oriental whipsnake - Kaeng Krachan National Park.jpg · CC BY-SA 2.0 · https://commons.wikimedia.org/wiki/File:Ahaetulla_prasina,_oriental_whipsnake_-_Kaeng_Krachan_National_Park.jpg"
+    },
+    {
+      "file": "05_ambigram_snake_aliens_png.png",
+      "title": "Ambigram Snake Aliens.png",
+      "creator": "Basile Morin",
+      "license": "by-sa",
+      "license_version": "4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Ambigram_Snake_Aliens.png",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/64/Ambigram_Snake_Aliens.png/3840px-Ambigram_Snake_Aliens.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "width": 2048,
+      "height": 2048,
+      "source": "commons",
+      "attribution": "Basile Morin — Ambigram Snake Aliens.png · CC BY-SA 4.0 · https://commons.wikimedia.org/wiki/File:Ambigram_Snake_Aliens.png"
+    },
+    {
+      "file": "06_black_chested_snake_eagle__circaetus_pectoralis.jpg",
+      "title": "Black-chested snake-eagle (Circaetus pectoralis).jpg",
+      "creator": "Charles J. Sharp",
+      "license": "by-sa",
+      "license_version": "4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Black-chested_snake-eagle_(Circaetus_pectoralis).jpg",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/6/6f/Black-chested_snake-eagle_%28Circaetus_pectoralis%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "width": 2048,
+      "height": 1679,
+      "source": "commons",
+      "attribution": "Charles J. Sharp — Black-chested snake-eagle (Circaetus pectoralis).jpg · CC BY-SA 4.0 · https://commons.wikimedia.org/wiki/File:Black-chested_snake-eagle_(Circaetus_pectoralis).jpg"
+    }
+  ]
+}

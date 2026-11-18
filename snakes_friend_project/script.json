@@ -1,0 +1,27 @@
+{
+  "title": "Snakes Are Friends, Not Food",
+  "voice": "en-US-ChristopherNeural",
+  "wpm": 100,
+  "scenes": [
+    {"scene_id": "hook_friends", "archetype": "doc_essay", "narration": "Snakes are friends, not food."},
+    {"scene_id": "look_closer", "archetype": "doc_essay", "narration": "Look closer at the coil."},
+    {"scene_id": "mostly_harmless", "archetype": "doc_essay", "narration": "Most snakes are not venomous."},
+    {"scene_id": "defence_only", "archetype": "doc_essay", "narration": "They bite when threatened."},
+    {"scene_id": "guard_harvest", "archetype": "doc_essay", "narration": "Yet they guard our harvest."},
+    {"scene_id": "rodents_grain", "archetype": "doc_essay", "narration": "Rats and mice destroy grain."},
+    {"scene_id": "rodents_checked", "archetype": "doc_essay", "narration": "Snakes keep rodents in check."},
+    {"scene_id": "free_control", "archetype": "doc_essay", "narration": "That is free pest control."},
+    {"scene_id": "rodent_disease", "archetype": "doc_essay", "narration": "Rodents carry disease too."},
+    {"scene_id": "fewer_outbreaks", "archetype": "doc_essay", "narration": "Fewer rats, fewer outbreaks."},
+    {"scene_id": "prey_too", "archetype": "mixed", "narration": "Snakes are prey as well."},
+    {"scene_id": "raptors_need", "archetype": "mixed", "narration": "Hawks and eagles need them."},
+    {"scene_id": "snakes_hunt", "archetype": "mixed", "narration": "Even snakes hunt other snakes."},
+    {"scene_id": "forests_spread", "archetype": "doc_essay", "narration": "They help forests spread."},
+    {"scene_id": "seeds_sprout", "archetype": "doc_essay", "narration": "Seeds pass through, then sprout."},
+    {"scene_id": "venom_medicine", "archetype": "doc_essay", "narration": "Their venom became medicine."},
+    {"scene_id": "heart_drugs", "archetype": "doc_essay", "narration": "Heart drugs came from vipers."},
+    {"scene_id": "numbers_falling", "archetype": "mixed", "narration": "But snake numbers are falling."},
+    {"scene_id": "give_space", "archetype": "mixed", "narration": "Give them space, not fear."},
+    {"scene_id": "let_live", "archetype": "mixed", "narration": "Friends, not food. Let them live."}
+  ]
+}

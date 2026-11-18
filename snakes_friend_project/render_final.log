@@ -1,0 +1,108 @@
+render_engine: blender binary not available; scene_spec scenes will use the software 3D renderer
+render_engine: 60/1800 frames (2.1 fps, eta 824s)
+render_engine: 120/1800 frames (2.1 fps, eta 797s)
+render_engine: 180/1800 frames (2.1 fps, eta 755s)
+render_engine: 240/1800 frames (2.1 fps, eta 746s)
+render_engine: 300/1800 frames (2.1 fps, eta 713s)
+render_engine: 360/1800 frames (2.1 fps, eta 682s)
+render_engine: 420/1800 frames (2.1 fps, eta 655s)
+render_engine: 480/1800 frames (2.1 fps, eta 629s)
+render_engine: 540/1800 frames (2.2 fps, eta 579s)
+render_engine: 600/1800 frames (2.2 fps, eta 551s)
+render_engine: 660/1800 frames (2.1 fps, eta 532s)
+render_engine: 720/1800 frames (2.1 fps, eta 518s)
+render_engine: 780/1800 frames (2.1 fps, eta 486s)
+render_engine: 840/1800 frames (2.1 fps, eta 451s)
+render_engine: 900/1800 frames (2.2 fps, eta 416s)
+render_engine: 960/1800 frames (2.2 fps, eta 389s)
+render_engine: 1020/1800 frames (2.2 fps, eta 360s)
+render_engine: 1080/1800 frames (2.2 fps, eta 333s)
+render_engine: 1140/1800 frames (2.2 fps, eta 307s)
+render_engine: 1200/1800 frames (2.1 fps, eta 279s)
+render_engine: 1260/1800 frames (2.1 fps, eta 252s)
+render_engine: 1320/1800 frames (2.1 fps, eta 226s)
+render_engine: 1380/1800 frames (2.1 fps, eta 197s)
+render_engine: 1440/1800 frames (2.1 fps, eta 168s)
+render_engine: 1500/1800 frames (2.1 fps, eta 140s)
+render_engine: 1560/1800 frames (2.1 fps, eta 113s)
+render_engine: 1620/1800 frames (2.1 fps, eta 85s)
+render_engine: 1680/1800 frames (2.1 fps, eta 56s)
+render_engine: 1740/1800 frames (2.2 fps, eta 28s)
+render_engine: 1800/1800 frames (2.2 fps, eta 0s)
+render_engine: encoded snakes_are_friends_not_food.mp4 in 837.8s (audio 10.2s, 1800 frames @ 1080x1920 30fps, crf 18)
+{
+  "input": "/home/leandi-duplessis/.hermes/cache/scratch/opencode/snakes_friend/snakes_are_friends_not_food.mp4",
+  "checks": [
+    {
+      "check": "video_stream_present",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "audio_stream_present",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "codec_h264",
+      "ok": true,
+      "detail": "codec=h264"
+    },
+    {
+      "check": "pix_fmt_yuv420p",
+      "ok": true,
+      "detail": "pix_fmt=yuv420p (yuv420p required for iOS/Safari/IG/TikTok)"
+    },
+    {
+      "check": "width",
+      "ok": true,
+      "detail": "1080 != 1080"
+    },
+    {
+      "check": "height",
+      "ok": true,
+      "detail": "1920 != 1920"
+    },
+    {
+      "check": "fps",
+      "ok": true,
+      "detail": "30.000 != 30"
+    },
+    {
+      "check": "audio_codec_aac",
+      "ok": true,
+      "detail": "codec=aac"
+    },
+    {
+      "check": "audio_48k",
+      "ok": true,
+      "detail": "sample_rate=48000"
+    },
+    {
+      "check": "audio_not_silent",
+      "ok": true,
+      "detail": "0% silent (max 75%); 0 interval(s)"
+    },
+    {
+      "check": "duration_drift_le_150ms",
+      "ok": true,
+      "detail": "|60.000 - 60.000| = 0 ms"
+    }
+  ],
+  "ok": true,
+  "streams": {
+    "video": {
+      "codec_name": "h264",
+      "pix_fmt": "yuv420p",
+      "width": 1080,
+      "height": 1920,
+      "r_frame_rate": "30/1"
+    },
+    "audio": {
+      "codec_name": "aac",
+      "sample_rate": "48000",
+      "channels": 2
+    }
+  },
+  "duration_sec": 60.0
+}
