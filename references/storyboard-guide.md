@@ -98,6 +98,28 @@ Raster imagery: cover (fills box, center-crop), contain (letterbox), or backdrop
 ### `kinetic_captions` — `{ "type": "kinetic_captions", "accent": "#FFD700", "size": 22 }`
 Reads the scene's `words` array; word-by-word karaoke in the caption band. `accent` (current word) and `size` optional.
 
+## Scene backends (optional — `scene_spec` + `backend`)
+
+A scene with `scene_spec` replaces the `elements[]` requirement and routes to a parametric 3D backend. `backend`: `auto` (default; routes on category/keywords), `blender_hybrid`, `blender_3d`, `canvas_2d`, `manim_math` (accepted, lints a warning, renders as canvas_2d). Paint order: 3D pass or pre-baked Blender plate → HUD (`blender_hybrid` only) → `elements[]` (if any) on top → fades.
+
+```jsonc
+{ "scene_id": "cowos_stack", "archetype": "mixed", "duration_sec": 1.5,
+  "backend": "auto",
+  "scene_spec": {
+    "category": "exploded_hardware_3d",   // or orbital_or_field_3d (others: rejected at validation)
+    "hud_title": "EXPLODED COWOS-STYLE PACKAGE STACK",
+    "explode_factor": 1.15,
+    "camera_3d": { "mode": "orbit", "focal_length_mm": 50.0, "fstop": 2.8,
+                   "radius_start": 7.6, "radius_end": 6.4,
+                   "azimuth_start_deg": -38.0, "azimuth_end_deg": 32.0, "elevation_deg": 24.0 },
+    "anchors_3d": [ { "anchor_id": "anchor_compute_die", "label": "5nm AI Compute Die",
+                      "metric": "4,500 FP8 TFLOPS", "local_pos": [0.55, -0.55, 0.35],
+                      "accent_hex": "#FACC15" } ] },
+  "sfx_events": [ { "t_sec": 0.05, "sfx": "whoosh", "intensity": 0.6 } ] }
+```
+
+Rendering paths: with Blender ≥ 3.6 on PATH, each blender_hybrid/blender_3d scene is pre-baked into the work dir (`blender -b -P scripts/blender_runner.py -- --spec …`, PNG sequence + `anchor_tracks.json`; failure → warn + software fallback, render continues). Otherwise — and always for `--thumbnails` — `scripts/software_3d_projection.py` renders a 4×4-perspective painter’s-algorithm pass with stdlib math and returns the same normalized `(u, v, z_depth)` anchor contract. HUD cards (blender_hybrid) are placed by `scripts/layout_solver.py` (AABB min-axis separation; locked HUD header + center-stage repulsor; 24 px canvas clamp) and painted by `scripts/hybrid_compositor.py` (reticles, 45° elbow leaders, glass cards, spring-pop reveal). Runtime-computed tracks with `visible: false` are skipped (board `anchors_3d` cannot set `visible`). `camera_3d.mode` supports `orbit` only and `lighting_preset` supports `cyber_studio_volumetric` / `clean_product_softbox`; camera defaults are shared between both renderers. Full example: `examples/hybrid_3d_storyboard.json`.
+
 ## `sfx_events`
 
 `pop` · `whoosh` · `chime` · `confirm` · `type_click` · `error_buzz` — synthesized offline, mixed at scene offset, ducked pad, −1 dBFS ceiling, loudnorm −14 LUFS on mux.

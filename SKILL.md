@@ -1,7 +1,7 @@
 ---
 name: surgical-media
 description: "Use when creating, planning, or rendering social video from a topic prompt."
-version: 1.0.0
+version: 1.3.0
 author: "TeacherEvan, Hermes Agent"
 license: MIT
 platforms: [linux, macos]
@@ -13,22 +13,21 @@ metadata:
     related_skills: [video-production-pipeline, surgical-orchestration, surgical-audit]
 ---
 
-# Surgical Media (v1.0.0)
+# Surgical Media (v1.3.0)
 
-Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 218 tests including a rendered-and-verified MP4 integration pass and pixel-level visual smoke checks).
+Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 277 tests including a rendered-and-verified MP4 integration pass and pixel-level visual smoke checks).
 
 ## When to Use
 
 - The user wants a complete video, explainer, Short, Reel, or TikTok generated from a topic or URL.
-- The user wants procedural animations in the Alan Becker (geometry/stick-figure), Matt Madigan (documentary essay), or Fireship (code report) visual styles.
+- The user wants procedural animations in the Alan Becker (geometry/stick-figure), Matt Madigan (documentary essay), or Fireship (code report) visual styles — or a parametric 3D scene (exploded package stack, stellarator torus) with HUD telemetry pinned to 3D anchors.
 - The user wants a repeatable script-to-MP4 pipeline with frame-accurate audio sync.
 - The user needs social-ready masters verified for yuv420p/faststart/-14 LUFS before upload.
 
 ## When Not to Use
 
-- Live-action capture, human editing suites (DaVinci/Premiere), or heavy 3D — this is procedural 2D motion graphics only.
-- Video *analysis* of existing files (transcription, summarisation) — use a media-analysis skill.
-- Cinemagraphs/loops under 3s with no narration — still fine, but a GIF pipeline is simpler.
+- Live-action capture, human editing suites, or production 3D characters/environments — parametric 3D scenes here are limited to the built-in procedural categories (exploded hardware, stellarator/orbital torus), 2D overlays stay supersampled Pillow.
+- Video *analysis* of existing files (transcription, summarisation) — use a media-analysis skill. Cinemagraphs/loops under 3 s — a GIF pipeline is simpler.
 
 ## Style Archetypes
 
@@ -65,7 +64,7 @@ This voices each beat (edge-tts when reachable, otherwise a WPM estimate), probe
 
 ### Stage 3 — Storyboard
 
-Edit `storyboard.json` (schema: `schemas/storyboard.schema.json`, checked by `scripts/storyboard.py`). Every scene requires `scene_id`, `archetype`, `duration_sec`, and `elements[]`. Elements render in array order: `background`, `grid`, `scaling_chart`, `phi_divider`, `tesseract`, `system_architecture`, `code_terminal`, `quote_card`, `hud_badge`, `stick_rig`, `kinetic_captions`, `image` (catalog with parameters: `references/storyboard-guide.md`). Keep visual beats ≤3.0 s — split longer clauses into sub-beats.
+Edit `storyboard.json` (schema: `schemas/storyboard.schema.json`, checked by `scripts/storyboard.py`). Every scene requires `scene_id`, `archetype`, `duration_sec`, and `elements[]` — unless it carries a `scene_spec` (see "3D scene backends"). Elements render in array order: `background`, `grid`, `scaling_chart`, `phi_divider`, `tesseract`, `system_architecture`, `code_terminal`, `quote_card`, `hud_badge`, `stick_rig`, `kinetic_captions`, `image` (catalog with parameters: `references/storyboard-guide.md`). Keep visual beats ≤3.0 s — split longer clauses into sub-beats.
 
 ```bash
 python3 scripts/storyboard.py storyboard.json          # validate only
@@ -82,6 +81,10 @@ python3 scripts/render_engine.py --demo --output demo.mp4                      #
 
 Inspect thumbnails before spending a full render; the bundled demo takes ~60–90 s (draft) on a 4-core CPU. Every frame is drawn at 2x target resolution (e.g. 2560x1440 → 1280x720) and BOX-averaged down (ideal SSAA kernel; ~3× cheaper than LANCZOS at integer scale); RGB-emissive primitives feed a dual-radius Gaussian bloom pyramid computed at half resolution; raw RGB frames pipe directly into ffmpeg (`libx264 -crf 18 -profile:v high -level 4.2 -pix_fmt yuv420p -movflags +faststart`); audio is synthesized offline (just-intonation pad ducked −12 dB under VO, SFX on a frame-accurate timeline, −1 dBFS ceiling) and loudnorm'd to −14 LUFS. After encoding, `verify_output.py` asserts streams, H.264/yuv420p, fps, resolution and ≤150 ms A/V drift — a failed gate exits 3.
 
+### 3D scene backends (optional, `scene_spec`)
+
+A scene may replace `elements[]` with a `scene_spec` object routing it to a parametric 3D backend (`backend`: `auto` default, `blender_hybrid`, `blender_3d`, `canvas_2d`, `manim_math` → warns, renders as 2D canvas). Categories: `exploded_hardware_3d`, `orbital_or_field_3d` (others rejected at validation). Always renders via a stdlib 4×4-perspective Painter's-algorithm pass — Blender not required; with Blender ≥3.6 on PATH, frames are pre-baked and 3D→2D anchors pin frosted-glass telemetry cards placed collision-free by an AABB SAT solver. Elements still paint on top; `scene_spec` replaces the `elements` requirement. Example: `examples/hybrid_3d_storyboard.json` — see `references/storyboard-guide.md` + ADR 0003.
+
 ## Hard Invariants
 
 1. **yuv420p or nothing.** RGBA/yuv444p output fails on iOS/Safari/IG/TikTok. The encoder never overrides this.
@@ -89,32 +92,29 @@ Inspect thumbnails before spending a full render; the bundled demo takes ~60–9
 3. **No linear motion.** Camera/UI motion goes through `easings.py` (`ease_out_expo`, `ease_in_out_cubic`, `spring_pop`…). `linear` exists for debugging only.
 4. **2x supersample floor.** `SupersampledCanvas(..., scale>=2)` — Pillow has no sub-pixel AA on diagonals/circles.
 5. **Safe zones are load-bearing.** 9:16 content lives inside `(84, 220) → (w-150, h-440)`; captions never collide with platform chrome (`canvas.layout_zones`).
-6. **Claims match code.** If a feature is not in this repo and green under `pytest`, it does not ship. Manim/moviepy are deliberately out of scope.
+6. **Claims match code.** If a feature is not in this repo and green under `pytest`, it does not ship. Manim/moviepy are deliberately out of scope. Blender is optional and never required.
 
 ## Verification
 
 ```bash
-python3 -m pytest tests/ -q                                   # 218 tests
+python3 -m pytest tests/ -q                                   # 277 tests
 python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + QC
 python3 scripts/verify_output.py --input /tmp/demo.mp4 --storyboard examples/tri_archetype_storyboard.json
 ```
 
 ## Gotchas
 
-- `edge-tts` needs network; Airplane mode ⇒ `--offline` (WPM-estimated timing; the online path carries measured edge-tts WordBoundary timestamps).
-- 60 fps doubles render cost; use 30 fps for Shorts unless motion demands otherwise.
+- `edge-tts` needs network; Airplane mode ⇒ `--offline` (WPM-estimated; online carries measured edge-tts WordBoundary timestamps). 60 fps doubles render cost — use 30 for Shorts unless motion demands otherwise.
 - `ImageDraw` has no alpha blend — scene fades are RGB `Image.blend`s; translucent panels use pre-blended slate tones, not RGBA overlays.
-- Raster subject imagery ships via the `image` element (`src` absolute or relative to the storyboard; `fit` cover|contain; `kb_zoom` Ken Burns; `fade_in_sec`; `attribution` credit line — use it for license/AI-illustration disclosure). Full-bleed hero frames beat chart-only explainers for anything with a living subject.
-- Raw video pipe expects `rgb24`, not `rgba` — changing `-pix_fmt` without changing `frame.tobytes()` corrupts every frame.
+- Raster subject imagery ships via the `image` element (`fit` cover|contain, `kb_zoom` Ken Burns, `attribution` credit line for license/AI-illustration disclosure). Raw video pipe expects `rgb24`, not `rgba` — changing `-pix_fmt` without changing `frame.tobytes()` corrupts every frame.
 - `verify_output.py` drifting >150 ms almost always means `duration_sec` vs ffprobe VO mismatch — re-run `tts_align.py`, don't hand-tweak.
 
 ## Auxiliary Resources
 
-- `references/archetypes.md` + `references/storyboard-guide.md` + `references/ffmpeg-encoding.md` — field guide, element catalog/camera semantics/safe zones, encoder/loudness/QC reference
-- `scripts/fetch_assets.py` — multi-source licensed imagery: Openverse + Wikimedia Commons (original-res) + iNaturalist (nature); license allowlist `by`/`by-sa`/`cc0`/`pdm` (`*-nd`/`*-nc` rejected), PIL-verified, deduped across sources, writes `assets/manifest.json` with attribution strings
-- `scripts/blender_plate.py` — **optional** headless-Blender 3D plates (`earth`/`iceberg`/`ringed`, Workbench engine, transparent PNG) composited like any `image` element; exits 2 with a clear message when Blender is absent — never required
-- `assets/fonts/` — bundled OFL Inter (Regular/SemiBold/Bold) + JetBrains Mono (Regular/Bold), SHA-256 pinned, licenses verbatim; canvas prefers them over system fonts
-- `schemas/{storyboard,script,investigation_brief}.schema.json` — Draft 2020-12 contracts
-- `examples/tri_archetype_storyboard.json` — renderable 3-scene showcase (`scripts/build_demo.py` regenerates)
+- `references/archetypes.md` + `references/storyboard-guide.md` + `references/ffmpeg-encoding.md` — field guide, element catalog/3D backends/safe zones, encoder reference
+- `scripts/fetch_assets.py` — multi-source licensed imagery: Openverse + Wikimedia Commons + iNaturalist; license allowlist `by`/`by-sa`/`cc0`/`pdm` (`*-nd`/`*-nc` rejected), PIL-verified, writes `assets/manifest.json` with attribution strings
+- `scripts/blender_plate.py` — **optional** headless-Blender 3D plates (`earth`/`iceberg`/`ringed`, transparent PNG) composited like any `image` element; exits 2 with a clear message when Blender is absent
+- `scripts/{scene_router,software_3d_projection,hybrid_compositor,layout_solver,blender_runner}.py` — scene backends: routing + stdlib 4×4-perspective tracker, SAT-solved HUD cards, headless Blender bake; `assets/fonts/` — bundled OFL Inter + JetBrains Mono (SHA-256 pinned, canvas prefers them)
+- `schemas/{storyboard,script,investigation_brief}.schema.json` — Draft 2020-12 contracts; ADRs 0001 (stdlib+Pillow) + 0003 (scene-optional 3D)
+- `examples/tri_archetype_storyboard.json` — renderable 3-scene showcase (regenerated by `scripts/build_demo.py`); `examples/hybrid_3d_storyboard.json` — 2-scene HUD showcase
 - `scripts/` — `tts_align.py`, `storyboard.py`, `render_engine.py`, `verify_output.py`, `audio_dsp.py`, `camera.py`, `canvas.py`, `elements/` (package: painters by family), `rig.py`, `easings.py`, `build_demo.py`
-- `docs/adr/0001-stdlib-first-verified-pipeline.md` — why stdlib+Pillow and no Manim/MoviePy

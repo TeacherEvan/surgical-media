@@ -1,8 +1,8 @@
 # Changelog
 
 All notable changes to surgical-media. The format loosely follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project is
-pre-1.x and dates before semantic guarantees.
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/); releases are
+git-tagged (`v1.1.0`, `v1.2.0`, …) and dates are release dates.
 
 Honest status line used throughout: **no hosted CI.** GitHub Actions was
 removed 2026-11-18 (billing-locked; jobs never started). Local gates
@@ -11,18 +11,28 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-11-19
+
 ### Added
-- ADR 0002 (`docs/adr/0002-local-first-verification.md`) — the decision record
-  for removing hosted CI in favor of local-first gates (supersedes the removed
-  GitHub Actions workflow; re-adds a hosted required check once a real pipeline
-  passes).
-- `SECURITY.md` — scope (offline, no network service), license-compliance and
-  URL-safety reporting paths, supported versions.
-- `.pre-commit-config.yaml` — optional ruff/format/whitespace hooks; explicitly
-  documented as NOT a replacement for `scripts/ci_gates.sh`.
+- **Optional parametric 3D scene backends** (`scene_spec` + `backend` on scenes): procedural `exploded_hardware_3d` and `orbital_or_field_3d` categories rendered by `scripts/software_3d_projection.py` (stdlib 4×4 look-at view matrix, Painter's-algorithm Z sort, diffuse shading, bloom-fed emissives) with normalized 3D→2D anchor tracks — Blender not required.
+- `scripts/scene_router.py` — `auto`/`blender_hybrid`/`blender_3d`/`canvas_2d`/`manim_math` routing + Blender ≥3.6 capability probe (version-sniffed EEVEE id; `BLENDER_BIN` override; cached).
+- `scripts/blender_runner.py` — optional headless-Blender bake (`blender -b -P`): EEVEE/Cycles selection, motion blur, compositor glare with host-API probes (4.2–4.5/5.x), `world_to_camera_view` anchor export, `anchor_tracks.json` for HUD compositing. Exploded-hardware and stellarator generators only; anything else raises `NotImplementedError`.
+- `scripts/hybrid_compositor.py` + `scripts/layout_solver.py` — motion-tracked HUD: reticles, 45° elbow leaders, frosted glass cards; AABB min-axis placement with locked repulsors + 24 px clamp (no numpy).
+- `render_engine.py` — `scene_spec` scenes painted 3D/plate → HUD → elements on top; pre-bake with software fallback; `paint_frame` used for both render loop and `--thumbnails`; `--estimate` reports per-scene backend routing.
+- Schema + validator: `backend`/`scene_spec` on scenes; `scene_spec` satisfies the elements requirement (`anyOf` — elements-or-scene_spec); `tests/test_scene_spec_integration.py` pins both validators to parity.
+- `examples/hybrid_3d_storyboard.json` — 2-scene showcase (CoWoS-style stack, stellarator torus); renders end-to-end with and without Blender.
+- ADR 0003 (`docs/adr/0003-optional-3d-scene-backends.md`); `references/storyboard-guide.md` scene-backend section.
+- `tests/test_layout_solver.py`, `tests/test_scene_router.py`, `tests/test_blender_runner.py`, `tests/test_software_3d_projection.py`, `tests/test_hybrid_compositor.py` — 59 new tests (277 total).
+- ADR 0002 (`docs/adr/0002-local-first-verification.md`) — the decision record for removing hosted CI in favor of local-first gates (supersedes the removed GitHub Actions workflow).
+- `SECURITY.md` — scope (offline, no network service), license-compliance and URL-safety reporting paths, supported versions.
+- `.pre-commit-config.yaml` — optional ruff/format/whitespace hooks; explicitly documented as NOT a replacement for `scripts/ci_gates.sh`.
 
 ### Changed
 - `main` branch protection enabled on GitHub: required linear history, force-push and deletion blocked, `enforce_admins: true`. Fast-forward pushes unchanged.
+- `storyboard.schema.json` scene `required` is now `["scene_id","archetype","duration_sec"]`; scenes require `elements` **or** `scene_spec`.
+- `scripts/ci_gates.sh`: gates 1/6 validate **every** `examples/*.json` board (runtime validator + JSON Schema); gate 7 adds a hybrid-3D thumbnail smoke alongside the 2D demo.
+- Docs scaffolding: `docs/project-plan.md` (living plan + task status) and `docs/index.md` (docs entrypoint); version metadata synced to 1.3.0 (`pyproject.toml`, installer); README gains a Dependencies & Licensing section (Blender GPL subprocess note).
+- 218 → 277 tests; all gates pass locally (8/8).
 
 ### Fixed
 - Advisory mypy pass (not enforced): `blender_plate.build_scene` annotated to

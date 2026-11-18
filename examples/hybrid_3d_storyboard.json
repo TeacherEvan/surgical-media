@@ -1,0 +1,115 @@
+{
+  "meta": {
+    "title": "Surgical Media — Hybrid 3D Scene Spec Showcase",
+    "author": "surgical-media",
+    "seed": 20261119
+  },
+  "format": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30
+  },
+  "scenes": [
+    {
+      "scene_id": "hybrid_cowos_stack",
+      "archetype": "mixed",
+      "narration": "Multi-die packaging routes terabytes per second between compute dies and HBM stacks.",
+      "duration_sec": 1.5,
+      "fade_in_sec": 0.2,
+      "fade_out_sec": 0.2,
+      "sfx_events": [
+        { "t_sec": 0.05, "sfx": "whoosh", "intensity": 0.6 },
+        { "t_sec": 0.5, "sfx": "chime", "intensity": 0.6 }
+      ],
+      "scene_spec": {
+        "category": "exploded_hardware_3d",
+        "explode_factor": 1.15,
+        "hud_title": "EXPLODED COWOS-STYLE PACKAGE STACK",
+        "lighting_preset": "cyber_studio_volumetric",
+        "camera_3d": {
+          "mode": "orbit",
+          "radius_start": 7.6,
+          "radius_end": 6.4,
+          "azimuth_start_deg": -38.0,
+          "azimuth_end_deg": 32.0,
+          "elevation_deg": 24.0,
+          "focal_length_mm": 50.0,
+          "fstop": 2.8
+        },
+        "anchors_3d": [
+          {
+            "anchor_id": "anchor_vapor_chamber",
+            "label": "VAPOR CHAMBER",
+            "metric": "240W HEATSPREAD",
+            "local_pos": [0.0, 0.0, 0.56],
+            "accent_hex": "#38BDF8"
+          },
+          {
+            "anchor_id": "anchor_compute_die",
+            "label": "COMPUTE DIE",
+            "metric": "5NM-CLASS LOGIC",
+            "local_pos": [0.0, 0.0, 0.18],
+            "accent_hex": "#FACC15"
+          },
+          {
+            "anchor_id": "anchor_interposer",
+            "label": "SILICON INTERPOSER",
+            "metric": "2.5D TSV FABRIC",
+            "local_pos": [0.0, 0.0, -0.16],
+            "accent_hex": "#34D399"
+          },
+          {
+            "anchor_id": "anchor_substrate",
+            "label": "ORGANIC SUBSTRATE",
+            "metric": "ABF BUILD-UP",
+            "local_pos": [0.0, 0.0, -0.52],
+            "accent_hex": "#A78BFA"
+          }
+        ]
+      }
+    },
+    {
+      "scene_id": "hybrid_stellarator",
+      "archetype": "mixed",
+      "narration": "Twisted magnetic cages confine a hundred-million-degree plasma without a steady current through it.",
+      "duration_sec": 1.5,
+      "fade_in_sec": 0.2,
+      "fade_out_sec": 0.2,
+      "sfx_events": [
+        { "t_sec": 0.08, "sfx": "whoosh", "intensity": 0.6 },
+        { "t_sec": 0.6, "sfx": "chime", "intensity": 0.6 }
+      ],
+      "scene_spec": {
+        "category": "orbital_or_field_3d",
+        "hud_title": "TWISTED STELLARATOR MAGNETIC CAGE",
+        "lighting_preset": "cyber_studio_volumetric",
+        "camera_3d": {
+          "mode": "orbit",
+          "radius_start": 7.4,
+          "radius_end": 6.3,
+          "azimuth_start_deg": 15.0,
+          "azimuth_end_deg": 75.0,
+          "elevation_deg": 28.0,
+          "focal_length_mm": 45.0,
+          "fstop": 2.8
+        },
+        "anchors_3d": [
+          {
+            "anchor_id": "anchor_plasma",
+            "label": "PLASMA RING",
+            "metric": "150M °C ION TEMP",
+            "local_pos": [1.65, 0.0, 0.0],
+            "accent_hex": "#38BDF8"
+          },
+          {
+            "anchor_id": "anchor_coil",
+            "label": "FIELD COIL",
+            "metric": "12 TESLA",
+            "local_pos": [0.0, 1.65, 0.0],
+            "accent_hex": "#FDE047"
+          }
+        ]
+      }
+    }
+  ]
+}

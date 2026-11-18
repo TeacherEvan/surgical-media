@@ -16,7 +16,7 @@ it is configured, not verified.
 
 The pipeline is verifiable in about 60–90 seconds on a maintainer machine:
 `bash scripts/ci_gates.sh` runs storyboard validation → ruff → format check →
-218 tests → JSON Schema metaschema → example-vs-schema validation → thumbnail
+277 tests → JSON Schema metaschema → example-vs-schema validation → thumbnail
 smoke gate → draft render + ffprobe QC.
 
 ## Decision

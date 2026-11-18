@@ -34,11 +34,80 @@
       "items": {
         "type": "object",
         "unevaluatedProperties": false,
-        "required": ["scene_id", "archetype", "duration_sec", "elements"],
+        "required": ["scene_id", "archetype", "duration_sec"],
+        "anyOf": [{ "required": ["elements"] }, { "required": ["scene_spec"] }],
         "properties": {
           "scene_id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z0-9_-]+$" },
           "archetype": { "type": "string", "enum": ["geometry_rig", "doc_essay", "code_report", "mixed"] },
           "narration": { "type": "string", "maxLength": 2000 },
+          "backend": {
+            "type": "string",
+            "enum": ["auto", "blender_hybrid", "blender_3d", "canvas_2d", "manim_math"],
+            "default": "auto"
+          },
+          "scene_spec": {
+             "type": "object",
+             "unevaluatedProperties": false,
+             "required": ["category"],
+             "properties": {
+               "category": {
+                 "type": "string",
+                 "enum": [
+                   "exploded_hardware_3d",
+                   "orbital_or_field_3d",
+                   "network_topology_3d",
+                   "rigid_body_physics_3d",
+                   "mathematical_manifold_3d",
+                   "external_asset_3d"
+                 ]
+               },
+               "blender_engine": { "type": "string", "enum": ["AUTO_EEVEE", "CYCLES"], "default": "AUTO_EEVEE" },
+               "hud_title": { "type": "string", "maxLength": 96 },
+               "explode_factor": { "type": "number", "minimum": 0.0, "maximum": 5.0, "default": 0 },
+               "boolean_cutaway": { "type": "boolean", "description": "accepted, parsed by the scene router only" },
+               "lighting_preset": {
+                 "type": "string",
+                 "enum": ["cyber_studio_volumetric", "clean_product_softbox"]
+               },
+               "camera_3d": {
+                 "type": "object",
+                 "unevaluatedProperties": false,
+                 "properties": {
+                   "mode": { "type": "string", "enum": ["orbit"] },
+                   "focal_length_mm": { "type": "number", "minimum": 10.0, "maximum": 200.0, "default": 50 },
+                   "fstop": { "type": "number", "minimum": 1.0, "maximum": 32.0, "default": 2.8 },
+                   "radius_start": { "type": "number", "minimum": 0.5, "maximum": 100.0 },
+                   "radius_end": { "type": "number", "minimum": 0.5, "maximum": 100.0 },
+                   "azimuth_start_deg": { "type": "number", "minimum": -360.0, "maximum": 360.0 },
+                   "azimuth_end_deg": { "type": "number", "minimum": -360.0, "maximum": 360.0 },
+                   "elevation_deg": { "type": "number", "minimum": -90.0, "maximum": 90.0 }
+                 }
+               },
+               "anchors_3d": {
+                 "type": "array",
+                 "maxItems": 8,
+                 "items": {
+                   "type": "object",
+                   "unevaluatedProperties": false,
+                   "required": ["anchor_id", "label", "metric", "local_pos"],
+                   "properties": {
+                     "anchor_id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z0-9_-]+$" },
+                     "label": { "type": "string", "maxLength": 96 },
+                     "metric": { "type": "string", "maxLength": 96 },
+                     "local_pos": {
+                       "type": "array",
+                       "minItems": 3,
+                       "maxItems": 3,
+                       "items": { "type": "number" }
+                     },
+                     "accent_hex": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "default": "#38BDF8" }
+                   }
+                 }
+               },
+               "params": { "type": "object", "default": {} },
+               "transparent_bg": { "type": "boolean" }
+             }
+           },
           "start_sec": { "type": "number", "minimum": 0 },
           "duration_sec": { "type": "number", "exclusiveMinimum": 0, "maximum": 600 },
           "vo_wav": { "type": "string", "maxLength": 512 },

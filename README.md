@@ -1,4 +1,4 @@
-# Surgical Media (`v1.2.0`)
+# Surgical Media (`v1.3.0`)
 
 **Deterministic, QC-gated pipeline for turning a topic prompt into a social-ready MP4 — research brief, audio-first timing, storyboard, 2x-supersampled Pillow rendering, ffmpeg H.264/AAC master, ffprobe verification.**
 
@@ -41,12 +41,18 @@ python3 scripts/render_engine.py --storyboard storyboard.json --output final.mp4
 | [`scripts/verify_output.py`](scripts/verify_output.py) | ffprobe assertions (streams, H.264, yuv420p, fps, ≤150 ms A/V drift) |
 | [`scripts/fetch_assets.py`](scripts/fetch_assets.py) | Stage 1 subject imagery: Openverse + Wikimedia Commons + iNaturalist, license allowlist (`by`/`by-sa`/`cc0`/`pdm`), PIL-verified, cross-source deduped, writes `assets/manifest.json` |
 | [`scripts/blender_plate.py`](scripts/blender_plate.py) | Optional Blender (Workbench, headless) 3D plates — `earth` / `iceberg` / `ringed` → transparent PNG for the `image` element; exits 2 cleanly without Blender |
+| [`scripts/scene_router.py`](scripts/scene_router.py) | Scene backend routing: `auto`/`blender_hybrid`/`blender_3d`/`canvas_2d`/`manim_math` + Blender capability probe |
+| [`scripts/software_3d_projection.py`](scripts/software_3d_projection.py) | Stdlib 4×4-perspective renderer (look-at view matrix, Painter's Z sort, diffuse shading) — parametric exploded-hardware + stellarator scenes; returns normalized 3D→2D anchor tracks |
+| [`scripts/hybrid_compositor.py`](scripts/hybrid_compositor.py) | Motion-tracked HUD: reticles, 45° elbow leaders, glass telemetry cards placed by the SAT layout solver |
+| [`scripts/layout_solver.py`](scripts/layout_solver.py) | AABB min-axis collision solver with locked repulsors + 24 px canvas clamp (telemetry-card placement) |
+| [`scripts/blender_runner.py`](scripts/blender_runner.py) | Headless Blender (bpy) per-scene bake: EEVEE/Cycles detection, motion blur, `world_to_camera_view` anchor export |
 | [`assets/fonts/`](assets/fonts/) | Bundled OFL Inter (Regular/SemiBold/Bold) + JetBrains Mono (Regular/Bold) — captions/HUD + code archetype faces, SHA-256 pinned, licenses included |
 | [`scripts/build_demo.py`](scripts/build_demo.py) | Regenerates `examples/tri_archetype_storyboard.json` |
 | [`schemas/`](schemas/) | Draft 2020-12 contracts for the investigation brief, beat script, and storyboard |
 | [`references/`](references/) | Archetype field guide, storyboard element catalog, ffmpeg/loudness reference |
 | [`tests/`](tests/) | `pytest` suite — unit + rendered-MP4 integration (requires ffmpeg) |
 | [`docs/adr/`](docs/adr/) | Architecture decision records |
+| [`docs/project-plan.md`](docs/project-plan.md) | Living plan + task status (done vs pending); [`docs/index.md`](docs/index.md) is the docs entrypoint |
 
 ## Verification Gates
 
@@ -61,7 +67,7 @@ Or everything, in one call: `bash scripts/ci_gates.sh`
 
 ### Verification (local-first)
 
-- **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → 218 tests → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC. Run it before pushing; its green exit *is* this repo's quality bar.
+- **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → 277 tests → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC. Run it before pushing; its green exit *is* this repo's quality bar.
 - `main` is protected on GitHub: required linear history, force-push and branch deletion blocked, enforced for admins too. Direct fast-forward pushes remain allowed (the current flow).
 - The decision is recorded in [ADR 0002](docs/adr/0002-local-first-verification.md). An optional GitLab mirror ([`.gitlab-ci.yml`](.gitlab-ci.yml)) executes the identical script once a project is imported: **New project → Import project → Repository by URL** → paste this repo's URL → create. Optionally enable *Settings → Repository → Mirroring* to auto-sync `main`. The mirror is **configured, not verified** — do not treat its presence as a green pipeline until one passes.
 
@@ -76,8 +82,16 @@ Or everything, in one call: `bash scripts/ci_gates.sh`
 See [`SECURITY.md`](SECURITY.md). Local/offline by design; report license or
 URL-safety issues via GitHub advisories or labeled issues.
 
+## Dependencies & Licensing
+
+- Repo code: **MIT** ([`LICENSE`](LICENSE)). Runtime deps: Pillow ≥ 10.1 + ffmpeg/ffprobe on PATH; audio and geometry are stdlib-only ([ADR 0001](docs/adr/0001-stdlib-first-verified-pipeline.md)).
+- **Blender** (GNU GPL, Blender Foundation) is optional and invoked only as an external subprocess (`blender -b -P scripts/blender_runner.py`); nothing here imports `bpy` or links Blender, so the MIT footprint is unchanged ([ADR 0003](docs/adr/0003-optional-3d-scene-backends.md)).
+- **edge-tts** (GPL-3.0) is an optional, user-installed extra (`requirements-tts.txt`) for the online voice path only — never bundled; the offline timing path is stdlib.
+- Bundled fonts: OFL-1.1 (Inter, JetBrains Mono), licenses verbatim in [`assets/fonts/`](assets/fonts/).
+
 ## Design Notes
 
 - **Audio-first or it doesn't render.** Frame counts come from measured VO durations (ffprobe), never estimates baked into a timeline.
 - **Nothing ships unverified.** If `tests/` doesn't prove it, the skill doesn't claim it.
 - **No numpy dependency.** Audio and geometry are stdlib-only; Pillow is the single rendering dependency. See `docs/adr/0001-stdlib-first-verified-pipeline.md`.
+- **Scene-optional parametric 3D.** A scene may carry `scene_spec` + `backend` to route to a 3D pass (exploded hardware, stellarator torus) with motion-tracked HUD telemetry — Blender-optional, stdlib renderer always available. See `docs/adr/0003-optional-3d-scene-backends.md`.

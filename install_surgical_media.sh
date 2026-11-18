@@ -10,7 +10,8 @@
 #   assets/fonts/ (bundled OFL Inter — captions/HUD face)
 #   references/ (archetypes, storyboard guide, ffmpeg encoding)
 #   schemas/ (investigation_brief, script, storyboard)
-#   examples/ (renderable tri-archetype storyboard)
+#   examples/ (tri-archetype + hybrid-3D showcase boards)
+#   docs/adr/ (decision records) + docs/index.md + docs/project-plan.md
 #
 # Usage:
 #   ./install_surgical_media.sh           # install to default Hermes skill dir
@@ -21,7 +22,7 @@ set -euo pipefail
 HERMES_SKILL_DIR="${1:-${HOME}/.hermes/skills/creative/surgical-media}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "[install_surgical_media] Installing Surgical Media (v1.0.0) to:"
+echo "[install_surgical_media] Installing Surgical Media (v1.3.0) to:"
 echo "  ${HERMES_SKILL_DIR}"
 echo
 
@@ -45,6 +46,7 @@ cp "${SCRIPT_DIR}/schemas/"*.json "${HERMES_SKILL_DIR}/schemas/"
 cp "${SCRIPT_DIR}/assets/fonts/"*.ttf "${SCRIPT_DIR}/assets/fonts/"*.txt "${SCRIPT_DIR}/assets/fonts/README.md" "${HERMES_SKILL_DIR}/assets/fonts/"
 cp "${SCRIPT_DIR}/examples/"*.json "${HERMES_SKILL_DIR}/examples/"
 cp "${SCRIPT_DIR}/docs/adr/"*.md "${HERMES_SKILL_DIR}/docs/adr/"
+cp "${SCRIPT_DIR}/docs/index.md" "${SCRIPT_DIR}/docs/project-plan.md" "${HERMES_SKILL_DIR}/docs/"
 
 echo "[install_surgical_media] Done."
 echo "Verify with:"
