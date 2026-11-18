@@ -152,10 +152,44 @@ def _decode_to_ext(data: bytes) -> tuple[Any, str] | tuple[None, str]:
     return img, ext
 
 
+MAX_DOWNLOAD_BYTES = (
+    50 * 1024 * 1024
+)  # 50 MB cap — a "photo" larger than this is hostile or broken
+
+
+class FetchError(OSError):
+    """Raised for disallowed URLs, oversized payloads and bad redirects.
+
+    Subclasses OSError so existing ``except OSError`` call sites skip the
+    asset (or fail the search) instead of crashing with a traceback.
+    """
+
+
 def _http_get(url: str, timeout: float) -> bytes:
+    parsed = urllib.parse.urlsplit(url)
+    if parsed.scheme != "https":
+        raise FetchError(f"refusing non-https URL: {url!r}")
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.read()
+        final = urllib.parse.urlsplit(resp.geturl())
+        if final.scheme != "https":
+            raise FetchError(f"refusing redirect to non-https URL: {resp.geturl()!r}")
+        length = resp.headers.get("Content-Length")
+        if length and length.isdigit() and int(length) > MAX_DOWNLOAD_BYTES:
+            raise FetchError(
+                f"{url} advertises {int(length)} bytes (> {MAX_DOWNLOAD_BYTES // (1024 * 1024)} MB)"
+            )
+        buf = bytearray()
+        while True:
+            chunk = resp.read(65536)
+            if not chunk:
+                break
+            buf += chunk
+            if len(buf) > MAX_DOWNLOAD_BYTES:
+                raise FetchError(
+                    f"{url} exceeded {MAX_DOWNLOAD_BYTES // (1024 * 1024)} MB mid-stream"
+                )
+    return bytes(buf)
 
 
 def strip_html(text: str) -> str:

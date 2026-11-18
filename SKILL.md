@@ -15,7 +15,7 @@ metadata:
 
 # Surgical Media (v1.0.0)
 
-Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 132 tests including a rendered-and-verified MP4 integration pass and pixel-level visual smoke checks).
+Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 199 tests including a rendered-and-verified MP4 integration pass and pixel-level visual smoke checks).
 
 ## When to Use
 
@@ -94,7 +94,7 @@ Inspect thumbnails before spending a full render; the bundled demo takes ~60–9
 ## Verification
 
 ```bash
-python3 -m pytest tests/ -q                                   # 132 tests
+python3 -m pytest tests/ -q                                   # 199 tests
 python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + QC
 python3 scripts/verify_output.py --input /tmp/demo.mp4 --storyboard examples/tri_archetype_storyboard.json
 ```
@@ -114,7 +114,7 @@ python3 scripts/verify_output.py --input /tmp/demo.mp4 --storyboard examples/tri
 - `references/storyboard-guide.md` — element catalog, camera semantics, easings, safe zones, word timing
 - `scripts/fetch_assets.py` — multi-source licensed imagery: Openverse + Wikimedia Commons (original-res) + iNaturalist (nature); license allowlist `by`/`by-sa`/`cc0`/`pdm` (`*-nd`/`*-nc` rejected), PIL-verified, deduped across sources, writes `assets/manifest.json` with attribution strings
 - `scripts/blender_plate.py` — **optional** headless-Blender 3D plates (`earth`/`iceberg`/`ringed`, Workbench engine, transparent PNG) composited like any `image` element; exits 2 with a clear message when Blender is absent — never required
-- `assets/fonts/` — bundled OFL Inter (Regular/SemiBold/Bold, SHA-256 pinned, `LICENSE.Inter.txt`); canvas prefers it over system fonts
+- `assets/fonts/` — bundled OFL Inter (Regular/SemiBold/Bold) + JetBrains Mono (Regular/Bold), SHA-256 pinned, licenses verbatim; canvas prefers them over system fonts
 - `references/ffmpeg-encoding.md` — encoder/loudness/QC reference, platform targets
 - `schemas/{storyboard,script,investigation_brief}.schema.json` — Draft 2020-12 contracts
 - `examples/tri_archetype_storyboard.json` — renderable 3-scene showcase (`scripts/build_demo.py` regenerates)

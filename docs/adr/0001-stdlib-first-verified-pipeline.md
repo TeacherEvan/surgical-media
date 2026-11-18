@@ -23,7 +23,7 @@
 
 ## Postscript (2026-11-18, v1.1 perf pass)
 
-Profiling the v1.0.0 render showed `Canvas.final()` at ~320 ms/frame (72% of wall time). Root causes and fixes, all landed with the 72-test suite green; the 73rd (custom odometer units), 74th (short-VO-stem envelope guard) and 75th–132nd (measured WordBoundary karaoke timing; attribution auto-fit; caption re-tokenize fix; raster `image` element; Stage 1 multi-source `fetch_assets.py` — Openverse + Commons + iNaturalist; `attribution_y` safe-zone credit; native `fit: "backdrop_blur"` plate mode; bundled OFL Inter; optional headless-Blender plates via `blender_plate.py`) followed:
+Profiling the v1.0.0 render showed `Canvas.final()` at ~320 ms/frame (72% of wall time). Root causes and fixes, all landed with the 72-test suite green; the 73rd (custom odometer units), 74th (short-VO-stem envelope guard) and 75th–199th (measured WordBoundary karaoke timing; attribution auto-fit; caption re-tokenize fix; raster `image` element; Stage 1 multi-source `fetch_assets.py` — Openverse + Commons + iNaturalist; `attribution_y` safe-zone credit; native `fit: "backdrop_blur"` plate mode; bundled OFL Inter; optional headless-Blender plates via `blender_plate.py`; direct element/render-engine unit tests; schema↔runtime-validator parity gate in CI; Bresenham-cumulative frame quantization; bundled OFL JetBrains Mono for the code_report archetype; https-only, 50 MB-capped asset downloads) followed:
 
 - Per-pixel `Image.point(lambda)` halo scaling → `Image.blend(black, wide, 0.6)` (C-level).
 - Dual Gaussian bloom pyramid → computed at half resolution (bloom is low-frequency by construction).

@@ -41,7 +41,7 @@ python3 scripts/render_engine.py --storyboard storyboard.json --output final.mp4
 | [`scripts/verify_output.py`](scripts/verify_output.py) | ffprobe assertions (streams, H.264, yuv420p, fps, ≤150 ms A/V drift) |
 | [`scripts/fetch_assets.py`](scripts/fetch_assets.py) | Stage 1 subject imagery: Openverse + Wikimedia Commons + iNaturalist, license allowlist (`by`/`by-sa`/`cc0`/`pdm`), PIL-verified, cross-source deduped, writes `assets/manifest.json` |
 | [`scripts/blender_plate.py`](scripts/blender_plate.py) | Optional Blender (Workbench, headless) 3D plates — `earth` / `iceberg` / `ringed` → transparent PNG for the `image` element; exits 2 cleanly without Blender |
-| [`assets/fonts/`](assets/fonts/) | Bundled OFL Inter (Regular/SemiBold/Bold) — captions/HUD face, SHA-256 pinned, license included |
+| [`assets/fonts/`](assets/fonts/) | Bundled OFL Inter (Regular/SemiBold/Bold) + JetBrains Mono (Regular/Bold) — captions/HUD + code archetype faces, SHA-256 pinned, licenses included |
 | [`scripts/build_demo.py`](scripts/build_demo.py) | Regenerates `examples/tri_archetype_storyboard.json` |
 | [`schemas/`](schemas/) | Draft 2020-12 contracts for the investigation brief, beat script, and storyboard |
 | [`references/`](references/) | Archetype field guide, storyboard element catalog, ffmpeg/loudness reference |

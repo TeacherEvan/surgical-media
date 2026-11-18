@@ -9,25 +9,28 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "== gate 1/7: example storyboard validates =="
+echo "== gate 1/8: example storyboard validates =="
 python3 scripts/storyboard.py examples/tri_archetype_storyboard.json
 
-echo "== gate 2/7: lint =="
+echo "== gate 2/8: lint =="
 ruff check --no-cache scripts/ tests/
 
-echo "== gate 3/7: format check =="
+echo "== gate 3/8: format check =="
 ruff format --check --no-cache scripts/ tests/
 
-echo "== gate 4/7: test suite =="
+echo "== gate 4/8: test suite =="
 python3 -m pytest tests/ -q
 
-echo "== gate 5/7: JSON Schemas are valid Draft 2020-12 =="
+echo "== gate 5/8: JSON Schemas are valid Draft 2020-12 =="
 check-jsonschema --check-metaschema schemas/*.schema.json
 
-echo "== gate 6/7: thumbnail smoke gate (visual path) =="
+echo "== gate 6/8: example storyboard validates against its JSON Schema =="
+check-jsonschema --schemafile schemas/storyboard.schema.json examples/tri_archetype_storyboard.json
+
+echo "== gate 7/8: thumbnail smoke gate (visual path) =="
 python3 scripts/render_engine.py --demo --thumbnails /tmp/sm_thumbs
 
-echo "== gate 7/7: draft render + QC =="
+echo "== gate 8/8: draft render + QC =="
 python3 scripts/render_engine.py --demo --output /tmp/sm_ci_gate.mp4 --quality draft
 python3 scripts/verify_output.py --input /tmp/sm_ci_gate.mp4 --storyboard examples/tri_archetype_storyboard.json
 

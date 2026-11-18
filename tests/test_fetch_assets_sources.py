@@ -2,6 +2,7 @@
 
 import io
 import json
+from typing import ClassVar
 
 import fetch_assets
 import pytest
@@ -296,3 +297,63 @@ def test_download_assets_all_records_sources(tmp_path, monkeypatch):
     assert manifest["count"] == 2
     assert set(manifest["sources"]) == {"openverse", "commons"}
     assert all(a["source"] in {"openverse", "commons"} for a in manifest["assets"])
+
+
+def test_http_get_rejects_non_https(monkeypatch):
+    import fetch_assets
+
+    class R:
+        pass
+
+    monkeypatch.setattr(
+        fetch_assets.urllib.request,
+        "urlopen",
+        lambda *a, **k: pytest.fail("urlopen must not be reached for non-https URLs"),
+    )
+    with pytest.raises(fetch_assets.FetchError):
+        fetch_assets._http_get("http://example.com/x.jpg", 1.0)
+
+
+def test_http_get_rejects_oversized_content_length(monkeypatch):
+    import fetch_assets
+
+    class FakeResp:
+        def __init__(self):
+            self.headers = {"Content-Length": str(60 * 1024 * 1024)}
+
+        def geturl(self):
+            return "https://example.com/big.jpg"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(
+        fetch_assets.urllib.request, "urlopen", lambda *a, **k: FakeResp()
+    )
+    with pytest.raises(fetch_assets.FetchError):
+        fetch_assets._http_get("https://example.com/big.jpg", 1.0)
+
+
+def test_http_get_rejects_redirect_to_http(monkeypatch):
+    import fetch_assets
+
+    class FakeResp:
+        headers: ClassVar[dict] = {}
+
+        def geturl(self):
+            return "http://169.254.169.254/latest/meta-data"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(
+        fetch_assets.urllib.request, "urlopen", lambda *a, **k: FakeResp()
+    )
+    with pytest.raises(fetch_assets.FetchError):
+        fetch_assets._http_get("https://example.com/redirect", 1.0)

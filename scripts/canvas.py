@@ -78,6 +78,8 @@ _FONT_CANDIDATES = [
     "C:/Windows/Fonts/arialbd.ttf",
 ]
 _FONT_MONO_CANDIDATES = [
+    str(_BUNDLED_FONTS / "JetBrainsMono-Bold.ttf"),
+    str(_BUNDLED_FONTS / "JetBrainsMono-Regular.ttf"),
     "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
     "/usr/share/fonts/dejavu/DejaVuSansMono.ttf",

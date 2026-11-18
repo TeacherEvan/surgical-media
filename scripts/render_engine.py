@@ -55,6 +55,28 @@ def scene_frames(scene: dict, fps: int) -> int:
     return max(1, round(float(scene["duration_sec"]) * fps))
 
 
+def frame_counts(scenes: list[dict], fps: int) -> list[int]:
+    """Bresenham-style cumulative frame quantization for a scene list.
+
+    Per-scene ``round(duration * fps)`` lets each scene's ±0.5-frame error
+    accumulate against the audio timeline (built from exact seconds). Instead,
+    track the cumulative exact timeline: scene *k* gets
+    ``round(T_k * fps) - round(T_{k-1} * fps)`` frames where ``T_k`` is the
+    summed exact duration up to scene *k*. Total frames then equal
+    ``round(T_total * fps)`` whenever no scene is shorter than half a frame
+    (those clamp to the 1-frame floor, like :func:`scene_frames`).
+    """
+    counts: list[int] = []
+    prev_boundary = 0
+    acc = 0.0
+    for sc in scenes:
+        acc += float(sc["duration_sec"])
+        boundary = round(acc * fps)
+        counts.append(max(1, boundary - prev_boundary))
+        prev_boundary = boundary
+    return counts
+
+
 def trauma_at(scene: dict, local_time: float, fps: int) -> float:
     """Replay the frame loop's trauma model deterministically for a single instant."""
     events = sorted(
@@ -159,7 +181,7 @@ def estimate(board: dict) -> dict:
     fmt = board["format"]
     fps = int(fmt["fps"])
     width, height = int(fmt["width"]), int(fmt["height"])
-    total_frames = sum(scene_frames(sc, fps) for sc in board["scenes"])
+    total_frames = sum(frame_counts(board["scenes"], fps))
     duration = total_duration(board)
     return {
         "scenes": len(board["scenes"]),
@@ -293,13 +315,13 @@ def render(args: argparse.Namespace) -> int:
     )
 
     frame_idx = 0
-    total_frames = sum(scene_frames(sc, fps) for sc in board["scenes"])
+    per_scene_frames = frame_counts(board["scenes"], fps)
+    total_frames = sum(per_scene_frames)
     t0 = time.time()
     black = Image.new("RGB", (width, height), (0, 0, 0))
     try:
-        for scene in board["scenes"]:
+        for scene, n_frames in zip(board["scenes"], per_scene_frames):
             scene_dur = float(scene["duration_sec"])
-            n_frames = scene_frames(scene, fps)
             camera = build_camera(scene, width, height, seed)
             zones = layout_zones(width, height)
             trauma = 0.0

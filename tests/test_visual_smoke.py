@@ -387,3 +387,13 @@ def test_bundled_inter_is_the_default_face():
     assert path is not None and "Inter-" in path
     font = canvas.get_font(24)
     assert "Inter" in (font.getname()[0] or "")
+
+
+def test_bundled_jetbrains_mono_is_the_default_mono_face():
+    """Bundled OFL JetBrains Mono must win over system mono fonts (code_report)."""
+    import canvas
+
+    path = canvas.find_font(mono=True)
+    assert path is not None and "JetBrainsMono-" in path
+    font = canvas.get_font(24, mono=True)
+    assert "JetBrains" in (font.getname()[0] or "")
