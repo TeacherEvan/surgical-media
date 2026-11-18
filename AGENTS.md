@@ -10,7 +10,7 @@ Agent instructions for working inside the `surgical-media` skill repository. `RE
 - `SKILL.md` must stay ≤ 120 lines (agent manifest: stages/invariants/gotchas). Element catalog and parameter specs live in `references/storyboard-guide.md` — don't duplicate them here or in `SKILL.md`.
 - Stage 1 acquires **subject imagery**, not just facts: `scripts/fetch_assets.py --query "<subject>" --out-dir assets --count 3` pulls licensed photos from Openverse + Wikimedia Commons (originals) + iNaturalist (nature) — same `by`/`by-sa`/`cc0`/`pdm` allowlist everywhere, PIL-verified, cross-source deduped, https-only with a 50 MB download cap — and writes `assets/manifest.json` whose `attribution` strings go verbatim into `image` elements. Hotlinking is never acceptable; record the manifest.
 
-## Commands (all run green locally; CI parity noted)
+## Commands (all run green locally — the gate *is* local)
 
 ```bash
 python3 scripts/storyboard.py examples/tri_archetype_storyboard.json   # demo must always validate
@@ -23,7 +23,7 @@ python3 scripts/render_engine.py --demo --output /tmp/sm_gate.mp4       # only w
 ```
 
 - Single test: `python3 -m pytest "tests/test_visual_smoke.py::test_box_downsample_keeps_thin_lines" -q`
-- CI: `scripts/ci_gates.sh` is the single source of truth — both `.github/workflows/skill-ci.yml` and `.gitlab-ci.yml` call it (storyboard → ruff → pytest → schema metaschema → thumbnails → draft render → ffprobe QC). GitHub Actions is **currently blocked** (account billing lock; jobs rejected before start). The GitLab mirror is committed but **has not run** — it starts when the GitLab project is imported; don't claim a green pipeline until you see one. Change the script, never the providers. ffmpeg is apt/pip-installed there and integration tests **skip cleanly** without it.
+- Verification is **local-first**: `scripts/ci_gates.sh` is the single gate (storyboard → ruff → format → 218 tests → schema metaschema → example-vs-schema → thumbnails → draft render → ffprobe QC) and is what “green” means for this repo. GitHub Actions was removed 2026-11-18 (billing-locked; permanently red). An optional GitLab mirror (`.gitlab-ci.yml`) runs the same script on import — it has **NOT run** yet; never claim a green pipeline until one passes. Change the script, never the providers. ffmpeg is apt/pip-installed there and integration tests **skip cleanly** without it.
 - **mypy** is configured in `pyproject.toml` but not enforced and not installed in the usual scratch venv — ruff + pytest are the enforced gates; mypy runs are advisory only.
 - **markdownlint** (npm, v0.49.1) fails on *pre-existing* house docs (`references/`, `docs/adr/`: MD022/MD031/MD034/MD060) — it is not a gate. Don't present it as one, and don't add it to CI without fixing those files first.
 - Before spending a full render: `--estimate` (frame count / audio cost) and `--thumbnails DIR` (one PNG per scene). `final` = crf 18, demo/draft = crf 26. Rendering is deterministic only per machine/Pillow build — diff frames, not hashes.

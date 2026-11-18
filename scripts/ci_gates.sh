@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # ci_gates.sh — the single source of truth for the verification gate set.
-# Both .github/workflows/skill-ci.yml and .gitlab-ci.yml call this, and so
-# can you locally:
+# The GitLab mirror (.gitlab-ci.yml) calls this, and so should you — locally:
 #
 #     PATH=<your-venv>/bin:$PATH bash scripts/ci_gates.sh
 #

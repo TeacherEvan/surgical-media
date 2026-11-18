@@ -1,15 +1,15 @@
-# GitLab CI mirror of the GitHub Actions workflow.
+# Optional hosted runner. Local verification is the enforced standard:
+# scripts/ci_gates.sh passes on every commit and that is what "green" means
+# for this repo. GitHub Actions was removed 2026-11-18 (account billing
+# lock; jobs never started).
 #
-# Why: the GitHub account is billing-locked, so Actions jobs cannot start.
-# This pipeline enforces the identical gates — and cannot drift from GitHub,
-# because both call scripts/ci_gates.sh.
-#
-# Status: committed ahead of the first GitLab pipeline; it runs automatically
-# once a GitLab project is imported from https://github.com/TeacherEvan/surgical-media
+# This pipeline runs the same scripts/ci_gates.sh once a GitLab project is
+# imported from https://github.com/TeacherEvan/surgical-media
 # (New project → Import project → Repository by URL). Set up repository
 # pull-mirroring (Settings → Repository → Mirroring) to auto-sync main.
 #
-# Honest claim: this pipeline has NOT run yet. Do not read the presence of
+# Status: committed ahead of the first pipeline; it runs automatically on
+# import. Honest claim: it has NOT run yet. Do not read the presence of
 # this file as a green pipeline — check the Pipelines page, and update this
 # comment + README when it passes.
 

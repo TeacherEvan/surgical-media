@@ -59,11 +59,10 @@ check-jsonschema --check-metaschema schemas/*.schema.json
 
 Or everything, in one call: `bash scripts/ci_gates.sh`
 
-### CI parity
+### Verification (local-first)
 
-- GitHub Actions ([`.github/workflows/skill-ci.yml`](.github/workflows/skill-ci.yml)) and GitLab CI ([`.gitlab-ci.yml`](.gitlab-ci.yml)) both run **the same** `scripts/ci_gates.sh` — they cannot drift apart.
-- **Status (2026-11-18):** GitHub Actions is blocked — the account is billing-locked, jobs are rejected before they start. The repo is public and honest local gates pass, but remote verification is pending.
-- The GitLab mirror starts automatically once a project is imported from this repo: **New project → Import project → Repository by URL** → paste this repo's URL → create. Optionally enable *Settings → Repository → Mirroring* to auto-sync `main`. Until the first pipeline passes, treat the mirror as configured-not-verified.
+- **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → 218 tests → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC. Run it before pushing; its green exit *is* this repo's quality bar.
+- An optional GitLab mirror ([`.gitlab-ci.yml`](.gitlab-ci.yml)) executes the identical script once a project is imported: **New project → Import project → Repository by URL** → paste this repo's URL → create. Optionally enable *Settings → Repository → Mirroring* to auto-sync `main`. The mirror is **configured, not verified** — do not treat its presence as a green pipeline until one passes.
 
 ## Install as a Skill
 
