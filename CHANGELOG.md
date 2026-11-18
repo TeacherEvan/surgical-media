@@ -9,6 +9,25 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 (`bash scripts/ci_gates.sh`) are the enforced standard; the GitLab mirror
 (`.gitlab-ci.yml`) is configured, not verified.
 
+## [Unreleased]
+
+### Added
+- ADR 0002 (`docs/adr/0002-local-first-verification.md`) — the decision record
+  for removing hosted CI in favor of local-first gates (supersedes the removed
+  GitHub Actions workflow; re-adds a hosted required check once a real pipeline
+  passes).
+- `SECURITY.md` — scope (offline, no network service), license-compliance and
+  URL-safety reporting paths, supported versions.
+- `.pre-commit-config.yaml` — optional ruff/format/whitespace hooks; explicitly
+  documented as NOT a replacement for `scripts/ci_gates.sh`.
+
+### Fixed
+- Advisory mypy pass (not enforced): `blender_plate.build_scene` annotated to
+  return the scene (TYPE_CHECKING bpy import); `build_demo.board` annotated as
+  `dict`; `audio_dsp` redundant re-annotation removed; `camera.zoom_at` coerces
+  its `Any`-typed easing call to `float` at the boundary. No runtime behavior
+  change; mypy remains advisory only.
+
 ## [1.2.0] — 2026-11-18
 
 ### Added

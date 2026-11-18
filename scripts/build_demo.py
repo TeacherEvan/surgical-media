@@ -35,7 +35,7 @@ S3_NARR = "The balancer held. The pool did not. Five hundred, zero, three."
 
 
 def main() -> None:
-    board = {
+    board: dict = {
         "meta": {
             "title": "Surgical Media — Three Archetypes",
             "author": "surgical-media",

@@ -1,4 +1,4 @@
-# Surgical Media (`v1.0.0`)
+# Surgical Media (`v1.2.0`)
 
 **Deterministic, QC-gated pipeline for turning a topic prompt into a social-ready MP4 — research brief, audio-first timing, storyboard, 2x-supersampled Pillow rendering, ffmpeg H.264/AAC master, ffprobe verification.**
 
@@ -62,13 +62,18 @@ Or everything, in one call: `bash scripts/ci_gates.sh`
 ### Verification (local-first)
 
 - **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → 218 tests → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC. Run it before pushing; its green exit *is* this repo's quality bar.
-- An optional GitLab mirror ([`.gitlab-ci.yml`](.gitlab-ci.yml)) executes the identical script once a project is imported: **New project → Import project → Repository by URL** → paste this repo's URL → create. Optionally enable *Settings → Repository → Mirroring* to auto-sync `main`. The mirror is **configured, not verified** — do not treat its presence as a green pipeline until one passes.
+- The decision is recorded in [ADR 0002](docs/adr/0002-local-first-verification.md). An optional GitLab mirror ([`.gitlab-ci.yml`](.gitlab-ci.yml)) executes the identical script once a project is imported: **New project → Import project → Repository by URL** → paste this repo's URL → create. Optionally enable *Settings → Repository → Mirroring* to auto-sync `main`. The mirror is **configured, not verified** — do not treat its presence as a green pipeline until one passes.
 
 ## Install as a Skill
 
 ```bash
 ./install_surgical_media.sh [target_dir]   # default: ~/.hermes/skills/creative/surgical-media
 ```
+
+## Security
+
+See [`SECURITY.md`](SECURITY.md). Local/offline by design; report license or
+URL-safety issues via GitHub advisories or labeled issues.
 
 ## Design Notes
 

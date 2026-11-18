@@ -27,11 +27,15 @@ import struct
 import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # bpy exists only inside Blender
+    import bpy
 
 KINDS = ("earth", "iceberg", "ringed")
 
 
-def build_scene(kind: str, seed: int) -> None:
+def build_scene(kind: str, seed: int) -> bpy.types.Scene:
     import bpy
 
     # --- reset scene ---------------------------------------------------------

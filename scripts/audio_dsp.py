@@ -74,7 +74,7 @@ def synth_sfx(name: str, intensity: float = 1.0, rate: int = RATE) -> list[float
     if name == "whoosh":
         n = int(0.6 * rate)
         rng = random.Random(20261118)
-        out: list[float] = []
+        out = []
         low = 0.0
         for i in range(n):
             x = rng.uniform(-1.0, 1.0)

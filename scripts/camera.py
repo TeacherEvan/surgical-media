@@ -60,7 +60,7 @@ class WorldCamera2D:
         return (self.pan_x * self.width, self.pan_y * self.height)
 
     def zoom_at(self, t: float) -> float:
-        return lerp(self.zoom_start, self.zoom_end, self.easing(t))
+        return float(lerp(self.zoom_start, self.zoom_end, self.easing(t)))
 
     def shake_offset(self, time_sec: float, trauma: float) -> tuple[float, float]:
         """Quadratic trauma shake, deterministic per seed and time."""
