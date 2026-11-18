@@ -183,7 +183,7 @@ Packaged video-production-pipeline-v2.0.zip (26.6 KB)
 Your ZIP archive containing the upgraded Surgical Video Production Pipeline v2.0 skill bundle is ready
 ZIP icon
 video-production-pipeline-v2.0
- ZIP 
+ ZIP
 
 No—v1 had five serious architectural flaws that made it a prototype rather than a production engine, and saving executable .py scripts inside Gemini Chat's native skill store triggers a platform sandbox block ("Skill 'user:video-production-pipeline' contains executable code or scripts, which are not supported in Gemini Chat"), preventing Gemini Chat from expanding it inline.
 
@@ -256,4 +256,3 @@ unzip video-production-pipeline-v2.0.zip
 python3 video-production-pipeline-v2/src/render_engine.py \
   --storyboard video-production-pipeline-v2/examples/tri_archetype_storyboard.json \
   --output tri_archetype_showcase_v2.mp4
-

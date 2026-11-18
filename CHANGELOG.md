@@ -11,6 +11,11 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 
 ## [Unreleased]
 
+### Added
+- `.gitattributes` — LF line endings for all text paths; binary markers for images, fonts, audio and video (nothing in the repo is CRLF today; this keeps it that way).
+- Pre-commit hooks now scoped: top-level `exclude` protects generated artifacts (`examples/*.json`, archived `snakes_friend_project/`) and the verbatim OFL license texts from whitespace/EOF rewriting — byte-identity of the generated example board stays pinned by `tests/test_build_demo.py`. The mypy hook uses the official isolated mirror pinned to mypy 2.4.1 (the gate venv's version) instead of a PATH-dependent `language: system` hook.
+- Docs: trailing-whitespace/EOF normalization in `Concept/`, `docs/plans/`, `docs/index.md`, `docs/project-plan.md` (whitespace only; no content changes).
+
 ## [1.3.0] — 2026-11-19
 
 ### Added

@@ -1,6 +1,12 @@
 # Optional local pre-commit hooks — mirrors the local gate, does NOT replace it.
 # Install:  pip install pre-commit && pre-commit install
 # The authoritative check remains:  PATH=<venv>/bin:$PATH bash scripts/ci_gates.sh
+#
+# Scope excludes (top-level): files this repo treats as verbatim artifacts —
+# generated boards/manifests (build_demo / fetch_assets must regenerate them
+# byte-identically; tests pin this), the archived showcase project, and the
+# bundled OFL license texts. Hooks must never rewrite those.
+exclude: '^(snakes_friend_project/|examples/[^/]+\.json$|assets/fonts/LICENSE\.)'
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.17.5
@@ -17,11 +23,13 @@ repos:
       - id: check-json
       - id: check-yaml
   # Strict typecheck — mirrors `python3 -m mypy scripts/` in scripts/ci_gates.sh.
-  # `language: system` uses the python on PATH (install requirements-dev.txt first).
-  - repo: local
+  # Isolated env; pinned to the same mypy (2.4.1) the gate venv resolves, and
+  # reads the same strict config from pyproject.toml. pass_filenames=false:
+  # scope is scripts/ only, like the gate (tests/ and fixtures are excluded).
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.4.1
     hooks:
       - id: mypy
         name: mypy --strict (pyproject.toml config)
-        entry: python -m mypy scripts/
-        language: system
+        args: [scripts/]
         pass_filenames: false

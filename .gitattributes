@@ -1,0 +1,21 @@
+# Normalize text files to LF on commit; tell git which paths are binary
+# so diffs/merges never corrupt them. Baseline: repo is LF-only today.
+* text=auto eol=lf
+
+# Binary assets — never normalized, never diffed as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.mp4 binary
+*.mov binary
+*.webm binary
+*.mp3 binary
+*.wav binary
+*.aac binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
