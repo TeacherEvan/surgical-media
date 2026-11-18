@@ -38,6 +38,8 @@ for f in SKILL.md README.md LICENSE AGENTS.md; do
 done
 
 cp "${SCRIPT_DIR}/scripts/"*.py "${HERMES_SKILL_DIR}/scripts/"
+rm -rf "${HERMES_SKILL_DIR}/scripts/elements"
+cp -r "${SCRIPT_DIR}/scripts/elements" "${HERMES_SKILL_DIR}/scripts/elements"
 cp "${SCRIPT_DIR}/references/"*.md "${HERMES_SKILL_DIR}/references/"
 cp "${SCRIPT_DIR}/schemas/"*.json "${HERMES_SKILL_DIR}/schemas/"
 cp "${SCRIPT_DIR}/assets/fonts/"*.ttf "${SCRIPT_DIR}/assets/fonts/"*.txt "${SCRIPT_DIR}/assets/fonts/README.md" "${HERMES_SKILL_DIR}/assets/fonts/"

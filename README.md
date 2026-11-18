@@ -32,7 +32,7 @@ python3 scripts/render_engine.py --storyboard storyboard.json --output final.mp4
 | [`scripts/tts_align.py`](scripts/tts_align.py) | Beat script → timing-locked storyboard (edge-tts + ffprobe, or offline WPM estimate; syllable-weighted word allocation) |
 | [`scripts/storyboard.py`](scripts/storyboard.py) | Stdlib storyboard validator & timeline helpers |
 | [`scripts/render_engine.py`](scripts/render_engine.py) | Storyboard → MP4. Supersampled frames stream raw into ffmpeg; QC runs inline |
-| [`scripts/elements.py`](scripts/elements.py) | Scene painters (charts, diagrams, terminals, cards, captions, stick rig, raster image element) |
+| [`scripts/elements/`](scripts/elements/) | Painter package split by family: `scenes`, `text`, `dataviz`, `code` (with syntax highlighting), `figures`, `media` — registry re-exported from `elements/__init__.py` |
 | [`scripts/canvas.py`](scripts/canvas.py) | `SupersampledCanvas` (2x SSAA, BOX integer downsample), half-res dual-radius Gaussian bloom, safe zones, HUD/stage/caption partition |
 | [`scripts/camera.py`](scripts/camera.py) | `WorldCamera2D` — pre-raster zoom/pan with easing + deterministic trauma shake |
 | [`scripts/rig.py`](scripts/rig.py) | Analytical two-bone IK, hollow-head stick-figure renderer |

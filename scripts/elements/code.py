@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import re
+
 from canvas import get_font
 
 from elements._shared import (
     CYAN,
+    GOLD,
     GREEN,
     INK,
+    PURPLE,
     RED,
     TERMINAL_BG,
     TERMINAL_EDGE,
@@ -139,6 +143,131 @@ _CODE_KIND = {
 }
 
 
+# --- minimal syntax highlighting for the code_terminal element ----------------
+_KEYWORDS = {
+    "def",
+    "class",
+    "if",
+    "elif",
+    "else",
+    "for",
+    "while",
+    "return",
+    "import",
+    "from",
+    "as",
+    "in",
+    "is",
+    "not",
+    "and",
+    "or",
+    "try",
+    "except",
+    "finally",
+    "raise",
+    "with",
+    "lambda",
+    "pass",
+    "break",
+    "continue",
+    "global",
+    "nonlocal",
+    "assert",
+    "del",
+    "yield",
+    "async",
+    "await",
+    "match",
+    "case",
+    "const",
+    "let",
+    "var",
+    "function",
+    "new",
+    "typeof",
+    "instanceof",
+    "switch",
+    "default",
+    "do",
+    "throw",
+    "interface",
+    "extends",
+    "implements",
+    "public",
+    "private",
+    "readonly",
+    "static",
+    "fn",
+    "struct",
+    "enum",
+    "impl",
+    "pub",
+    "use",
+    "mod",
+    "where",
+    "type",
+    "nil",
+    # literals (kept as keyword-colored so they never vanish into body color)
+    "None",
+    "True",
+    "False",
+    "null",
+    "true",
+    "false",
+    "undefined",
+}
+_TOKEN_RE = re.compile(
+    r"(?P<comment>#.*$|//.*$)"
+    r"|(?P<string>\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)"
+    r"|(?P<number>\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b)"
+    r"|(?P<word>[A-Za-z_][A-Za-z0-9_]*)",
+    re.MULTILINE,
+)
+_SYNTAX_COLORS = {
+    "comment": "#7D8590",
+    "string": GREEN,
+    "number": PURPLE,
+    "keyword": GOLD,
+}
+
+
+def _syntax_tokens(text: str, default_fg: str) -> list[tuple[str, str]]:
+    """Split text into (segment, color) spans; unclassified gaps get default_fg."""
+    spans: list[tuple[str, str]] = []
+    pos = 0
+    for m in _TOKEN_RE.finditer(text):
+        if m.start() > pos:
+            spans.append((text[pos : m.start()], default_fg))
+        kind = m.lastgroup
+        token = m.group()
+        color = _SYNTAX_COLORS.get(kind or "", default_fg)
+        if kind == "word" and token in _KEYWORDS:
+            color = _SYNTAX_COLORS["keyword"]
+        spans.append((token, color))
+        pos = m.end()
+    if pos < len(text):
+        spans.append((text[pos:], default_fg))
+    return spans
+
+
+def _draw_syntax(cv, x: float, y: float, text: str, default_fg: str, font_size: float):
+    """Paint syntax-spans; returns the design-space x where the line ended.
+
+    cv.text applies the supersample/camera transform internally, so design-space
+    advances measured with the unscaled mono font stay consistent.
+    """
+    cx = x
+    font = get_font(font_size, mono=True)
+    for segment, color in _syntax_tokens(text, default_fg):
+        if segment:
+            cv.text((cx, y), segment, color, size=font_size, mono=True, anchor="lm")
+            cx += font.getlength(segment)
+    return cx
+
+
+# --- end syntax highlighting ---------------------------------------------------
+
+
 def paint_code_terminal(cv, el: dict, ctx: ElementContext) -> None:
     box = el.get(
         "box",
@@ -174,7 +303,6 @@ def paint_code_terminal(cv, el: dict, ctx: ElementContext) -> None:
     body_h = y1 - body_top - 12
     line_h = body_h / max(1.0, min(shown, 18))
     font_size = max(9, int(line_h * 0.58))
-    mono_font = get_font(font_size, mono=True)
     cursor_on = int(ctx.local_time * 2.4) % 2 == 0
 
     for i, line in enumerate(lines[:shown]):
@@ -195,11 +323,9 @@ def paint_code_terminal(cv, el: dict, ctx: ElementContext) -> None:
             mono=True,
             anchor="lm",
         )
-        cv.text(
-            (x0 + 44, ly + line_h / 2), text, fg, size=font_size, mono=True, anchor="lm"
-        )
+        end_x = _draw_syntax(cv, x0 + 44, ly + line_h / 2, text, fg, font_size)
         if i == shown - 1 and cursor_on:
-            tx = x0 + 44 + mono_font.getlength(text) + 2
+            tx = end_x + 2
             cv.rectangle(
                 (tx, ly + line_h * 0.18, tx + font_size * 0.6, ly + line_h * 0.82),
                 fill=CYAN,

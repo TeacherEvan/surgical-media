@@ -7,6 +7,7 @@ Fails hard (exit 1) if:
   * resolution or fps deviates from expectation
   * integrated duration drifts from the storyboard by more than 150 ms
   * video codec is not H.264
+  * more than 75% of the audio track is digital silence (pad + VO always present)
 
 Usage:
     verify_output.py --input out.mp4 [--storyboard board.json]
@@ -18,12 +19,43 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 DRIFT_TOLERANCE_SEC = 0.150
+MAX_SILENCE_FRACTION = (
+    0.75  # pipeline always mixes a pad + VO — >75% silent means broken audio
+)
+SILENCE_NOISE_DB = -50.0
+SILENCE_MIN_SEC = 0.8
+
+
+def _parse_silencedetect(
+    stderr: str, duration: float | None = None
+) -> list[tuple[float, float]]:
+    """Parse ffmpeg silencedetect stderr into (start, end) second pairs."""
+    starts = [
+        float(m) for m in re.findall(r"silence_start:\s*([0-9]+(?:\.[0-9]+)?)", stderr)
+    ]
+    ends = [
+        float(m) for m in re.findall(r"silence_end:\s*([0-9]+(?:\.[0-9]+)?)", stderr)
+    ]
+    intervals: list[tuple[float, float]] = []
+    for i, start in enumerate(starts):
+        if i < len(ends):
+            intervals.append((start, ends[i]))
+        elif duration is not None:
+            intervals.append((start, duration))  # trailing silence to EOF
+    return intervals
+
+
+def silence_coverage(intervals: list[tuple[float, float]], duration: float) -> float:
+    if duration <= 0:
+        return 0.0
+    return min(1.0, sum(max(0.0, end - start) for start, end in intervals) / duration)
 
 
 def _ffprobe_json(path: Path) -> dict:
@@ -62,6 +94,7 @@ def verify_mp4(
     expected_fps: float | None = None,
     expected_duration: float | None = None,
     storyboard: str | Path | None = None,
+    max_silence_fraction: float = MAX_SILENCE_FRACTION,
 ) -> dict:
     path = Path(path)
     report: dict = {"input": str(path), "checks": [], "ok": True}
@@ -148,6 +181,35 @@ def verify_mp4(
         )
         sr = int(audio.get("sample_rate", 0))
         check("audio_48k", sr == 48000, f"sample_rate={sr}")
+        # Broken-audio net: the pipeline always mixes a pad + VO, so an
+        # (almost) fully silent track means the master build failed silently.
+        if duration and shutil.which("ffmpeg"):
+            proc = subprocess.run(
+                [
+                    "ffmpeg",
+                    "-v",
+                    "info",
+                    "-i",
+                    str(path),
+                    "-af",
+                    f"silencedetect=noise={SILENCE_NOISE_DB}dB:d={SILENCE_MIN_SEC}",
+                    "-f",
+                    "null",
+                    "-",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=180,
+                check=False,
+            )
+            intervals = _parse_silencedetect(proc.stderr, duration)
+            coverage = silence_coverage(intervals, duration)
+            check(
+                "audio_not_silent",
+                coverage <= max_silence_fraction,
+                f"{coverage * 100:.0f}% silent (max {max_silence_fraction * 100:.0f}%); "
+                f"{len(intervals)} interval(s)",
+            )
 
     if expected_duration is not None and duration is not None:
         drift = abs(duration - expected_duration)
@@ -181,6 +243,12 @@ def main() -> int:
     parser.add_argument("--expect-fps", type=float, default=None)
     parser.add_argument("--expect-duration", type=float, default=None)
     parser.add_argument(
+        "--max-silence-fraction",
+        type=float,
+        default=MAX_SILENCE_FRACTION,
+        help="Fail if more than this fraction of the track is silent (default 0.75)",
+    )
+    parser.add_argument(
         "--json", type=Path, default=None, help="Also write the report JSON here"
     )
     args = parser.parse_args()
@@ -196,6 +264,7 @@ def main() -> int:
         expected_fps=args.expect_fps,
         expected_duration=args.expect_duration,
         storyboard=args.storyboard,
+        max_silence_fraction=args.max_silence_fraction,
     )
     text = json.dumps(report, indent=2)
     print(text)
