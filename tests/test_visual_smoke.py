@@ -294,3 +294,86 @@ def test_image_element_attribution_y_lifts_credit(tmp_path):
 
     assert bright_count(46, 72) > 0  # credit lives at the lifted y
     assert bright_count(H - 20, H) == 0  # and not at the box bottom
+
+
+def test_image_backdrop_blur_renders_and_dims_edges(tmp_path):
+    """backdrop_blur: foreground plate stays bright, edges are blurred+dimmed."""
+    png = tmp_path / "uniform.png"
+    Image.new("RGB", (400, 200), (60, 150, 230)).save(png)
+
+    cv = SupersampledCanvas(W, H, scale=2, background="#050508")
+    cv.set_frame(1.0, 1.0)
+    ctx = ElementContext(
+        width=W,
+        height=H,
+        t=1.0,
+        scene_time=1.0,
+        local_time=1.0,
+        words=[],
+        seed=1,
+        zones=layout_zones(W, H),
+        base_dir=str(tmp_path),
+    )
+    render_element(
+        cv,
+        {
+            "type": "image",
+            "src": "uniform.png",
+            "box": [0, 0, W, H],
+            "fit": "backdrop_blur",
+            "fade_in_sec": 0.0,
+            "dim": 0.5,
+        },
+        ctx,
+    )
+    img = cv.final().convert("RGB")
+
+    def s(px):
+        return sum(img.getpixel(px))
+
+    center = s((W // 2, H // 2))
+    corner = s((4, 4))
+    assert center > 250  # the contained plate, essentially unmodified
+    assert corner < center * 0.75  # blurred + dimmed backdrop behind it
+
+
+def test_image_backdrop_blur_anchor_y_moves_plate(tmp_path):
+    """anchor_y=0 and anchor_y=1 pin the contained plate to top and bottom."""
+    png = tmp_path / "flat.png"
+    Image.new("RGB", (200, 100), (200, 60, 60)).save(png)
+
+    def render_plate(anchor):
+        cv = SupersampledCanvas(W, H, scale=2, background="#050508")
+        cv.set_frame(1.0, 1.0)
+        ctx = ElementContext(
+            width=W,
+            height=H,
+            t=1.0,
+            scene_time=1.0,
+            local_time=1.0,
+            words=[],
+            seed=1,
+            zones=layout_zones(W, H),
+            base_dir=str(tmp_path),
+        )
+        render_element(
+            cv,
+            {
+                "type": "image",
+                "src": "flat.png",
+                "box": [0, 0, W, H],
+                "fit": "backdrop_blur",
+                "fade_in_sec": 0.0,
+                "dim": 0.4,
+                "anchor_y": anchor,
+                "kb_zoom": 1.0,
+            },
+            ctx,
+        )
+        return cv.final().convert("RGB")
+
+    top_img = render_plate(0.0)
+    bot_img = render_plate(1.0)
+    # plate height = W * (100/200) = 0.5*W; for anchors 0 / 1 it hugs the edges
+    assert sum(top_img.getpixel((W // 2, 8))) > sum(top_img.getpixel((W // 2, H - 8)))
+    assert sum(bot_img.getpixel((W // 2, H - 8))) > sum(bot_img.getpixel((W // 2, 8)))

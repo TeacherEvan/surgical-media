@@ -19,7 +19,7 @@ from pathlib import Path
 
 from canvas import get_font, layout_zones, parse_color
 from easings import ease_out_expo, spring_pop
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 from rig import draw_stick_figure
 
 TAU = math.tau
@@ -819,7 +819,47 @@ def paint_image(cv, el: dict, ctx: ElementContext) -> None:
     )
 
     fit = str(el.get("fit", "cover"))
-    if fit == "contain":
+    if fit == "backdrop_blur":
+        # "social bleed": cover-crop the plate, blur + dim it to a backdrop,
+        # then paste the full contained plate above it — keeps landscape
+        # plates whole on 9:16 canvases. ``anchor_y`` (0..1) positions the
+        # plate in the remaining vertical space (0 = top, 0.5 = centered).
+        blur = float(el.get("blur", (x1 - x0) * 0.06)) * scale
+        dim = float(el.get("dim", 0.72))
+        anchor_y = min(1.0, max(0.0, float(el.get("anchor_y", 0.5))))
+        fill = max(bw / iw, bh / ih)
+        crop_w = max(1, int(bw / fill))
+        crop_h = max(1, int(bh / fill))
+        left = (iw - crop_w) // 2
+        top = (ih - crop_h) // 2
+        tile = img.crop((left, top, left + crop_w, top + crop_h)).resize(
+            (bw, bh), Image.Resampling.LANCZOS
+        )
+        if blur > 0.0:
+            tile = tile.filter(ImageFilter.GaussianBlur(blur))
+        if dim != 1.0:
+            tile = ImageEnhance.Brightness(tile).enhance(dim)
+        fg_scale = min(bw / iw, bh / ih) / zoom
+        nw, nh = max(1, int(iw * fg_scale)), max(1, int(ih * fg_scale))
+        fg = img.resize((nw, nh), Image.Resampling.LANCZOS)
+        fg_x = (bw - nw) // 2
+        fg_y = int((bh - nh) * anchor_y)
+        radius_px = int(float(el.get("radius", 0.0)) * scale)
+        shadow = Image.new("L", (bw, bh), 0)
+        s_off = max(4, int(bh * 0.018))
+        s_rad = radius_px if radius_px > 0 else max(6, int(bh * 0.018))
+        ImageDraw.Draw(shadow).rounded_rectangle(
+            (fg_x + 2, fg_y + s_off, fg_x + nw + 2, fg_y + nh + s_off),
+            radius=s_rad,
+            fill=190,
+        )
+        shadow = shadow.filter(ImageFilter.GaussianBlur(max(6, int(bh * 0.022))))
+        tile.paste((0, 0, 0), (0, 0), shadow)
+        if radius_px > 0:
+            tile.paste(fg, (fg_x, fg_y), _rounded_mask((nw, nh), radius_px))
+        else:
+            tile.paste(fg, (fg_x, fg_y))
+    elif fit == "contain":
         tile = Image.new("RGB", (bw, bh), (0, 0, 0))
         fit_scale = min(bw / iw, bh / ih) / zoom
         nw, nh = max(1, int(iw * fit_scale)), max(1, int(ih * fit_scale))
@@ -837,7 +877,8 @@ def paint_image(cv, el: dict, ctx: ElementContext) -> None:
     if reveal < 1.0:
         tile = Image.blend(Image.new("RGB", (bw, bh), (0, 0, 0)), tile, reveal)
 
-    radius = float(el.get("radius", 0.0))
+    # backdrop_blur applies radius to the foreground plate only
+    radius = 0.0 if fit == "backdrop_blur" else float(el.get("radius", 0.0))
     if radius > 0.0:
         r = max(1, int(radius * scale))
         cv.image.paste(tile, (bx0, by0), _rounded_mask((bw, bh), r))

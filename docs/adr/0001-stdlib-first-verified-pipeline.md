@@ -23,7 +23,7 @@
 
 ## Postscript (2026-11-18, v1.1 perf pass)
 
-Profiling the v1.0.0 render showed `Canvas.final()` at ~320 ms/frame (72% of wall time). Root causes and fixes, all landed with the 72-test suite green; the 73rd (custom odometer units), 74th (short-VO-stem envelope guard) and 75th–105th (measured WordBoundary karaoke timing; attribution auto-fit; caption re-tokenize fix; raster `image` element; Stage 1 `fetch_assets.py` Openverse fetch; `attribution_y` safe-zone credit) followed:
+Profiling the v1.0.0 render showed `Canvas.final()` at ~320 ms/frame (72% of wall time). Root causes and fixes, all landed with the 72-test suite green; the 73rd (custom odometer units), 74th (short-VO-stem envelope guard) and 75th–107th (measured WordBoundary karaoke timing; attribution auto-fit; caption re-tokenize fix; raster `image` element; Stage 1 `fetch_assets.py` Openverse fetch; `attribution_y` safe-zone credit; native `fit: "backdrop_blur"` plate mode) followed:
 
 - Per-pixel `Image.point(lambda)` halo scaling → `Image.blend(black, wide, 0.6)` (C-level).
 - Dual Gaussian bloom pyramid → computed at half resolution (bloom is low-frequency by construction).
