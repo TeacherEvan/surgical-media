@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "title": "probe",
+    "seed": 20261118
+  },
+  "format": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30
+  },
+  "scenes": [
+    {
+      "scene_id": "probe",
+      "archetype": "doc_essay",
+      "narration": "Snakes are friends, not food.",
+      "duration_sec": 3.096,
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.12,
+        "pan_x": 0.5,
+        "pan_y": 0.5,
+        "easing": "ease_out_expo"
+      },
+      "elements": [
+        {
+          "type": "background",
+          "color": "#0A0E17"
+        },
+        {
+          "type": "grid",
+          "spacing": 90,
+          "color": "#1E293B",
+          "alpha": 0.5
+        },
+        {
+          "type": "scaling_chart",
+          "box": [
+            123.75,
+            462.2222222222222,
+            832.5,
+            1102.2222222222222
+          ],
+          "exponent": 4.35,
+          "odometer_from": 1.0,
+          "odometer_to": 500.0,
+          "accent": "#38BDF8",
+          "label": "COMPUTE"
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "words": [
+        {
+          "word": "Snakes",
+          "start": 0.1,
+          "end": 0.6
+        },
+        {
+          "word": "are",
+          "start": 0.613,
+          "end": 0.725
+        },
+        {
+          "word": "friends",
+          "start": 0.738,
+          "end": 1.275
+        },
+        {
+          "word": "not",
+          "start": 1.45,
+          "end": 1.712
+        },
+        {
+          "word": "food",
+          "start": 1.725,
+          "end": 2.212
+        }
+      ],
+      "sfx_events": [],
+      "vo_wav": "audio/probe.wav",
+      "start_sec": 0.0
+    }
+  ],
+  "audio": {
+    "pad": true,
+    "pad_level": 0.055,
+    "duck_depth": 0.72,
+    "sample_rate": 48000
+  }
+}
