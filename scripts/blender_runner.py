@@ -17,6 +17,11 @@ Supported categories:
                          sinusoidal explode driven by ``explode_factor``.
   orbital_or_field_3d    plasma torus with 12 twisted coil tori parented to a
                          coil rig; plasma rotation keyframed 0 -> 2*pi.
+  organic_serpent_3d     animated jade serpent: a tapered, beveled CURVE spine
+                         (26 poly points) whose coordinates are keyframed per
+                         frame for a travelling S-wave, with a gold head,
+                         emissive eyes and a tongue on a head rig; the whole
+                         body sways gently on a parent rig.
 
 The following known 3D categories are **not** implemented and raise
 ``NotImplementedError`` (no silent fallback):
@@ -55,7 +60,11 @@ except Exception:  # noqa: BLE001 - any failure means "not inside Blender"
     Vector = None  # type: ignore[assignment]
     INSIDE_BLENDER = False
 
-SUPPORTED_CATEGORIES = ("exploded_hardware_3d", "orbital_or_field_3d")
+SUPPORTED_CATEGORIES = (
+    "exploded_hardware_3d",
+    "orbital_or_field_3d",
+    "organic_serpent_3d",
+)
 UNIMPLEMENTED_CATEGORIES = (
     "network_topology_3d",
     "rigid_body_physics_3d",
@@ -571,6 +580,185 @@ def build_orbital_or_field_3d(scene, spec, total_frames) -> "dict[str, Object]":
     return _create_anchor_empties(scene, spec or {}, base_map)
 
 
+_SERPENT_POINTS = 26
+_SERPENT_TAIL_RADIUS = 0.10
+_SERPENT_BODY_RADIUS = 0.30
+_SERPENT_HEAD_BULGE = 0.06
+_SERPENT_HEAD_BULGE_U = 0.90
+_SERPENT_HEAD_BULGE_WIDTH = 0.08
+
+
+def _serpent_spine(u, phase):
+    """Point on the S-shaped spine in rig-local space for arc position ``u``.
+
+    ``phase`` (radians) advances the travelling wave; geometry is deterministic
+    for a given (u, phase) pair, so it is safe to keyframe per frame.
+    """
+    x = 0.85 * math.sin(3.2 * math.pi * u + phase) * (0.55 + 0.45 * u)
+    y = -0.25 + 0.45 * math.cos(2.1 * math.pi * u + phase * 0.5)
+    z = -1.25 + 2.5 * u
+    return (x, y, z)
+
+
+def _serpent_radius(u):
+    """Tail -> head taper (0.10 -> 0.30) with a subtle bulge near the head."""
+    base = _SERPENT_TAIL_RADIUS + (_SERPENT_BODY_RADIUS - _SERPENT_TAIL_RADIUS) * u
+    bulge = _SERPENT_HEAD_BULGE * math.exp(
+        -(((u - _SERPENT_HEAD_BULGE_U) / _SERPENT_HEAD_BULGE_WIDTH) ** 2)
+    )
+    return base + bulge
+
+
+def _serpent_anchor_u(anchor_id):
+    """Pick a spine arc position for an anchor whose ``local_pos`` is absent."""
+    lowered = str(anchor_id).lower()
+    if "head" in lowered:
+        return 1.0
+    if "tail" in lowered:
+        return 0.0
+    return 0.5
+
+
+def build_organic_serpent_3d(scene, spec, total_frames) -> "dict[str, Object]":
+    """Animated jade serpent: tapered curve spine + gold head rig; anchor map."""
+    n = max(1, int(total_frames))
+
+    # Whole-body sway on a parent rig; all body parts are authored in rig-local
+    # coordinates, so a single rotation keeps them aligned with their anchors.
+    rig = bpy.data.objects.new("Serpent_Rig_Empty", None)
+    _try_set(rig, "empty_display_type", "PLAIN_AXES")
+    scene.collection.objects.link(rig)
+    for frame in range(1, n + 1):
+        u = (frame - 1) / max(1, n - 1)
+        rig.rotation_euler = (0.0, 0.0, 0.12 * math.sin(2.0 * math.pi * u))
+        rig.keyframe_insert(data_path="rotation_euler", frame=frame)
+
+    # Tapered S-shaped body as a single POLY spline with a bevel. The per-point
+    # coordinates are keyframed each frame to produce a travelling undulation.
+    curve = bpy.data.curves.new("Serpent_Spine", type="CURVE")
+    curve.dimensions = "3D"
+    curve.resolution_u = 8
+    curve.bevel_depth = 0.3
+    curve.bevel_resolution = 4
+    spline = curve.splines.new("POLY")
+    spline.points.add(_SERPENT_POINTS - 1)
+    for index, point in enumerate(spline.points):
+        point.radius = _serpent_radius(index / (_SERPENT_POINTS - 1))
+    body = bpy.data.objects.new("Organic_Serpent_Body", curve)
+    scene.collection.objects.link(body)
+    body.parent = rig
+    jade = create_pbr_material(
+        "Jade Serpent Material",
+        "#047857",
+        metallic=0.15,
+        roughness=0.35,
+        emission_hex="#34D399",
+        emission_strength=0.35,
+        transmission=0.0,
+        coat=0.0,
+    )
+    curve.materials.append(jade)
+
+    # Head empty follows the head spine point (rig-local), carrying the face.
+    head = bpy.data.objects.new("Serpent_Head_Empty", None)
+    _try_set(head, "empty_display_type", "SPHERE")
+    _try_set(head, "empty_display_size", 0.12)
+    scene.collection.objects.link(head)
+    head.parent = rig
+
+    for frame in range(1, n + 1):
+        u_norm = (frame - 1) / max(1, n - 1)
+        phase = 2.0 * math.pi * u_norm
+        for index, point in enumerate(spline.points):
+            x, y, z = _serpent_spine(index / (_SERPENT_POINTS - 1), phase)
+            point.co = (x, y, z, 1.0)
+            point.keyframe_insert(data_path="co", frame=frame)
+        hx, hy, hz = _serpent_spine(1.0, phase)
+        head.location = (hx, hy, hz)
+        head.keyframe_insert(data_path="location", frame=frame)
+
+    gold = create_pbr_material(
+        "Serpent Head Gold",
+        "#FBBF24",
+        metallic=0.85,
+        roughness=0.25,
+        emission_hex="#F59E0B",
+        emission_strength=0.5,
+        transmission=0.0,
+        coat=0.0,
+    )
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=1.0)
+    head_mesh = bpy.context.active_object
+    head_mesh.name = "Serpent_Head"
+    head_mesh.scale = (0.34, 0.30, 0.30)
+    head_mesh.parent = head
+    head_mesh.data.materials.append(gold)
+
+    eye_mat = create_pbr_material(
+        "Serpent Eye Material",
+        "#34D399",
+        metallic=0.0,
+        roughness=0.15,
+        emission_hex="#6EE7B7",
+        emission_strength=3.0,
+        transmission=0.0,
+        coat=0.0,
+    )
+    for side, label in ((-1, "L"), (1, "R")):
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=8, ring_count=4, radius=1.0)
+        eye = bpy.context.active_object
+        eye.name = f"Serpent_Eye_{label}"
+        eye.scale = (0.04, 0.04, 0.04)
+        eye.location = (0.22, side * 0.16, 0.14)
+        eye.parent = head
+        eye.data.materials.append(eye_mat)
+
+    bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.02, depth=0.34)
+    tongue = bpy.context.active_object
+    tongue.name = "Serpent_Tongue"
+    tongue.location = (0.34, 0.0, -0.02)
+    tongue.rotation_euler = (0.0, math.pi / 2.0, 0.0)
+    tongue.parent = head
+    tongue_mat = create_pbr_material(
+        "Serpent Tongue Material",
+        "#F43F5E",
+        metallic=0.0,
+        roughness=0.4,
+        emission_hex="#F43F5E",
+        emission_strength=1.5,
+        transmission=0.0,
+        coat=0.0,
+    )
+    tongue.data.materials.append(tongue_mat)
+
+    anchors = {}
+    for anchor in (spec or {}).get("anchors_3d", []) or []:
+        if not isinstance(anchor, dict):
+            continue
+        anchor_id = anchor.get("anchor_id")
+        if not anchor_id:
+            continue
+        anchor_id = str(anchor_id)
+        empty = bpy.data.objects.new(anchor_id, None)
+        _try_set(empty, "empty_display_type", "SPHERE")
+        _try_set(empty, "empty_display_size", 0.15)
+        scene.collection.objects.link(empty)
+        empty.parent = rig
+        local = anchor.get("local_pos")
+        if local is not None:
+            empty.location = tuple(float(c) for c in local[:3])
+        else:
+            target_u = _serpent_anchor_u(anchor_id)
+            for frame in range(1, n + 1):
+                u_norm = (frame - 1) / max(1, n - 1)
+                phase = 2.0 * math.pi * u_norm
+                x, y, z = _serpent_spine(target_u, phase)
+                empty.location = (x, y, z)
+                empty.keyframe_insert(data_path="location", frame=frame)
+        anchors[anchor_id] = empty
+    return anchors
+
+
 def export_anchor_tracks(
     scene,
     cam_obj,
@@ -660,6 +848,8 @@ def run_blender_scene(spec_path, out_dir, width, height, fps, total_frames):
     category = spec.get("category")
     if category == "orbital_or_field_3d":
         anchor_objs = build_orbital_or_field_3d(scene, spec, total_frames)
+    elif category == "organic_serpent_3d":
+        anchor_objs = build_organic_serpent_3d(scene, spec, total_frames)
     elif category in UNIMPLEMENTED_CATEGORIES:
         raise NotImplementedError(
             f"Category {category!r} is not implemented in blender_runner.py. "

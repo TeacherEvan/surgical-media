@@ -47,12 +47,17 @@ VALID_BACKENDS = {"auto", "blender_hybrid", "blender_3d", "canvas_2d", "manim_ma
 VALID_3D_CATEGORIES = {
     "exploded_hardware_3d",
     "orbital_or_field_3d",
+    "organic_serpent_3d",
     "network_topology_3d",
     "rigid_body_physics_3d",
     "mathematical_manifold_3d",
     "external_asset_3d",
 }
-IMPLEMENTED_3D_CATEGORIES = {"exploded_hardware_3d", "orbital_or_field_3d"}
+IMPLEMENTED_3D_CATEGORIES = {
+    "exploded_hardware_3d",
+    "orbital_or_field_3d",
+    "organic_serpent_3d",
+}
 VALID_BLENDER_ENGINES = {"AUTO_EEVEE", "CYCLES"}
 VALID_LIGHTING_PRESETS = {"cyber_studio_volumetric", "clean_product_softbox"}
 VALID_CAMERA_MODES = {"orbit"}

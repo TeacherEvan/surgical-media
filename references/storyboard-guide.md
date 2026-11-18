@@ -106,7 +106,7 @@ A scene with `scene_spec` replaces the `elements[]` requirement and routes to a 
 { "scene_id": "cowos_stack", "archetype": "mixed", "duration_sec": 1.5,
   "backend": "auto",
   "scene_spec": {
-    "category": "exploded_hardware_3d",   // or orbital_or_field_3d (others: rejected at validation)
+    "category": "exploded_hardware_3d",   // or orbital_or_field_3d, organic_serpent_3d (others: rejected at validation)
     "hud_title": "EXPLODED COWOS-STYLE PACKAGE STACK",
     "explode_factor": 1.15,
     "camera_3d": { "mode": "orbit", "focal_length_mm": 50.0, "fstop": 2.8,

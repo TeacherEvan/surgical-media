@@ -42,10 +42,10 @@ python3 scripts/render_engine.py --storyboard storyboard.json --output final.mp4
 | [`scripts/fetch_assets.py`](scripts/fetch_assets.py) | Stage 1 subject imagery: Openverse + Wikimedia Commons + iNaturalist, license allowlist (`by`/`by-sa`/`cc0`/`pdm`), PIL-verified, cross-source deduped, writes `assets/manifest.json` |
 | [`scripts/blender_plate.py`](scripts/blender_plate.py) | Optional Blender (Workbench, headless) 3D plates — `earth` / `iceberg` / `ringed` → transparent PNG for the `image` element; exits 2 cleanly without Blender |
 | [`scripts/scene_router.py`](scripts/scene_router.py) | Scene backend routing: `auto`/`blender_hybrid`/`blender_3d`/`canvas_2d`/`manim_math` + Blender capability probe |
-| [`scripts/software_3d_projection.py`](scripts/software_3d_projection.py) | Stdlib 4×4-perspective renderer (look-at view matrix, Painter's Z sort, diffuse shading) — parametric exploded-hardware + stellarator scenes; returns normalized 3D→2D anchor tracks |
+| [`scripts/software_3d_projection.py`](scripts/software_3d_projection.py) | Stdlib 4×4-perspective renderer — parametric exploded-hardware, stellarator-torus and undulating snake (`organic_serpent_3d`) scenes; returns normalized 3D→2D anchor tracks |
 | [`scripts/hybrid_compositor.py`](scripts/hybrid_compositor.py) | Motion-tracked HUD: reticles, 45° elbow leaders, glass telemetry cards placed by the SAT layout solver |
 | [`scripts/layout_solver.py`](scripts/layout_solver.py) | AABB min-axis collision solver with locked repulsors + 24 px canvas clamp (telemetry-card placement) |
-| [`scripts/blender_runner.py`](scripts/blender_runner.py) | Headless Blender (bpy) per-scene bake: EEVEE/Cycles detection, motion blur, `world_to_camera_view` anchor export |
+| [`scripts/blender_runner.py`](scripts/blender_runner.py) | Headless Blender (bpy) per-scene bake: EEVEE/Cycles detection, motion blur, `world_to_camera_view` anchor export; hardware, stellarator and snake builders |
 | [`assets/fonts/`](assets/fonts/) | Bundled OFL Inter (Regular/SemiBold/Bold) + JetBrains Mono (Regular/Bold) — captions/HUD + code archetype faces, SHA-256 pinned, licenses included |
 | [`scripts/build_demo.py`](scripts/build_demo.py) | Regenerates `examples/tri_archetype_storyboard.json` |
 | [`schemas/`](schemas/) | Draft 2020-12 contracts for the investigation brief, beat script, and storyboard |
@@ -67,7 +67,7 @@ Or everything, in one call: `bash scripts/ci_gates.sh`
 
 ### Verification (local-first)
 
-- **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → 278 tests → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC. Run it before pushing; its green exit *is* this repo's quality bar.
+- **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → 285 tests → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC. Run it before pushing; its green exit *is* this repo's quality bar.
 - `main` is protected on GitHub: required linear history, force-push and branch deletion blocked, enforced for admins too. Direct fast-forward pushes remain allowed (the current flow).
 - The decision is recorded in [ADR 0002](docs/adr/0002-local-first-verification.md). An optional GitLab mirror ([`.gitlab-ci.yml`](.gitlab-ci.yml)) executes the identical script once a project is imported: **New project → Import project → Repository by URL** → paste this repo's URL → create. Optionally enable *Settings → Repository → Mirroring* to auto-sync `main`. The mirror is **configured, not verified** — do not treat its presence as a green pipeline until one passes.
 

@@ -45,11 +45,13 @@ Examples: [`examples/tri_archetype_storyboard.json`](../examples/tri_archetype_s
 | Optional headless Blender bake (EEVEE/Cycles, motion blur, glare probes, anchor export) | `scripts/blender_runner.py`, `tests/test_blender_runner.py` |
 | `scene_spec`/`backend` schema + validator parity (elements-or-scene_spec) | `schemas/storyboard.schema.json`, `scripts/storyboard.py`, `tests/test_scene_spec_integration.py` |
 | Hybrid example board validates + paints | `examples/hybrid_3d_storyboard.json`, gates 1/6/7 in `scripts/ci_gates.sh` |
+| `organic_serpent_3d` — authored-from-pattern snake asset (stdlib polygon tube + bpy curve builder, head/body/tail tracking) | `scripts/software_3d_projection.py`, `scripts/blender_runner.py`, their tests; router/validator/schema registration |
+| Design-history rule documented (plans = templates, not copyable assets) | `SKILL.md`, `AGENTS.md`, ADR 0003 |
 | ADR 0003 + storyboard-guide scene-backend section | [`adr/0003-optional-3d-scene-backends.md`](adr/0003-optional-3d-scene-backends.md), [`references/storyboard-guide.md`](../references/storyboard-guide.md) |
 | Docs scaffolding: this plan + [`index.md`](index.md); version metadata synced (pyproject, installer, README, SKILL) | this file; `git diff pyproject.toml install_surgical_media.sh` |
 | Legal note: Blender GPL subprocess / edge-tts LGPL-3.0 optional / MIT unchanged | README → Dependencies & Licensing; ADR 0003 Consequences |
 | Gate hardening: all `examples/*.json` validated (gates 1/6); hybrid thumbnail smoke (gate 7) | `scripts/ci_gates.sh` |
-| Full local gate run green (8/8): 278 tests — all pass with `jsonschema` installed (gate venv), 266 passed + 11 clean skips without it; draft render + ffprobe QC `ok:true`, 0 ms A/V drift | `bash scripts/ci_gates.sh` run 2026-11-19 (two environments, same host) |
+| Full local gate run green (8/8): 285 tests — all pass with `jsonschema` installed (gate venv), 266 passed + 11 clean skips without it; draft render + ffprobe QC `ok:true`, 0 ms A/V drift | `bash scripts/ci_gates.sh` run 2026-11-19 (two environments, same host) |
 | Hybrid board renders end-to-end **without Blender** (forced `BLENDER_BIN` fallback): QC `ok:true`, 3.0 s / 720p30 / yuv420p | `BLENDER_BIN=/nonexistent-blender python scripts/render_engine.py --storyboard examples/hybrid_3d_storyboard.json --output … --quality draft` |
 | Hybrid board renders end-to-end **with Blender 5.3.0**: both scenes pre-baked (45 frames each), no fallback warnings, QC `ok:true`, 0 ms drift | same command without `BLENDER_BIN` override, run 2026-11-19 |
 

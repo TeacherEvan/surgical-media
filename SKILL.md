@@ -15,7 +15,7 @@ metadata:
 
 # Surgical Media (v1.3.0)
 
-Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 278 tests including a rendered-and-verified MP4 integration pass and pixel-level visual smoke checks).
+Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 285 tests including a rendered-and-verified MP4 integration pass and pixel-level visual smoke checks).
 
 ## When to Use
 
@@ -83,7 +83,9 @@ Inspect thumbnails before spending a full render; the bundled demo takes ~60–9
 
 ### 3D scene backends (optional, `scene_spec`)
 
-A scene may replace `elements[]` with a `scene_spec` object routing it to a parametric 3D backend (`backend`: `auto` default, `blender_hybrid`, `blender_3d`, `canvas_2d`, `manim_math` → warns, renders as 2D canvas). Categories: `exploded_hardware_3d`, `orbital_or_field_3d` (others rejected at validation). Always renders via a stdlib 4×4-perspective Painter's-algorithm pass — Blender not required; with Blender ≥3.6 on PATH, frames are pre-baked and 3D→2D anchors pin frosted-glass telemetry cards placed collision-free by an AABB SAT solver. Elements still paint on top; `scene_spec` replaces the `elements` requirement. Example: `examples/hybrid_3d_storyboard.json` — see `references/storyboard-guide.md` + ADR 0003.
+A scene may replace `elements[]` with a `scene_spec` object routing it to a parametric 3D backend (`backend`: `auto` default, `blender_hybrid`, `blender_3d`, `canvas_2d`, `manim_math` → warns, renders as 2D canvas). Categories: `exploded_hardware_3d`, `orbital_or_field_3d`, `organic_serpent_3d` (others rejected at validation). Always renders via a stdlib 4×4-perspective Painter's-algorithm pass — Blender not required; with Blender ≥3.6 on PATH, frames are pre-baked and 3D→2D anchors pin frosted-glass telemetry cards placed collision-free by an AABB SAT solver. Elements still paint on top; `scene_spec` replaces the `elements` requirement. Example: `examples/hybrid_3d_storyboard.json` — see `references/storyboard-guide.md` + ADR 0003.
+
+**Creating a new 3D asset:** design history (`docs/plans/`) is a *pattern*, not an asset to reuse. Add a generator to BOTH `software_3d_projection.py` (polygon soup + spine function + anchors) and `blender_runner.py` (bpy builder), register the category in `scene_router.py` + `storyboard.py` + `schemas/storyboard.schema.json`, and land tests + docs/counts in the same change. Copying the example torus is not building an asset.
 
 ## Hard Invariants
 
@@ -97,7 +99,7 @@ A scene may replace `elements[]` with a `scene_spec` object routing it to a para
 ## Verification
 
 ```bash
-python3 -m pytest tests/ -q                                   # 278 tests
+python3 -m pytest tests/ -q                                   # 285 tests
 python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + QC
 python3 scripts/verify_output.py --input /tmp/demo.mp4 --storyboard examples/tri_archetype_storyboard.json
 ```
@@ -106,14 +108,12 @@ python3 scripts/verify_output.py --input /tmp/demo.mp4 --storyboard examples/tri
 
 - `edge-tts` needs network; Airplane mode ⇒ `--offline` (WPM-estimated; online carries measured edge-tts WordBoundary timestamps). 60 fps doubles render cost — use 30 for Shorts unless motion demands otherwise.
 - `ImageDraw` has no alpha blend — scene fades are RGB `Image.blend`s; translucent panels use pre-blended slate tones, not RGBA overlays.
-- Raster subject imagery ships via the `image` element (`fit` cover|contain, `kb_zoom` Ken Burns, `attribution` credit line for license/AI-illustration disclosure). Raw video pipe expects `rgb24`, not `rgba` — changing `-pix_fmt` without changing `frame.tobytes()` corrupts every frame.
-- `verify_output.py` drifting >150 ms almost always means `duration_sec` vs ffprobe VO mismatch — re-run `tts_align.py`, don't hand-tweak.
+- Raster subject imagery ships via the `image` element (`fit` cover|contain, `kb_zoom`, `attribution` for license/AI disclosure). Raw pipe expects `rgb24` — changing `-pix_fmt` without changing `frame.tobytes()` corrupts every frame. `verify_output.py` drifting >150 ms means `duration_sec` vs VO mismatch — re-run `tts_align.py`, don't hand-tweak.
 
 ## Auxiliary Resources
 
 - `references/archetypes.md` + `references/storyboard-guide.md` + `references/ffmpeg-encoding.md` — field guide, element catalog/3D backends/safe zones, encoder reference
-- `scripts/fetch_assets.py` — multi-source licensed imagery: Openverse + Wikimedia Commons + iNaturalist; license allowlist `by`/`by-sa`/`cc0`/`pdm` (`*-nd`/`*-nc` rejected), PIL-verified, writes `assets/manifest.json` with attribution strings
-- `scripts/blender_plate.py` — **optional** headless-Blender 3D plates (`earth`/`iceberg`/`ringed`, transparent PNG) composited like any `image` element; exits 2 with a clear message when Blender is absent
+- `scripts/fetch_assets.py` — licensed imagery (Openverse + Commons + iNaturalist; `by`/`by-sa`/`cc0`/`pdm` only), PIL-verified, writes `assets/manifest.json`; `scripts/blender_plate.py` — optional Blender Workbench plates (`earth`/`iceberg`/`ringed`) for the `image` element, exits 2 cleanly when absent
 - `scripts/{scene_router,software_3d_projection,hybrid_compositor,layout_solver,blender_runner}.py` — scene backends: routing + stdlib 4×4-perspective tracker, SAT-solved HUD cards, headless Blender bake; `assets/fonts/` — bundled OFL Inter + JetBrains Mono (SHA-256 pinned, canvas prefers them)
 - `schemas/{storyboard,script,investigation_brief}.schema.json` — Draft 2020-12 contracts; ADRs 0001 (stdlib+Pillow) + 0003 (scene-optional 3D)
 - `examples/tri_archetype_storyboard.json` — renderable 3-scene showcase (regenerated by `scripts/build_demo.py`); `examples/hybrid_3d_storyboard.json` — 2-scene HUD showcase

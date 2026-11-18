@@ -2,8 +2,8 @@
 """software_3d_projection.py — math-mirror of Blender's Track-To camera +
 ``bpy_extras.object_utils.world_to_camera_view``.
 
-Renders parametric 3D meshes (exploded hardware stack / stellarator torus)
-with a 4x4 look-at view matrix, perspective divide, Painter's-algorithm Z
+Renders parametric 3D meshes (exploded hardware stack / stellarator torus /
+living serpent) with a 4x4 look-at view matrix, perspective divide, Painter's-algorithm Z
 sort and Blinn-Phong-ish diffuse shading in pure Python (stdlib + Pillow
 via the repo canvas — no numpy); returns screen-space anchor tracks for the
 HUD compositor in ``hybrid_compositor.py``.
@@ -27,7 +27,11 @@ import math
 from canvas import parse_color
 from scene_router import CAMERA_3D_DEFAULTS
 
-SUPPORTED_CATEGORIES = ("exploded_hardware_3d", "orbital_or_field_3d")
+SUPPORTED_CATEGORIES = (
+    "exploded_hardware_3d",
+    "orbital_or_field_3d",
+    "organic_serpent_3d",
+)
 
 _ZNEAR = 0.15
 _POLY_ZNEAR = 0.2
@@ -257,6 +261,137 @@ def generate_torus_stellarator_mesh(t_norm: float) -> list[dict]:
     return polys
 
 
+def serpent_spine_point(u: float, t_norm: float) -> tuple[float, float, float]:
+    """World-space point on the living snake's open S-curve spine.
+
+    ``u`` in [0, 1] runs tail (0) → head (1); ``t_norm`` in [0, 1] drives the
+    undulation via ``phase = t_norm * 2*pi``. Shared by the mesh generator and
+    the anchor tracker so HUD handles follow the exact body they annotate.
+    """
+    u = _clamp01(float(u))
+    phase = _clamp01(float(t_norm)) * 2.0 * math.pi
+    x = 0.85 * math.sin(3.2 * math.pi * u + phase) * (0.55 + 0.45 * u)
+    y = -0.25 + 0.45 * math.cos(2.1 * math.pi * u + phase * 0.5)
+    z = -1.25 + 2.5 * u
+    return (x, y, z)
+
+
+def generate_serpent_mesh(t_norm: float) -> list[dict]:
+    """Parametric *living snake* tube — an open, tapering S-spine, NOT a ring.
+
+    26 rings × 8 sides sweep a circular cross-section along the open spine
+    returned by :func:`serpent_spine_point`. The radius tapers from ~0.10 at
+    the tail to ~0.30 at the body with a gaussian bulge to ~0.36 near the head
+    (``u ~= 0.9``). A stable orthonormal frame is rebuilt per ring from the
+    numerically-approximated tangent with up=(0, 0, 1), and each quad's
+    outward normal is the normalized ring vertex minus the spine centre.
+
+    Jade/emerald scales use two alternating band hexes; the last few segments
+    are amber/gold head accents, and two small emissive eye quads sit just in
+    front of the head (all plain tuples + math, no numpy).
+    """
+    rings, sides = 26, 8
+    up = (0.0, 0.0, 1.0)
+
+    def radius_at(u: float) -> float:
+        # tail (u=0) ~0.10 → body ~0.30 by u=0.35, plus a head bulge near u=0.9
+        base = 0.10 + 0.20 * min(1.0, u / 0.35)
+        bulge = 0.06 * math.exp(-(((u - 0.9) / 0.08) ** 2))
+        return base + bulge
+
+    def tangent_at(u: float):
+        du = 1.0e-3
+        u0 = max(0.0, u - du)
+        u1 = min(1.0, u + du)
+        return _norm(
+            _sub(serpent_spine_point(u1, t_norm), serpent_spine_point(u0, t_norm))
+        )
+
+    # Pre-compute ring vertices + outward (unit) normals for every side.
+    ring_verts: list[list[tuple[float, float, float]]] = []
+    ring_normals: list[list[tuple[float, float, float]]] = []
+    for i in range(rings):
+        u = i / (rings - 1)
+        centre = serpent_spine_point(u, t_norm)
+        tangent = tangent_at(u)
+        right = _norm(_cross(tangent, up))
+        frame_up = _norm(_cross(right, tangent))
+        r = radius_at(u)
+        rv: list[tuple[float, float, float]] = []
+        rn: list[tuple[float, float, float]] = []
+        for j in range(sides):
+            theta = 2.0 * math.pi * j / sides
+            n = _norm(
+                (
+                    math.cos(theta) * right[0] + math.sin(theta) * frame_up[0],
+                    math.cos(theta) * right[1] + math.sin(theta) * frame_up[1],
+                    math.cos(theta) * right[2] + math.sin(theta) * frame_up[2],
+                )
+            )
+            rv.append(
+                (
+                    centre[0] + r * n[0],
+                    centre[1] + r * n[1],
+                    centre[2] + r * n[2],
+                )
+            )
+            rn.append(n)
+        ring_verts.append(rv)
+        ring_normals.append(rn)
+
+    polys: list[dict] = []
+    for i in range(rings - 1):
+        is_head = i >= rings - 3  # last ~3 segments form the head
+        if is_head:
+            color_hex, edge_hex = "#CA8A04", "#FDE047"
+        else:
+            band = (i // 2) % 2
+            color_hex = "#047857" if band == 0 else "#059669"
+            edge_hex = "#34D399"
+        for j in range(sides):
+            jn = (j + 1) % sides
+            verts = [
+                ring_verts[i][j],
+                ring_verts[i + 1][j],
+                ring_verts[i + 1][jn],
+                ring_verts[i][jn],
+            ]
+            n0, n1 = ring_normals[i][j], ring_normals[i + 1][j]
+            normal = _norm((n0[0] + n1[0], n0[1] + n1[1], n0[2] + n1[2]))
+            polys.append(
+                {
+                    "verts": verts,
+                    "normal": normal,
+                    "color_hex": color_hex,
+                    "edge_hex": edge_hex,
+                    "emissive": is_head,
+                }
+            )
+
+    # Two small emissive eye quads just in front of the head (facing +x).
+    hc = serpent_spine_point(0.88, t_norm)
+    e = 0.055
+    for side in (-1.0, 1.0):
+        ex = hc[0] + 0.26
+        ey = hc[1] + side * 0.13
+        ez = hc[2] + 0.05
+        polys.append(
+            {
+                "verts": [
+                    (ex - e, ey - e, ez),
+                    (ex + e, ey - e, ez),
+                    (ex + e, ey + e, ez),
+                    (ex - e, ey + e, ez),
+                ],
+                "normal": (1.0, 0.0, 0.0),
+                "color_hex": "#0B0B0B",
+                "edge_hex": "#FDE047",
+                "emissive": True,
+            }
+        )
+    return polys
+
+
 # ---------------------------------------------------------------------------
 # Scene render + anchor tracking
 # ---------------------------------------------------------------------------
@@ -316,6 +451,13 @@ def _build_scene(scene_spec: dict, t_norm: float):
     if category == "orbital_or_field_3d":
         # Torus anchors fall back to scene_spec local_pos (no per-part handles).
         return generate_torus_stellarator_mesh(t_norm), {}
+    if category == "organic_serpent_3d":
+        # Head/body/tail anchors track the moving spine even without local_pos.
+        return generate_serpent_mesh(t_norm), {
+            "anchor_head": serpent_spine_point(0.88, t_norm),
+            "anchor_body": serpent_spine_point(0.5, t_norm),
+            "anchor_tail": serpent_spine_point(0.12, t_norm),
+        }
     raise NotImplementedError(
         f"unsupported 3D scene category {category!r}; "
         f"supported categories: {', '.join(SUPPORTED_CATEGORIES)}"
@@ -325,8 +467,9 @@ def _build_scene(scene_spec: dict, t_norm: float):
 def render_3d_scene_and_track(canvas, scene_spec: dict, t_norm: float) -> list[dict]:
     """Render the parametric 3D scene and return tracked anchor screen positions.
 
-    ``scene_spec`` keys: ``category`` (``"exploded_hardware_3d"`` or
-    ``"orbital_or_field_3d"`` — anything else raises :class:`NotImplementedError`),
+    ``scene_spec`` keys: ``category`` (``"exploded_hardware_3d"``,
+    ``"orbital_or_field_3d"`` or ``"organic_serpent_3d"`` — anything else
+    raises :class:`NotImplementedError`),
     ``camera_3d`` (``radius_start``/``radius_end``/``azimuth_start_deg``/
     ``azimuth_end_deg``/``elevation_deg``/``focal_length_mm``),
     ``explode_factor`` (exploded stack only) and ``anchors_3d`` (list of

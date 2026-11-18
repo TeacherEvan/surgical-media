@@ -43,18 +43,13 @@ Manim (math), or 2D canvas. Two hard constraints shaped the adoption:
    frosted-glass telemetry cards `hybrid_compositor.py` paints with
    supersampled reticles, 45° elbow leaders and bloom — text never renders
    inside perspective space.
-5. **Two categories ship honest code: `exploded_hardware_3d` and
-   `orbital_or_field_3d`.** The schema enumerates the full menu (including
-   `network_topology_3d`, `rigid_body_physics_3d`, `mathematical_manifold_3d`,
-   `external_asset_3d`) so the vocabulary is stable, but the runtime validator
-   rejects the four unimplemented ones with the supported list before a render
-   starts; both renderers also raise `NotImplementedError` as a second line
-   of defence. Camera mode is `orbit` only and two lighting presets ship —
-   the schema/validator enums are narrowed to exactly what the renderers honour.
-6. **Manim stays out.** `backend: manim_math` validates, lints a warning, and
+5. **Three categories ship honest code: `exploded_hardware_3d`,
+   `orbital_or_field_3d`, `organic_serpent_3d`.** The schema enumerates the remaining menu so the vocabulary is stable, but the runtime validator rejects unimplemented ones with the supported list before a render starts; both renderers also raise `NotImplementedError` as a second line of defence. Camera mode is `orbit` only and two lighting presets ship — the schema/validator enums are narrowed to exactly what the renderers honour.
+6. **Design documents are templates, not stock assets.** The Gemini conversation supplied the *generator pattern* (parametric mesh → anchor export → compositor); `organic_serpent_3d` was authored from that pattern for a snake subject rather than reusing its torus. Every new subject gets its own generator in both renderers, registered in router/validator/schema with tests and docs.
+7. **Manim stays out.** `backend: manim_math` validates, lints a warning, and
    renders as 2D canvas — same contract as unknown element types: loud, but
    non-fatal.
-7. **No NumPy.** Geometry uses tuple math and `math`; shading is per-channel
+8. **No NumPy.** Geometry uses tuple math and `math`; shading is per-channel
    intensity scaling. This keeps ADR 0001 intact and `software_3d_projection`
    importable in every environment the renderer runs.
 

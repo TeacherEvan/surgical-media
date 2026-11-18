@@ -42,6 +42,7 @@ MIN_BLENDER_VERSION = (3, 6, 0)
 BLENDER_CATEGORIES = {
     "exploded_hardware_3d",
     "orbital_or_field_3d",
+    "organic_serpent_3d",
     "network_topology_3d",
     "rigid_body_physics_3d",
     "mathematical_manifold_3d",

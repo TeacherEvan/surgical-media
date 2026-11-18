@@ -13,8 +13,10 @@ from canvas import SupersampledCanvas
 from software_3d_projection import (
     PerspectiveCamera3D,
     generate_box_mesh,
+    generate_serpent_mesh,
     generate_torus_stellarator_mesh,
     render_3d_scene_and_track,
+    serpent_spine_point,
 )
 
 W, H = 320, 180
@@ -137,3 +139,98 @@ def test_render_unknown_category_raises_not_implemented():
     cv = SupersampledCanvas(W, H, scale=2, background="#050811")
     with pytest.raises(NotImplementedError):
         render_3d_scene_and_track(cv, {"category": "warp_drive_3d"}, 0.5)
+
+
+# ---------------------------------------------------------------------------
+# organic_serpent_3d — living snake, not a torus
+# ---------------------------------------------------------------------------
+def test_generate_serpent_mesh_structure():
+    polys = generate_serpent_mesh(0.5)
+    assert len(polys) > 150  # 25 segments x 8 sides + 2 eyes = 202
+    for poly in polys:
+        assert len(poly["verts"]) == 4
+        for v in poly["verts"]:
+            assert len(v) == 3
+        nx, ny, nz = poly["normal"]
+        assert abs(nx * nx + ny * ny + nz * nz - 1.0) < 1e-3
+        assert {"color_hex", "edge_hex", "emissive"} <= set(poly)
+
+    # jade/emerald band shading gives >= 2 distinct scale colours
+    scale_colors = {p["color_hex"] for p in polys if p["color_hex"] != "#0B0B0B"}
+    assert len(scale_colors) >= 2
+
+
+def test_generate_serpent_mesh_animates_with_stable_vertex_count():
+    a = generate_serpent_mesh(0.0)
+    b = generate_serpent_mesh(0.5)
+    assert len(a) == len(b)  # same mesh topology across time
+    verts_a = [v for p in a for v in p["verts"]]
+    verts_b = [v for p in b for v in p["verts"]]
+    assert len(verts_a) == len(verts_b)
+    assert verts_a != verts_b, "undulation should move the snake between t=0 and t=0.5"
+
+
+def test_serpent_spine_point_is_open_s_curve():
+    tail = serpent_spine_point(0.12, 0.3)
+    head = serpent_spine_point(0.88, 0.3)
+    assert tail != head
+    assert head[2] > tail[2], "z must increase from tail to head"
+    xs = [serpent_spine_point(i / 20, 0.3)[0] for i in range(21)]
+    assert any(x < 0.0 for x in xs) and any(x > 0.0 for x in xs), (
+        "S-curve must cross both signs of x"
+    )
+
+
+def test_serpent_mesh_is_not_a_torus():
+    polys = generate_serpent_mesh(0.0)
+    verts = [v for p in polys for v in p["verts"]]
+    xs = [v[0] for v in verts]
+    zs = [v[2] for v in verts]
+    assert max(zs) - min(zs) > 2.0, "snake is tall/open, not a flat torus"
+    assert min(xs) < 0.0 < max(xs), "XY footprint spans both signs of x"
+
+
+def _serpent_spec():
+    return {
+        "category": "organic_serpent_3d",
+        "camera_3d": {
+            "radius_start": 8.0,
+            "radius_end": 8.0,
+            "elevation_deg": 10.0,
+        },
+        "anchors_3d": [
+            {"anchor_id": "anchor_head", "label": "HEAD", "metric": ""},
+            {"anchor_id": "anchor_body", "label": "BODY", "metric": ""},
+            {"anchor_id": "anchor_tail", "label": "TAIL", "metric": ""},
+        ],
+    }
+
+
+def test_render_serpent_tracks_anchors_and_paints_pixels():
+    background = "#050811"
+    cv = SupersampledCanvas(W, H, scale=2, background=background)
+    tracked = render_3d_scene_and_track(cv, _serpent_spec(), 0.5)
+    assert len(tracked) == 3
+    required = {
+        "anchor_id",
+        "label",
+        "metric",
+        "accent_hex",
+        "u",
+        "v",
+        "z_depth",
+        "visible",
+    }
+    ids = set()
+    for entry in tracked:
+        assert required <= set(entry)
+        assert 0.0 <= entry["u"] <= 1.0
+        assert 0.0 <= entry["v"] <= 1.0
+        ids.add(entry["anchor_id"])
+    assert ids == {"anchor_head", "anchor_body", "anchor_tail"}
+
+    img = cv.final().convert("RGB")
+    blank = SupersampledCanvas(W, H, scale=2, background=background).final()
+    diff = ImageChops.difference(img, blank.convert("RGB"))
+    centre = diff.crop((W // 4, H // 4, 3 * W // 4, 3 * H // 4))
+    assert _changed_pixels(centre) > 50

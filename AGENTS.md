@@ -19,7 +19,7 @@ python3 scripts/storyboard.py examples/tri_archetype_storyboard.json   # demo mu
 python3 scripts/storyboard.py examples/hybrid_3d_storyboard.json      # 3D/HUD showcase must validate too
 ruff check --no-cache scripts/ tests/
 ruff format --check --no-cache scripts/ tests/
-python3 -m pytest tests/ -q                                            # 278 tests, all green
+python3 -m pytest tests/ -q                                            # 285 tests, all green
 check-jsonschema --check-metaschema schemas/*.schema.json
 python3 scripts/render_engine.py --demo --thumbnails /tmp/sm_thumbs     # seconds — visual smoke, no ffmpeg needed
 python3 scripts/render_engine.py --storyboard examples/hybrid_3d_storyboard.json --thumbnails /tmp/sm_hybrid_thumbs   # software 3D + HUD smoke
@@ -27,7 +27,7 @@ python3 scripts/render_engine.py --demo --output /tmp/sm_gate.mp4       # only w
 ```
 
 - Single test: `python3 -m pytest "tests/test_visual_smoke.py::test_box_downsample_keeps_thin_lines" -q`
-- Verification is **local-first**: `scripts/ci_gates.sh` is the single gate (storyboard → ruff → format → 278 tests → schema metaschema → both example-vs-schema → thumbnails for 2D + hybrid 3D → draft render → ffprobe QC) and is what “green” means for this repo. GitHub Actions was removed 2026-11-18 (billing-locked; permanently red). An optional GitLab mirror (`.gitlab-ci.yml`) runs the same script on import — it has **NOT run** yet; never claim a green pipeline until one passes. Change the script, never the providers. ffmpeg is apt/pip-installed there and integration tests **skip cleanly** without it.
+- Verification is **local-first**: `scripts/ci_gates.sh` is the single gate (storyboard → ruff → format → 285 tests → schema metaschema → both example-vs-schema → thumbnails for 2D + hybrid 3D → draft render → ffprobe QC) and is what “green” means for this repo. GitHub Actions was removed 2026-11-18 (billing-locked; permanently red). An optional GitLab mirror (`.gitlab-ci.yml`) runs the same script on import — it has **NOT run** yet; never claim a green pipeline until one passes. Change the script, never the providers. ffmpeg is apt/pip-installed there and integration tests **skip cleanly** without it.
 - **mypy** is configured in `pyproject.toml` but not enforced and not installed in the usual scratch venv — ruff + pytest are the enforced gates; mypy runs are advisory only.
 - **markdownlint** (npm, v0.49.1) fails on *pre-existing* house docs (`references/`, `docs/adr/`: MD022/MD031/MD034/MD060) — it is not a gate. Don't present it as one, and don't add it to CI without fixing those files first.
 - Before spending a full render: `--estimate` (frame count / audio cost) and `--thumbnails DIR` (one PNG per scene). `final` = crf 18, demo/draft = crf 26. Rendering is deterministic only per machine/Pillow build — diff frames, not hashes.
@@ -36,6 +36,7 @@ python3 scripts/render_engine.py --demo --output /tmp/sm_gate.mp4       # only w
 
 ## Hard-won invariants (do not relearn)
 
+- **Design history is a pattern, not an asset library.** `docs/plans/` and `Concept/` teach *how* to build a generator; a new subject gets a NEW generator in BOTH `software_3d_projection.py` and `blender_runner.py`, plus registration in `scene_router.py`, `storyboard.py` and `schemas/storyboard.schema.json`, tests and docs in the same change. Never reuse the example torus/hardware stack as a stand-in for the requested subject.
 - **Deliverables finish in the folder the session opened in.** Final MP4 at the workspace/repo root (gitignored), project bundle in a repo subfolder; scratch only holds intermediates. Check the existing output files before choosing a path.
 - **Audio-first timing.** Frame counts come from measured VO durations (ffprobe) or explicit beat durations — never guessed. `words[]` and `sfx_events[].t_sec` are **scene-relative**; `start_sec` is auto-assigned sequentially.
 - **Two timing paths** (`scripts/tts_align.py`): online → edge-tts `WordBoundary` events (measured, 100 ns ticks); `--offline` or any TTS failure → syllable-weighted model. **Never re-split a joined string to index into `words`** — a boundary event can carry multiple whitespace-separated words (e.g. `"since 2009"`). Wrap the measured token stream (see `paint_kinetic_captions`, which had exactly this bug).
