@@ -113,6 +113,17 @@ PAINTER_ELEMENTS = {
     "code_terminal": {"type": "code_terminal", "lines": ["$ run", "ok"], "reveal": 1.0},
     "quote_card": {"type": "quote_card", "quote": "hello", "attribution": "a"},
     "kinetic_captions": {"type": "kinetic_captions", "accent": "#FFD700"},
+    "stick_rig": {"type": "stick_rig", "height": 120},
+    "system_architecture": {
+        "type": "system_architecture",
+        "cascade_start": 0.0,
+        "cascade_step": 0.5,
+        "nodes": [
+            {"id": "lb", "role": "source", "label": "ORIGIN", "x": 60, "y": 195},
+            {"id": "ex1", "role": "exchange", "label": "RELAY-1", "x": 170, "y": 90},
+            {"id": "ex2", "role": "exchange", "label": "RELAY-2", "x": 170, "y": 300},
+        ],
+    },
 }
 
 

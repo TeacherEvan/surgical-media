@@ -110,12 +110,10 @@ python3 scripts/verify_output.py --input /tmp/demo.mp4 --storyboard examples/tri
 
 ## Auxiliary Resources
 
-- `references/archetypes.md` — full archetype field guide (palettes, beat density, SFX vocabulary, exemplar videos)
-- `references/storyboard-guide.md` — element catalog, camera semantics, easings, safe zones, word timing
+- `references/archetypes.md` + `references/storyboard-guide.md` + `references/ffmpeg-encoding.md` — field guide, element catalog/camera semantics/safe zones, encoder/loudness/QC reference
 - `scripts/fetch_assets.py` — multi-source licensed imagery: Openverse + Wikimedia Commons (original-res) + iNaturalist (nature); license allowlist `by`/`by-sa`/`cc0`/`pdm` (`*-nd`/`*-nc` rejected), PIL-verified, deduped across sources, writes `assets/manifest.json` with attribution strings
 - `scripts/blender_plate.py` — **optional** headless-Blender 3D plates (`earth`/`iceberg`/`ringed`, Workbench engine, transparent PNG) composited like any `image` element; exits 2 with a clear message when Blender is absent — never required
 - `assets/fonts/` — bundled OFL Inter (Regular/SemiBold/Bold) + JetBrains Mono (Regular/Bold), SHA-256 pinned, licenses verbatim; canvas prefers them over system fonts
-- `references/ffmpeg-encoding.md` — encoder/loudness/QC reference, platform targets
 - `schemas/{storyboard,script,investigation_brief}.schema.json` — Draft 2020-12 contracts
 - `examples/tri_archetype_storyboard.json` — renderable 3-scene showcase (`scripts/build_demo.py` regenerates)
 - `scripts/` — `tts_align.py`, `storyboard.py`, `render_engine.py`, `verify_output.py`, `audio_dsp.py`, `camera.py`, `canvas.py`, `elements.py`, `rig.py`, `easings.py`, `build_demo.py`
