@@ -44,6 +44,7 @@ function parseArgs(argv) {
     browser: null,
     threeModule: null,
     baseDir: null,
+    frameT: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
@@ -74,6 +75,9 @@ function parseArgs(argv) {
       i++;
     } else if (flag === "--base-dir") {
       args.baseDir = next;
+      i++;
+    } else if (flag === "--frame-t") {
+      args.frameT = Number.parseFloat(next);
       i++;
     }
   }
@@ -348,12 +352,14 @@ async function main() {
 
     await waitForThreeReady(cdp);
 
-    const totalFrames = Math.max(1, args.frames);
+    const totalFrames = args.frameT !== null && Number.isFinite(args.frameT) ? 1 : Math.max(1, args.frames);
     const framesOut = [];
 
     for (let idx = 0; idx < totalFrames; idx++) {
+      const explicitT =
+        args.frameT !== null && Number.isFinite(args.frameT) ? args.frameT : "null";
       const evalRes = await cdp.send("Runtime.evaluate", {
-        expression: `window.__renderFrame(${idx}, ${totalFrames})`,
+        expression: `window.__renderFrame(${idx}, ${totalFrames}, ${explicitT})`,
         returnByValue: true,
         awaitPromise: true,
       });

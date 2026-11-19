@@ -15,7 +15,7 @@ metadata:
 
 # Surgical Media (v1.4.0)
 
-Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow + SVG 2.0 rendering (plus optional Three.js WebGL Studio / Blender 3D passes) → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 327 tests including rendered-MP4, Three.js IBL/bloom/custom-script, and Chromium SVG 2.0 passes).
+Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow + SVG 2.0 rendering (plus optional Three.js WebGL Studio / Blender 3D passes) → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 329 tests including rendered-MP4, Three.js IBL/bloom/SVG-3D/custom-script, and Chromium SVG 2.0 passes).
 
 ## When to Use
 
@@ -99,7 +99,7 @@ A scene may replace `elements[]` with a `scene_spec` object routing it to a para
 ## Verification
 
 ```bash
-python3 -m pytest tests/ -q                                   # 327 tests
+python3 -m pytest tests/ -q                                   # 329 tests
 python3 -m mypy scripts/                                      # strict — must be clean (gate 4/9)
 python3 scripts/threejs_bridge.py --check                     # optional Three.js runtime probe
 python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + QC

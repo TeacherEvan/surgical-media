@@ -71,7 +71,7 @@ IMPLEMENTED_3D_CATEGORIES = {
 }
 VALID_BLENDER_ENGINES = {"AUTO_EEVEE", "CYCLES"}
 VALID_LIGHTING_PRESETS = {"cyber_studio_volumetric", "clean_product_softbox"}
-VALID_CAMERA_MODES = {"orbit"}
+VALID_CAMERA_MODES = {"orbit", "dolly", "crane", "static"}
 ANCHOR_ID_RE = re.compile(r"^[a-z0-9_-]{1,64}$")
 ACCENT_HEX_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 

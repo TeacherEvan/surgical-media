@@ -41,6 +41,7 @@ export function cubicEaseInOut(u) {
 
 export function cameraEyeAt(camCfg, tNorm) {
   const cfg = camCfg || {};
+  const mode = String(cfg.mode || "orbit");
   const r0 = Number(cfg.radius_start ?? CAMERA_3D_DEFAULTS.radius_start);
   const r1 = Number(cfg.radius_end ?? CAMERA_3D_DEFAULTS.radius_end);
   const az0 =
@@ -49,12 +50,16 @@ export function cameraEyeAt(camCfg, tNorm) {
   const az1 =
     (Number(cfg.azimuth_end_deg ?? CAMERA_3D_DEFAULTS.azimuth_end_deg) * Math.PI) /
     180.0;
-  const elev =
+  const elevBase =
     (Number(cfg.elevation_deg ?? CAMERA_3D_DEFAULTS.elevation_deg) * Math.PI) / 180.0;
 
-  const uEase = cubicEaseInOut(tNorm);
+  const uEase = mode === "static" ? 0.0 : cubicEaseInOut(tNorm);
   const radius = r0 + (r1 - r0) * uEase;
-  const az = az0 + (az1 - az0) * uEase;
+  const az = mode === "dolly" || mode === "static" ? az0 : az0 + (az1 - az0) * uEase;
+  const elev =
+    mode === "crane"
+      ? elevBase * (0.4 + 0.85 * uEase)
+      : elevBase;
   return [
     radius * Math.cos(elev) * Math.sin(az),
     -radius * Math.cos(elev) * Math.cos(az),
@@ -566,12 +571,76 @@ function buildNetworkTopology(THREE, scene) {
   };
 }
 
-async function buildExternalAsset(THREE, scene, spec, GLTFLoader) {
+export function extrudeSvgTo3D(THREE, SVGLoader, svgText, options = {}) {
+  const loader = new SVGLoader();
+  const svgData = loader.parse(svgText);
+  const root = new THREE.Group();
+  const depth = Number(options.depth ?? 12);
+  const bevelThickness = Number(options.bevelThickness ?? 2.2);
+  const bevelSize = Number(options.bevelSize ?? 1.4);
+
+  for (const path of svgData.paths) {
+    const fillColor = path.userData?.style?.fill;
+    if (fillColor && fillColor !== "none") {
+      const shapes = SVGLoader.createShapes(path);
+      const col = new THREE.Color().setStyle(fillColor);
+      const mat = new THREE.MeshStandardMaterial({
+        color: col,
+        emissive: col,
+        emissiveIntensity: Number(options.emissiveIntensity ?? 0.32),
+        metalness: Number(options.metalness ?? 0.72),
+        roughness: Number(options.roughness ?? 0.22),
+        side: THREE.DoubleSide,
+      });
+      for (const shape of shapes) {
+        const geom = new THREE.ExtrudeGeometry(shape, {
+          depth,
+          bevelEnabled: true,
+          bevelThickness,
+          bevelSize,
+          bevelSegments: 3,
+        });
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        root.add(mesh);
+      }
+    }
+  }
+
+  // Auto-center and normalize to `targetExtent` world units, standing upright in Z-up
+  const box = new THREE.Box3().setFromObject(root);
+  const size = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  box.getSize(size);
+  box.getCenter(center);
+  const maxDim = Math.max(size.x, size.y, size.z, 1e-3);
+  const scale = Number(options.targetExtent ?? 2.6) / maxDim;
+
+  const wrapper = new THREE.Group();
+  root.scale.set(scale, -scale, scale);
+  root.position.set(-center.x * scale, center.y * scale, -center.z * scale);
+  wrapper.add(root);
+  wrapper.rotation.x = Math.PI / 2.0;
+  return wrapper;
+}
+
+async function buildExternalAsset(THREE, scene, spec, GLTFLoader, SVGLoader) {
   const assetUrl = spec._runtime && spec._runtime.assetUrl;
+  const svgMarkup =
+    spec.params && typeof spec.params.svg_markup === "string"
+      ? spec.params.svg_markup
+      : null;
   const group = new THREE.Group();
   scene.add(group);
 
-  if (assetUrl && GLTFLoader) {
+  if (svgMarkup && SVGLoader) {
+    group.add(extrudeSvgTo3D(THREE, SVGLoader, svgMarkup, spec.params || {}));
+  } else if (assetUrl && assetUrl.endsWith(".svg") && SVGLoader) {
+    const res = await fetch(assetUrl);
+    const svgText = await res.text();
+    group.add(extrudeSvgTo3D(THREE, SVGLoader, svgText, spec.params || {}));
+  } else if (assetUrl && GLTFLoader) {
     const loader = new GLTFLoader();
     const gltf = await loader.loadAsync(assetUrl);
     const model = gltf.scene || (gltf.scenes && gltf.scenes[0]);
@@ -619,7 +688,13 @@ async function buildExternalAsset(THREE, scene, spec, GLTFLoader) {
 }
 
 export async function createSceneController(THREE, spec, width, height, extras = {}) {
-  const { renderer = null, envTex = null, GLTFLoader = null, customModule = null } = extras;
+  const {
+    renderer = null,
+    envTex = null,
+    GLTFLoader = null,
+    SVGLoader = null,
+    customModule = null,
+  } = extras;
   const category = spec.category;
   if (!customModule && !SUPPORTED_CATEGORIES.includes(category)) {
     throw new Error(
@@ -659,6 +734,10 @@ export async function createSceneController(THREE, spec, width, height, extras =
       camera,
       spec,
       renderer,
+      GLTFLoader,
+      SVGLoader,
+      extrudeSvgTo3D: (svgText, opts) =>
+        extrudeSvgTo3D(THREE, SVGLoader, svgText, opts),
     });
   } else if (category === "exploded_hardware_3d") {
     updateCategory = buildExplodedHardware(THREE, scene, spec);
@@ -667,7 +746,7 @@ export async function createSceneController(THREE, spec, width, height, extras =
   } else if (category === "organic_serpent_3d") {
     updateCategory = buildOrganicSerpent(THREE, scene);
   } else if (category === "external_asset_3d") {
-    updateCategory = await buildExternalAsset(THREE, scene, spec, GLTFLoader);
+    updateCategory = await buildExternalAsset(THREE, scene, spec, GLTFLoader, SVGLoader);
   } else {
     updateCategory = buildNetworkTopology(THREE, scene);
   }

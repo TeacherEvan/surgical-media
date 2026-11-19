@@ -67,8 +67,8 @@ def test_blender_renders_nonflat_transparent_plate(tmp_path):
     assert proc.returncode == 0, proc.stderr[-2000:]
     assert blender_plate.png_dimensions(out) == (200, 120)
     img = Image.open(out).convert("RGBA")
-    alpha = list(img.getchannel("A").getdata())
+    alpha = list(img.getchannel("A").get_flattened_data())
     assert min(alpha) == 0  # transparent corners for compositing
     assert max(alpha) == 255  # opaque subject
     rgb = img.convert("RGB")
-    assert len(set(rgb.getdata())) > 32  # a real 3D render, not a flat fill
+    assert len(set(rgb.get_flattened_data())) > 32  # a real 3D render, not a flat fill

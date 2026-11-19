@@ -45,6 +45,7 @@ def threejs_adapter_spec(spec: dict[str, Any]) -> dict[str, Any]:
         "anchors_3d": spec.get("anchors_3d", []),
         "params": spec.get("params", {}),
         "camera_3d": {
+            "mode": cam.get("mode", "orbit"),
             "focal_length_mm": cam.get(
                 "focal_length_mm", CAMERA_3D_DEFAULTS["focal_length_mm"]
             ),
@@ -76,6 +77,7 @@ def prerender_threejs_scene(
     probe: dict[str, Any],
     *,
     base_dir: Path | str | None = None,
+    frame_t: float | None = None,
     timeout: int = 240,
 ) -> Path | None:
     """Pre-render a single scene_spec via headless Three.js; return ``plate_dir`` or ``None``."""
@@ -120,6 +122,8 @@ def prerender_threejs_scene(
         ]
         if base_dir is not None:
             argv.extend(["--base-dir", str(base_dir)])
+        if frame_t is not None:
+            argv.extend(["--frame-t", f"{float(frame_t):.6f}"])
         result = subprocess.run(
             argv,
             check=False,

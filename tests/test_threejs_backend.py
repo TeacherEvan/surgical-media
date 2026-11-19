@@ -406,3 +406,59 @@ export async function buildScene({ THREE, scene }) {
     tracks = json.loads((plate_dir / "anchor_tracks.json").read_text(encoding="utf-8"))
     assert tracks["frames"][1]["anchors"][0]["anchor_id"] == "anchor_knot"
     assert tracks["frames"][1]["anchors"][0]["visible"] is True
+
+
+def test_camera_3d_cinematic_modes_validate_and_render():
+    for mode in ("orbit", "dolly", "crane", "static"):
+        scene = _threejs_scene("threejs_hybrid")
+        scene["scene_spec"]["camera_3d"]["mode"] = mode
+        board = {**_threejs_board(), "scenes": [scene]}
+        assert storyboard.validate_storyboard(board) == []
+        frame = render_engine.paint_frame(scene, 320, 180, 1, 7, 3, 24)
+        assert frame.size == (320, 180)
+        assert any(hi > lo for lo, hi in frame.getextrema())
+
+
+def test_threejs_live_svg_to_3d_bevel_extrusion_and_single_frame_t(tmp_path):
+    probe = scene_router._probe_threejs_environment_uncached()
+    if not probe.get("available"):
+        pytest.skip(f"Three.js runtime unavailable: {probe.get('reason')}")
+
+    svg_star = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <polygon points="50,5 64,36 98,36 70,57 81,91 50,70 19,91 30,57 2,36 36,36" fill="#FACC15"/>
+      <circle cx="50" cy="50" r="16" fill="#38BDF8"/>
+    </svg>"""
+    spec = {
+        "category": "external_asset_3d",
+        "lighting_preset": "cyber_studio_volumetric",
+        "camera_3d": {"mode": "dolly", "radius_start": 6.5, "radius_end": 5.0},
+        "params": {"svg_markup": svg_star, "bloom_strength": 0.55},
+        "anchors_3d": [
+            {
+                "anchor_id": "anchor_asset_center",
+                "label": "3D EXTRUDED SVG",
+                "metric": "SVGLOADER + IBL",
+                "local_pos": [0.0, 0.0, 0.0],
+            }
+        ],
+    }
+    plate_dir = tmp_path / "svg3d_out"
+    res = threejs_bridge.prerender_threejs_scene(
+        "svg3d",
+        spec,
+        plate_dir,
+        tmp_path / "svg3d_spec.json",
+        width=320,
+        height=180,
+        fps=24,
+        n_frames=1,
+        probe=probe,
+        frame_t=0.55,
+        timeout=90,
+    )
+    assert res == plate_dir
+    f1 = plate_dir / "frame_0001.png"
+    assert f1.is_file()
+    with Image.open(f1) as im:
+        assert im.size == (320, 180)
+        assert len(set(im.convert("RGB").get_flattened_data())) > 50

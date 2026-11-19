@@ -82,7 +82,7 @@
                  "type": "object",
                  "unevaluatedProperties": false,
                  "properties": {
-                   "mode": { "type": "string", "enum": ["orbit"] },
+                   "mode": { "type": "string", "enum": ["orbit", "dolly", "crane", "static"] },
                    "focal_length_mm": { "type": "number", "minimum": 10.0, "maximum": 200.0, "default": 50 },
                    "fstop": { "type": "number", "minimum": 1.0, "maximum": 32.0, "default": 2.8 },
                    "radius_start": { "type": "number", "minimum": 0.5, "maximum": 100.0 },

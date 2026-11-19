@@ -601,6 +601,7 @@ def render_3d_scene_and_track(
     w, h = canvas.width, canvas.height
 
     cam_cfg = scene_spec.get("camera_3d", {})
+    mode = str(cam_cfg.get("mode", "orbit"))
     r0 = float(cam_cfg.get("radius_start", CAMERA_3D_DEFAULTS["radius_start"]))
     r1 = float(cam_cfg.get("radius_end", CAMERA_3D_DEFAULTS["radius_end"]))
     az0 = math.radians(
@@ -609,14 +610,15 @@ def render_3d_scene_and_track(
     az1 = math.radians(
         float(cam_cfg.get("azimuth_end_deg", CAMERA_3D_DEFAULTS["azimuth_end_deg"]))
     )
-    elev = math.radians(
+    elev_base = math.radians(
         float(cam_cfg.get("elevation_deg", CAMERA_3D_DEFAULTS["elevation_deg"]))
     )
     focal = float(cam_cfg.get("focal_length_mm", CAMERA_3D_DEFAULTS["focal_length_mm"]))
 
-    u_ease = _cubic_ease_in_out(t_norm)
+    u_ease = 0.0 if mode == "static" else _cubic_ease_in_out(t_norm)
     radius = r0 + (r1 - r0) * u_ease
-    az = az0 + (az1 - az0) * u_ease
+    az = az0 if mode in ("dolly", "static") else az0 + (az1 - az0) * u_ease
+    elev = elev_base * (0.4 + 0.85 * u_ease) if mode == "crane" else elev_base
     eye = (
         radius * math.cos(elev) * math.sin(az),
         -radius * math.cos(elev) * math.cos(az),

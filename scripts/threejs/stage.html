@@ -33,6 +33,7 @@
       import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
       import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
       import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+      import { SVGLoader } from "three/addons/loaders/SVGLoader.js";
       import { createSceneController } from "/scenes.mjs";
 
       async function boot() {
@@ -78,6 +79,7 @@
           renderer,
           envTex,
           GLTFLoader,
+          SVGLoader,
           customModule,
         });
 
@@ -100,8 +102,11 @@
           composer.addPass(new OutputPass());
         }
 
-        window.__renderFrame = function (frameIdx, totalFrames) {
-          const tNorm = frameIdx / Math.max(1, totalFrames - 1);
+        window.__renderFrame = function (frameIdx, totalFrames, explicitTNorm = null) {
+          const tNorm =
+            typeof explicitTNorm === "number" && Number.isFinite(explicitTNorm)
+              ? explicitTNorm
+              : frameIdx / Math.max(1, totalFrames - 1);
           const anchors = controller.update(tNorm);
           if (composer) {
             composer.render();

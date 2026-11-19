@@ -55,6 +55,10 @@ cp "${SCRIPT_DIR}/examples/"*.json "${HERMES_SKILL_DIR}/examples/"
 cp "${SCRIPT_DIR}/docs/adr/"*.md "${HERMES_SKILL_DIR}/docs/adr/"
 cp "${SCRIPT_DIR}/docs/index.md" "${SCRIPT_DIR}/docs/project-plan.md" "${HERMES_SKILL_DIR}/docs/"
 
+if command -v npm >/dev/null 2>&1; then
+  (cd "${HERMES_SKILL_DIR}/scripts/threejs" && npm install --no-audit --no-fund --silent)
+fi
+
 echo "[install_surgical_media] Done."
 echo "Verify with:"
 echo "  python3 ${HERMES_SKILL_DIR}/scripts/render_engine.py --demo --output /tmp/sm_demo.mp4"

@@ -434,9 +434,57 @@ def render_thumbnails(board_path: Path, out_dir: Path, scale: int = 2) -> list[P
     for scene in board["scenes"]:
         n = scene_frames(scene, fps)
         idx = min(n - 1, max(0, round(0.55 * (n - 1))))
-        frame = paint_frame(
-            scene, width, height, scale, seed, idx, fps, base_dir=base_dir
-        )
+        thumb_plate_dir: Path | None = None
+        if _spec_route(scene) in ("threejs_hybrid", "threejs_3d"):
+            probe = scene_router.probe_threejs_environment()
+            if probe.get("available"):
+                sid = str(scene["scene_id"])
+                t_norm = idx / max(1, n - 1)
+                cand_dir = out_dir / f".threejs_thumb_{sid}"
+                cand_spec = out_dir / f".threejs_thumb_{sid}_spec.json"
+                rendered = threejs_bridge.prerender_threejs_scene(
+                    sid,
+                    scene["scene_spec"],
+                    cand_dir,
+                    cand_spec,
+                    width,
+                    height,
+                    fps,
+                    1,
+                    probe,
+                    base_dir=base_dir,
+                    frame_t=t_norm,
+                )
+                if rendered is not None:
+                    f1 = rendered / "frame_0001.png"
+                    target_f = rendered / f"frame_{idx + 1:04d}.png"
+                    if f1.is_file() and f1 != target_f:
+                        shutil.copyfile(f1, target_f)
+                    thumb_plate_dir = rendered
+        if thumb_plate_dir is not None:
+            trauma = trauma_at(scene, idx / fps, fps)
+            frame = _paint_scene_frame(
+                scene,
+                width,
+                height,
+                scale,
+                seed,
+                idx,
+                fps,
+                trauma,
+                base_dir=base_dir,
+                blender_dir=thumb_plate_dir,
+                camera=build_camera(scene, width, height, seed),
+                zones=layout_zones(width, height),
+            )
+            shutil.rmtree(thumb_plate_dir, ignore_errors=True)
+            (out_dir / f".threejs_thumb_{scene['scene_id']}_spec.json").unlink(
+                missing_ok=True
+            )
+        else:
+            frame = paint_frame(
+                scene, width, height, scale, seed, idx, fps, base_dir=base_dir
+            )
         out = out_dir / f"{scene['scene_id']}.png"
         frame.save(out)
         written.append(out)

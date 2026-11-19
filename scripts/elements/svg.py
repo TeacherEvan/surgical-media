@@ -813,11 +813,10 @@ def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -
         return
 
     # Fast path: optional native SVG 2.0 rasterizer (resvg / rsvg-convert / Chromium)
-    # Supports pop/fade/scale/rotation on the cached RGBA plate!
+    # Supports pop/fade/scale/rotation AND optional canvas bloom (glow: true)!
     if (
         render_mode in ("auto", "raster", "browser")
         and reveal_mode != "draw"
-        and not glow
         and tint is None
     ):
         bw = max(1, round(box_w * cv.scale))
@@ -841,11 +840,10 @@ def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -
                 plate = Image.merge("RGBA", (r_ch, g_ch, b_ch, a_ch))
             cx_px = round((x0 + box_w * 0.5) * cv.scale)
             cy_px = round((y0 + box_h * 0.5) * cv.scale)
-            cv.image.paste(
-                plate,
-                (cx_px - plate.width // 2, cy_px - plate.height // 2),
-                plate,
-            )
+            paste_xy = (cx_px - plate.width // 2, cy_px - plate.height // 2)
+            cv.image.paste(plate, paste_xy, plate)
+            if glow:
+                cv.bloom_image.paste(plate.convert("RGB"), paste_xy, plate)
             return
 
     # Pure-Python stdlib SVG vector engine (always available)
