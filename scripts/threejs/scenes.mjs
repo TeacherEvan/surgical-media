@@ -12,6 +12,7 @@ export const SUPPORTED_CATEGORIES = Object.freeze([
   "orbital_or_field_3d",
   "organic_serpent_3d",
   "network_topology_3d",
+  "external_asset_3d",
 ]);
 
 export const CAMERA_3D_DEFAULTS = Object.freeze({
@@ -565,15 +566,73 @@ function buildNetworkTopology(THREE, scene) {
   };
 }
 
-export function createSceneController(THREE, spec, width, height) {
+async function buildExternalAsset(THREE, scene, spec, GLTFLoader) {
+  const assetUrl = spec._runtime && spec._runtime.assetUrl;
+  const group = new THREE.Group();
+  scene.add(group);
+
+  if (assetUrl && GLTFLoader) {
+    const loader = new GLTFLoader();
+    const gltf = await loader.loadAsync(assetUrl);
+    const model = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+    if (model) {
+      // Auto-center and normalize scale to ~2.8 units max extent
+      const box = new THREE.Box3().setFromObject(model);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+      const maxDim = Math.max(size.x, size.y, size.z, 1e-4);
+      const normScale = Number(spec.params?.asset_scale ?? 2.8) / maxDim;
+      model.scale.multiplyScalar(normScale);
+      model.position.sub(center.multiplyScalar(normScale));
+      // Convert standard glTF Y-up to surgical-media Z-up unless disabled
+      if (spec.params?.gltf_y_up !== false) {
+        model.rotation.x = Math.PI / 2.0;
+      }
+      model.traverse((obj) => {
+        if (obj.isMesh) {
+          obj.castShadow = true;
+          obj.receiveShadow = true;
+        }
+      });
+      group.add(model);
+    }
+  } else {
+    // Fallback studio pedestal + wireframe hero cube when no asset_path was supplied
+    const geom = new THREE.IcosahedronGeometry(1.1, 1);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x0c4a6e,
+      emissive: 0x38bdf8,
+      emissiveIntensity: 0.4,
+      metalness: 0.8,
+      roughness: 0.2,
+    });
+    group.add(new THREE.Mesh(geom, mat));
+  }
+
+  const spin = Number(spec.params?.turntable_turns ?? 0.35);
+  return (tNorm) => {
+    group.rotation.z = clamp01(tNorm) * Math.PI * 2.0 * spin;
+    return { anchor_asset_center: [0.0, 0.0, 0.0] };
+  };
+}
+
+export async function createSceneController(THREE, spec, width, height, extras = {}) {
+  const { renderer = null, envTex = null, GLTFLoader = null, customModule = null } = extras;
   const category = spec.category;
-  if (!SUPPORTED_CATEGORIES.includes(category)) {
+  if (!customModule && !SUPPORTED_CATEGORIES.includes(category)) {
     throw new Error(
       `unsupported 3D scene category ${JSON.stringify(category)}; supported: ${SUPPORTED_CATEGORIES.join(", ")}`,
     );
   }
 
   const scene = new THREE.Scene();
+  if (envTex) {
+    scene.environment = envTex;
+    scene.environmentIntensity =
+      spec.lighting_preset === "clean_product_softbox" ? 1.05 : 0.75;
+  }
   setupLighting(
     THREE,
     scene,
@@ -593,28 +652,46 @@ export function createSceneController(THREE, spec, width, height) {
   camera.up.set(0, 0, 1);
 
   let updateCategory;
-  if (category === "exploded_hardware_3d") {
+  if (customModule && typeof customModule.buildScene === "function") {
+    updateCategory = await customModule.buildScene({
+      THREE,
+      scene,
+      camera,
+      spec,
+      renderer,
+    });
+  } else if (category === "exploded_hardware_3d") {
     updateCategory = buildExplodedHardware(THREE, scene, spec);
   } else if (category === "orbital_or_field_3d") {
     updateCategory = buildOrbitalOrField(THREE, scene);
   } else if (category === "organic_serpent_3d") {
     updateCategory = buildOrganicSerpent(THREE, scene);
+  } else if (category === "external_asset_3d") {
+    updateCategory = await buildExternalAsset(THREE, scene, spec, GLTFLoader);
   } else {
     updateCategory = buildNetworkTopology(THREE, scene);
   }
 
   const anchorDefs = Array.isArray(spec.anchors_3d) ? spec.anchors_3d : [];
   const forward = new THREE.Vector3();
+  const targetArr = Array.isArray(spec.params?.camera_target)
+    ? spec.params.camera_target
+    : [0.0, 0.0, 0.0];
+  const camTarget = new THREE.Vector3(
+    Number(targetArr[0] ?? 0.0),
+    Number(targetArr[1] ?? 0.0),
+    Number(targetArr[2] ?? 0.0),
+  );
 
   function update(tNorm) {
     const t = clamp01(tNorm);
     const [ex, ey, ez] = cameraEyeAt(camCfg, t);
-    camera.position.set(ex, ey, ez);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(ex + camTarget.x, ey + camTarget.y, ez + camTarget.z);
+    camera.lookAt(camTarget);
     camera.updateMatrixWorld(true);
     camera.updateProjectionMatrix();
 
-    const dynamicAnchors = updateCategory(t) || {};
+    const dynamicAnchors = (typeof updateCategory === "function" ? updateCategory(t) : null) || {};
     camera.getWorldDirection(forward);
 
     const anchors = [];

@@ -46,6 +46,7 @@ cp "${SCRIPT_DIR}/scripts/threejs/package.json" \
   "${SCRIPT_DIR}/scripts/threejs/runner.mjs" \
   "${SCRIPT_DIR}/scripts/threejs/scenes.mjs" \
   "${SCRIPT_DIR}/scripts/threejs/stage.html" \
+  "${SCRIPT_DIR}/scripts/threejs/svg_raster.mjs" \
   "${HERMES_SKILL_DIR}/scripts/threejs/"
 cp "${SCRIPT_DIR}/references/"*.md "${HERMES_SKILL_DIR}/references/"
 cp "${SCRIPT_DIR}/schemas/"*.json "${HERMES_SKILL_DIR}/schemas/"

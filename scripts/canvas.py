@@ -427,6 +427,9 @@ class SupersampledCanvas:
     def bloom_line(self, *a: Any, **kw: Any) -> None:
         self.bloom.line(*a, **kw)
 
+    def bloom_polyline(self, *a: Any, **kw: Any) -> None:
+        self.bloom.polyline(*a, **kw)
+
     def bloom_rectangle(self, *a: Any, **kw: Any) -> None:
         self.bloom.rectangle(*a, **kw)
 

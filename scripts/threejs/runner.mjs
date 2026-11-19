@@ -4,14 +4,10 @@
  *
  * Drives a local Chromium/Chrome binary over native Chrome DevTools Protocol
  * (Node >= 22 built-in WebSocket + fetch; zero browser-automation npm deps).
- * Serves stage.html, scenes.mjs, and the local three.module.js on 127.0.0.1:0
- * so renders are 100% offline and deterministic.
- *
- * Usage:
- *   node scripts/threejs/runner.mjs \
- *     --spec spec.json --out-dir build/scene \
- *     --width 1280 --height 720 --fps 30 --frames 45 \
- *     --browser /snap/bin/chromium --three-module .../three.module.js
+ * Serves stage.html, scenes.mjs, the full local `three` package (including
+ * `examples/jsm/` for RoomEnvironment, EffectComposer, UnrealBloomPass,
+ * GLTFLoader, SVGLoader), plus optional per-project custom scene scripts and
+ * local `.glb`/`.gltf` assets on 127.0.0.1:0 — 100% offline and deterministic.
  */
 
 import { spawn } from "node:child_process";
@@ -23,6 +19,20 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+const MIME_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".mjs": "application/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".glb": "model/gltf-binary",
+  ".gltf": "model/gltf+json",
+  ".bin": "application/octet-stream",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".svg": "image/svg+xml",
+};
+
 function parseArgs(argv) {
   const args = {
     spec: null,
@@ -33,6 +43,7 @@ function parseArgs(argv) {
     frames: 30,
     browser: null,
     threeModule: null,
+    baseDir: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
@@ -61,6 +72,9 @@ function parseArgs(argv) {
     } else if (flag === "--three-module") {
       args.threeModule = next;
       i++;
+    } else if (flag === "--base-dir") {
+      args.baseDir = next;
+      i++;
     }
   }
   if (!args.spec || !args.outDir || !args.browser || !args.threeModule) {
@@ -69,6 +83,15 @@ function parseArgs(argv) {
     );
   }
   return args;
+}
+
+function safeResolveUnder(rootDir, relPath) {
+  const root = path.resolve(rootDir);
+  const candidate = path.resolve(root, relPath);
+  if (candidate !== root && !candidate.startsWith(root + path.sep)) {
+    return null;
+  }
+  return candidate;
 }
 
 class CDPClient {
@@ -134,32 +157,68 @@ class CDPClient {
   }
 }
 
-function startStaticServer({ spec, width, height, threeModule }) {
+function startStaticServer({ spec, width, height, threeModule, baseDir }) {
   const stageHtml = fs.readFileSync(path.join(__dirname, "stage.html"), "utf8");
   const scenesJs = fs.readFileSync(path.join(__dirname, "scenes.mjs"), "utf8");
   const threeBuildDir = path.dirname(path.resolve(threeModule));
-  const threeEntryName = path.basename(threeModule);
-  const configJson = JSON.stringify({ spec, width, height });
+  const threePkgRoot = path.resolve(threeBuildDir, "..");
+
+  // Optional custom scene script & external 3D asset (resolved against baseDir)
+  const params = spec && typeof spec.params === "object" && spec.params ? spec.params : {};
+  const resolveLocal = (rawPath) => {
+    if (!rawPath || typeof rawPath !== "string") return null;
+    if (path.isAbsolute(rawPath)) {
+      return fs.existsSync(rawPath) && fs.statSync(rawPath).isFile() ? rawPath : null;
+    }
+    const anchorDir = baseDir ? path.resolve(baseDir) : process.cwd();
+    const resolved = path.resolve(anchorDir, rawPath);
+    return fs.existsSync(resolved) && fs.statSync(resolved).isFile() ? resolved : null;
+  };
+
+  const customScriptPath = resolveLocal(params.threejs_script);
+  const externalAssetPath = resolveLocal(params.asset_path);
+
+  const clientSpec = {
+    ...spec,
+    _runtime: {
+      hasCustomScript: Boolean(customScriptPath),
+      assetUrl: externalAssetPath
+        ? `/asset${path.extname(externalAssetPath).toLowerCase()}`
+        : null,
+    },
+  };
+  const configJson = JSON.stringify({ spec: clientSpec, width, height });
+
+  const serveFile = (res, filePath) => {
+    const ext = path.extname(filePath).toLowerCase();
+    const mime = MIME_TYPES[ext] || "application/octet-stream";
+    res.writeHead(200, { "Content-Type": mime });
+    res.end(fs.readFileSync(filePath));
+  };
 
   const server = http.createServer((req, res) => {
-    const urlPath = (req.url || "/").split("?")[0];
+    const urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
     if (urlPath === "/" || urlPath === "/index.html") {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(stageHtml);
     } else if (urlPath === "/scenes.mjs") {
       res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
       res.end(scenesJs);
-    } else if (urlPath === "/three.module.js") {
-      res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
-      res.end(fs.readFileSync(path.join(threeBuildDir, threeEntryName)));
     } else if (urlPath === "/config.json") {
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
       res.end(configJson);
-    } else if (/^\/[a-zA-Z0-9._-]+\.js$/.test(urlPath)) {
-      const candidate = path.join(threeBuildDir, path.basename(urlPath));
-      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
-        res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
-        res.end(fs.readFileSync(candidate));
+    } else if (urlPath === "/custom_scene.mjs" && customScriptPath) {
+      serveFile(res, customScriptPath);
+    } else if (
+      externalAssetPath &&
+      urlPath === `/asset${path.extname(externalAssetPath).toLowerCase()}`
+    ) {
+      serveFile(res, externalAssetPath);
+    } else if (urlPath.startsWith("/three/")) {
+      const rel = urlPath.slice("/three/".length);
+      const target = safeResolveUnder(threePkgRoot, rel);
+      if (target && fs.existsSync(target) && fs.statSync(target).isFile()) {
+        serveFile(res, target);
       } else {
         res.writeHead(404);
         res.end("Not found");
@@ -241,7 +300,7 @@ async function getPageWsUrl(debugPort) {
 }
 
 async function waitForThreeReady(cdp) {
-  for (let attempt = 0; attempt < 150; attempt++) {
+  for (let attempt = 0; attempt < 200; attempt++) {
     const res = await cdp.send("Runtime.evaluate", {
       expression: "({ ready: Boolean(window.__THREE_READY__), error: window.__THREE_ERROR__ || null })",
       returnByValue: true,
@@ -269,6 +328,7 @@ async function main() {
     width: args.width,
     height: args.height,
     threeModule: args.threeModule,
+    baseDir: args.baseDir,
   });
 
   let chromeProc = null;

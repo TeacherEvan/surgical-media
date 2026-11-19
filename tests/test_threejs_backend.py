@@ -330,3 +330,79 @@ def test_threejs_live_renders_nonflat_plate_and_anchor_tracks(tmp_path):
     )
     assert composited.mode == "RGB"
     assert composited.size == (320, 180)
+
+
+def test_external_asset_3d_parity_and_software_fallback():
+    assert "external_asset_3d" in software_3d_projection.SUPPORTED_CATEGORIES
+    assert "external_asset_3d" in blender_runner.SUPPORTED_CATEGORIES
+    assert "external_asset_3d" in storyboard.IMPLEMENTED_3D_CATEGORIES
+    scene = _threejs_scene("threejs_hybrid")
+    scene["scene_spec"]["category"] = "external_asset_3d"
+    assert storyboard.validate_storyboard({**_threejs_board(), "scenes": [scene]}) == []
+    frame = render_engine.paint_frame(scene, 320, 180, 1, 7, 2, 24)
+    assert frame.mode == "RGB"
+    assert any(hi > lo for lo, hi in frame.getextrema())
+
+
+def test_threejs_live_custom_script_scene_with_ibl_and_bloom(tmp_path):
+    probe = scene_router._probe_threejs_environment_uncached()
+    if not probe.get("available"):
+        pytest.skip(f"Three.js runtime unavailable: {probe.get('reason')}")
+
+    custom_mjs = tmp_path / "custom_torus.mjs"
+    custom_mjs.write_text(
+        """
+export async function buildScene({ THREE, scene }) {
+  const mesh = new THREE.Mesh(
+    new THREE.TorusKnotGeometry(0.9, 0.28, 64, 16),
+    new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      emissive: 0x0ea5e9,
+      emissiveIntensity: 0.9,
+      metalness: 0.85,
+      roughness: 0.18,
+    })
+  );
+  scene.add(mesh);
+  return (tNorm) => {
+    mesh.rotation.z = tNorm * Math.PI;
+    return { anchor_knot: [0.0, 0.0, 0.0] };
+  };
+}
+""",
+        encoding="utf-8",
+    )
+    spec = {
+        "category": "external_asset_3d",
+        "lighting_preset": "cyber_studio_volumetric",
+        "params": {"threejs_script": "custom_torus.mjs", "bloom_strength": 0.6},
+        "anchors_3d": [
+            {
+                "anchor_id": "anchor_knot",
+                "label": "CUSTOM KNOT",
+                "metric": "PBR + BLOOM",
+                "local_pos": [0.0, 0.0, 0.0],
+            }
+        ],
+    }
+    plate_dir = tmp_path / "custom_out"
+    res = threejs_bridge.prerender_threejs_scene(
+        "custom_knot",
+        spec,
+        plate_dir,
+        tmp_path / "custom_spec.json",
+        width=320,
+        height=180,
+        fps=24,
+        n_frames=2,
+        probe=probe,
+        base_dir=tmp_path,
+        timeout=90,
+    )
+    assert res == plate_dir
+    with Image.open(plate_dir / "frame_0002.png") as im:
+        assert im.size == (320, 180)
+        assert any(hi > lo for lo, hi in im.convert("RGB").getextrema())
+    tracks = json.loads((plate_dir / "anchor_tracks.json").read_text(encoding="utf-8"))
+    assert tracks["frames"][1]["anchors"][0]["anchor_id"] == "anchor_knot"
+    assert tracks["frames"][1]["anchors"][0]["visible"] is True

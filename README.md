@@ -34,7 +34,7 @@ python3 scripts/render_engine.py --storyboard storyboard.json --output final.mp4
 | [`scripts/tts_align.py`](scripts/tts_align.py) | Beat script → timing-locked storyboard (edge-tts + ffprobe, or offline WPM estimate; syllable-weighted word allocation) |
 | [`scripts/storyboard.py`](scripts/storyboard.py) | Stdlib storyboard validator & timeline helpers |
 | [`scripts/render_engine.py`](scripts/render_engine.py) | Storyboard → MP4. Supersampled frames stream raw into ffmpeg; QC runs inline |
-| [`scripts/elements/`](scripts/elements/) | Painter package split by family: `scenes`, `text`, `dataviz`, `code` (with syntax highlighting), `figures`, `media` — registry re-exported from `elements/__init__.py` |
+| [`scripts/elements/`](scripts/elements/) | Painter package split by family: `scenes`, `text`, `dataviz`, `code` (with syntax highlighting), `figures`, `media`, `svg` (inline/file SVG vector art + animated line-drawing + bloom) — registry re-exported from `elements/__init__.py` |
 | [`scripts/canvas.py`](scripts/canvas.py) | `SupersampledCanvas` (2x SSAA, BOX integer downsample), half-res dual-radius Gaussian bloom, safe zones, HUD/stage/caption partition |
 | [`scripts/camera.py`](scripts/camera.py) | `WorldCamera2D` — pre-raster zoom/pan with easing + deterministic trauma shake |
 | [`scripts/rig.py`](scripts/rig.py) | Analytical two-bone IK, hollow-head stick-figure renderer |
@@ -70,7 +70,7 @@ Or everything, in one call: `bash scripts/ci_gates.sh`
 
 ### Verification (local-first)
 
-- **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → `mypy --strict` → 316 tests → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC (9 gates). Run it before pushing; its green exit *is* this repo's quality bar. Install the toolchain with `requirements-dev.txt`.
+- **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → `mypy --strict` → 327 tests → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC (9 gates). Run it before pushing; its green exit *is* this repo's quality bar. Install the toolchain with `requirements-dev.txt`.
 - `main` is protected on GitHub: required linear history, force-push and branch deletion blocked, enforced for admins too. Direct fast-forward pushes remain allowed (the current flow).
 - The decision is recorded in [ADR 0002](docs/adr/0002-local-first-verification.md). An optional GitLab mirror ([`.gitlab-ci.yml`](.gitlab-ci.yml)) executes the identical script once a project is imported: **New project → Import project → Repository by URL** → paste this repo's URL → create. Optionally enable *Settings → Repository → Mirroring* to auto-sync `main`. The mirror is **configured, not verified** — do not treat its presence as a green pipeline until one passes.
 

@@ -75,6 +75,7 @@ def prerender_threejs_scene(
     n_frames: int,
     probe: dict[str, Any],
     *,
+    base_dir: Path | str | None = None,
     timeout: int = 240,
 ) -> Path | None:
     """Pre-render a single scene_spec via headless Three.js; return ``plate_dir`` or ``None``."""
@@ -97,27 +98,30 @@ def prerender_threejs_scene(
             json.dumps(threejs_adapter_spec(spec)),
             encoding="utf-8",
         )
+        argv = [
+            node_bin,
+            runner,
+            "--spec",
+            str(spec_path),
+            "--out-dir",
+            str(plate_dir),
+            "--width",
+            str(width),
+            "--height",
+            str(height),
+            "--fps",
+            str(fps),
+            "--frames",
+            str(n_frames),
+            "--browser",
+            browser_bin,
+            "--three-module",
+            three_mod,
+        ]
+        if base_dir is not None:
+            argv.extend(["--base-dir", str(base_dir)])
         result = subprocess.run(
-            [
-                node_bin,
-                runner,
-                "--spec",
-                str(spec_path),
-                "--out-dir",
-                str(plate_dir),
-                "--width",
-                str(width),
-                "--height",
-                str(height),
-                "--fps",
-                str(fps),
-                "--frames",
-                str(n_frames),
-                "--browser",
-                browser_bin,
-                "--three-module",
-                three_mod,
-            ],
+            argv,
             check=False,
             timeout=timeout,
             capture_output=True,

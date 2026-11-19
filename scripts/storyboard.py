@@ -40,6 +40,7 @@ KNOWN_ELEMENTS = {
     "kinetic_captions",
     "stick_rig",
     "image",
+    "svg",
 }
 MIN_DIM, MAX_DIM = 160, 3840
 
@@ -66,6 +67,7 @@ IMPLEMENTED_3D_CATEGORIES = {
     "orbital_or_field_3d",
     "organic_serpent_3d",
     "network_topology_3d",
+    "external_asset_3d",
 }
 VALID_BLENDER_ENGINES = {"AUTO_EEVEE", "CYCLES"}
 VALID_LIGHTING_PRESETS = {"cyber_studio_volumetric", "clean_product_softbox"}

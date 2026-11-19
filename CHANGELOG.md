@@ -11,6 +11,11 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 
 ## [Unreleased]
 
+### Added
+- **Three.js WebGL Studio upgrade (`scripts/threejs/`)**: added `PMREMGenerator` + `RoomEnvironment` IBL reflections, `EffectComposer` + `UnrealBloomPass` HDR bloom, full `three/addons/*` import map, `external_asset_3d` (`GLTFLoader` for `.glb`/`.gltf` in 3-way parity with Blender & software 3D), `params.camera_target`, and **bespoke per-project Three.js scene modules** via `params.threejs_script` (unlimited custom 3D scenes with zero core-repo edits).
+- **SVG 2.0 element (`scripts/elements/svg.py` + `scripts/threejs/svg_raster.mjs`)**: inline or file-backed SVG vector art with full stdlib `<path>` (`M/L/H/V/C/S/Q/T/A/Z`), shapes, transforms, styles, `<text>`, animated progressive stroke drawing (`reveal: "draw"`), `pop`/`fade`, neon `glow` (bloom pyramid), rotation/scale, `tint`, unsafe `DOCTYPE`/`ENTITY` rejection, plus automatic upgrade to `resvg`/`rsvg-convert` or headless Chromium SVG 2.0 rasterization (full gradients, `<filter>`, `<style>`, `fill-rule="evenodd"`, cached RGBA). 11 new tests (`tests/test_svg_element.py` + `tests/test_threejs_backend.py`); suite: 316 → 327 tests.
+- `AGENTS.md`: added an explicit **Creative Freedom** section separating technical invariants from creative direction so agents are encouraged to mix 2D, SVG, Three.js, Blender, and imagery freely.
+
 ## [1.4.0] — 2026-11-19
 
 ### Added

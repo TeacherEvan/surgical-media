@@ -36,6 +36,7 @@ SUPPORTED_CATEGORIES = (
     "orbital_or_field_3d",
     "organic_serpent_3d",
     "network_topology_3d",
+    "external_asset_3d",
 )
 
 _ZNEAR = 0.15
@@ -558,6 +559,22 @@ def _build_scene(
         }
     if category == "network_topology_3d":
         return generate_network_topology_mesh(t_norm)
+    if category == "external_asset_3d":
+        # Software fallback placeholder when Three.js GLTFLoader / Blender isn't used.
+        angle = _clamp01(float(t_norm)) * math.pi * 0.7
+        faces = generate_box_mesh(
+            (0.0, 0.0, 0.0), (1.6, 1.6, 1.6), "#0C4A6E", "#38BDF8", emissive=True
+        )
+        rotated: list[MeshFace] = []
+        for f in faces:
+            rotated.append(
+                {
+                    **f,
+                    "verts": [_rotate_z(v, angle) for v in f["verts"]],
+                    "normal": _rotate_z(f["normal"], angle),
+                }
+            )
+        return rotated, {"anchor_asset_center": (0.0, 0.0, 0.0)}
     raise NotImplementedError(
         f"unsupported 3D scene category {category!r}; "
         f"supported categories: {', '.join(SUPPORTED_CATEGORIES)}"

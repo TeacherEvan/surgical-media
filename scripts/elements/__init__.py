@@ -25,6 +25,7 @@ from elements.dataviz import (
 from elements.figures import paint_stick_rig
 from elements.media import paint_image
 from elements.scenes import paint_background, paint_grid
+from elements.svg import paint_svg
 from elements.text import paint_hud_badge, paint_kinetic_captions, paint_quote_card
 
 if TYPE_CHECKING:
@@ -47,6 +48,7 @@ __all__ = [
     "paint_quote_card",
     "paint_scaling_chart",
     "paint_stick_rig",
+    "paint_svg",
     "paint_system_architecture",
     "paint_tesseract",
     "render_element",
@@ -79,4 +81,5 @@ RENDERERS = {
     "kinetic_captions": paint_kinetic_captions,
     "stick_rig": paint_stick_rig,
     "image": paint_image,
+    "svg": paint_svg,
 }

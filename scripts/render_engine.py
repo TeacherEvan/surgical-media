@@ -574,6 +574,8 @@ def _prerender_threejs_plates(
     height: int,
     fps: int,
     per_scene_frames: list[int],
+    *,
+    base_dir: Path | str | None = None,
 ) -> dict[str, Path]:
     """Pre-render threejs_hybrid/threejs_3d scene_spec scenes to per-scene PNG plates.
 
@@ -611,6 +613,7 @@ def _prerender_threejs_plates(
             fps,
             n_frames,
             probe,
+            base_dir=base_dir,
         )
         if rendered is not None:
             plates[sid] = rendered
@@ -746,7 +749,13 @@ def render(args: argparse.Namespace) -> int:
             board, work_dir, width, height, fps, per_scene_frames
         ),
         **_prerender_threejs_plates(
-            board, work_dir, width, height, fps, per_scene_frames
+            board,
+            work_dir,
+            width,
+            height,
+            fps,
+            per_scene_frames,
+            base_dir=board_path.parent,
         ),
     }
     t0 = time.time()

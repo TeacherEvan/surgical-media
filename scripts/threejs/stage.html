@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>surgical-media Three.js stage</title>
+    <title>surgical-media Three.js Studio Stage</title>
     <style>
       html, body {
         margin: 0;
@@ -14,17 +14,33 @@
         display: block;
       }
     </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/three/build/three.module.js",
+          "three/addons/": "/three/examples/jsm/"
+        }
+      }
+    </script>
   </head>
   <body>
     <canvas id="stage"></canvas>
     <script type="module">
-      import * as THREE from "/three.module.js";
+      import * as THREE from "three";
+      import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+      import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+      import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+      import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+      import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       import { createSceneController } from "/scenes.mjs";
 
       async function boot() {
         const res = await fetch("/config.json");
         const cfg = await res.json();
         const { spec, width, height } = cfg;
+        const params = (spec && spec.params && typeof spec.params === "object") ? spec.params : {};
+        const transparentBg = Boolean(spec.transparent_bg);
 
         const canvas = document.getElementById("stage");
         canvas.width = width;
@@ -33,7 +49,7 @@
         const renderer = new THREE.WebGLRenderer({
           canvas,
           antialias: true,
-          alpha: Boolean(spec.transparent_bg),
+          alpha: transparentBg,
           preserveDrawingBuffer: true,
           powerPreference: "high-performance",
         });
@@ -41,19 +57,57 @@
         renderer.setSize(width, height, false);
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.15;
+        renderer.toneMappingExposure = Number(params.exposure ?? 1.15);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        if (spec.transparent_bg) {
+        if (transparentBg) {
           renderer.setClearColor(0x000000, 0);
         }
 
-        const controller = createSceneController(THREE, spec, width, height);
+        // Studio IBL environment map so metallic PBR surfaces reflect realistic studio light
+        const pmrem = new THREE.PMREMGenerator(renderer);
+        const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+        pmrem.dispose();
+
+        let customModule = null;
+        if (spec._runtime && spec._runtime.hasCustomScript) {
+          customModule = await import("/custom_scene.mjs");
+        }
+
+        const controller = await createSceneController(THREE, spec, width, height, {
+          renderer,
+          envTex,
+          GLTFLoader,
+          customModule,
+        });
+
+        // HDR WebGL UnrealBloomPass post-processing (disabled automatically on transparent_bg)
+        const bloomEnabled = !transparentBg && params.bloom !== false;
+        let composer = null;
+        if (bloomEnabled) {
+          composer = new EffectComposer(renderer);
+          composer.setSize(width, height);
+          composer.addPass(new RenderPass(controller.scene, controller.camera));
+          const strength = Number(
+            params.bloom_strength ??
+              (spec.lighting_preset === "clean_product_softbox" ? 0.28 : 0.52),
+          );
+          const radius = Number(params.bloom_radius ?? 0.45);
+          const threshold = Number(params.bloom_threshold ?? 0.58);
+          composer.addPass(
+            new UnrealBloomPass(new THREE.Vector2(width, height), strength, radius, threshold),
+          );
+          composer.addPass(new OutputPass());
+        }
 
         window.__renderFrame = function (frameIdx, totalFrames) {
           const tNorm = frameIdx / Math.max(1, totalFrames - 1);
           const anchors = controller.update(tNorm);
-          renderer.render(controller.scene, controller.camera);
+          if (composer) {
+            composer.render();
+          } else {
+            renderer.render(controller.scene, controller.camera);
+          }
           const dataUrl = canvas.toDataURL("image/png");
           const comma = dataUrl.indexOf(",");
           const pngBase64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;

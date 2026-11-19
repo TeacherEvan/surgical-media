@@ -66,11 +66,11 @@ SUPPORTED_CATEGORIES = (
     "orbital_or_field_3d",
     "organic_serpent_3d",
     "network_topology_3d",
+    "external_asset_3d",
 )
 UNIMPLEMENTED_CATEGORIES = (
     "rigid_body_physics_3d",
     "mathematical_manifold_3d",
-    "external_asset_3d",
 )
 
 
@@ -924,6 +924,54 @@ def build_network_topology_3d(
     return anchors
 
 
+def build_external_asset_3d(
+    scene: Any, spec: dict[str, Any] | None, total_frames: int
+) -> dict[str, Any]:
+    """Import a local glTF/GLB asset (or studio fallback mesh) with turntable spin."""
+    if not INSIDE_BLENDER:
+        raise RuntimeError(
+            "build_external_asset_3d must run inside Blender via `blender -b -P`"
+        )
+    params = (spec or {}).get("params") or {}
+    asset_path = params.get("asset_path")
+    rig = bpy.data.objects.new("External_Asset_Rig", None)
+    scene.collection.objects.link(rig)
+
+    imported: list[Any] = []
+    if asset_path and Path(str(asset_path)).is_file():
+        before = set(bpy.data.objects)
+        bpy.ops.import_scene.gltf(filepath=str(asset_path))
+        imported = [obj for obj in bpy.data.objects if obj not in before]
+        for obj in imported:
+            if obj.parent is None:
+                obj.parent = rig
+    if not imported:
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=1.0)
+        hero = bpy.context.active_object
+        hero.name = "External_Asset_Placeholder"
+        hero.parent = rig
+
+    n = max(1, int(total_frames))
+    turns = float(params.get("turntable_turns", 0.35))
+    for frame in range(1, n + 1):
+        u = (frame - 1) / max(1, n - 1)
+        rig.rotation_euler = (0.0, 0.0, u * 2.0 * math.pi * turns)
+        rig.keyframe_insert(data_path="rotation_euler", frame=frame)
+
+    anchors: dict[str, Any] = {}
+    for anchor in (spec or {}).get("anchors_3d", []) or []:
+        if not isinstance(anchor, dict) or not anchor.get("anchor_id"):
+            continue
+        aid = str(anchor["anchor_id"])
+        empty = bpy.data.objects.new(aid, None)
+        scene.collection.objects.link(empty)
+        local = anchor.get("local_pos", [0.0, 0.0, 0.0])
+        empty.location = tuple(float(c) for c in local[:3])
+        empty.parent = rig
+        anchors[aid] = empty
+    return anchors
+
+
 def export_anchor_tracks(
     scene: Any,
     cam_obj: Any,
@@ -1024,6 +1072,8 @@ def run_blender_scene(
         anchor_objs = build_organic_serpent_3d(scene, spec, total_frames)
     elif category == "network_topology_3d":
         anchor_objs = build_network_topology_3d(scene, spec, total_frames)
+    elif category == "external_asset_3d":
+        anchor_objs = build_external_asset_3d(scene, spec, total_frames)
     elif category in UNIMPLEMENTED_CATEGORIES:
         raise NotImplementedError(
             f"Category {category!r} is not implemented in blender_runner.py. "
