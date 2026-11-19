@@ -1,0 +1,11 @@
+{
+  "name": "surgical-media-threejs",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Optional headless Three.js WebGL scene renderer for surgical-media.",
+  "dependencies": {
+    "three": "^0.176.0"
+  }
+}

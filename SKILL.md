@@ -1,21 +1,21 @@
 ---
 name: surgical-media
 description: "Use when creating, planning, or rendering social video from a topic prompt."
-version: 1.3.0
+version: 1.4.0
 author: "TeacherEvan, Hermes Agent"
 license: MIT
 platforms: [linux, macos]
 metadata:
   hermes:
     category: creative
-    tags: [video, ffmpeg, pillow, procedural-animation, storyboard, social-media, shorts, youtube, explainer, tts, edge-tts, supersampling, yuv420p, loudness, kinetic-typography, archetypes, deterministic]
+    tags: [video, ffmpeg, pillow, threejs, webgl, procedural-animation, storyboard, social-media, shorts, youtube, explainer, tts, edge-tts, supersampling, yuv420p, loudness, kinetic-typography, archetypes, deterministic]
     requires_tools: [terminal, read_file, write_file, search_files]
     related_skills: [video-production-pipeline, surgical-orchestration, surgical-audit]
 ---
 
-# Surgical Media (v1.3.0)
+# Surgical Media (v1.4.0)
 
-Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 302 tests including a rendered-and-verified MP4 integration pass and pixel-level visual smoke checks).
+Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow rendering (plus optional Three.js WebGL / Blender 3D passes) → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 316 tests including rendered-MP4 and live Three.js WebGL integration passes).
 
 ## When to Use
 
@@ -26,7 +26,7 @@ Deterministic, verified pipeline for producing high-retention explainer and soci
 
 ## When Not to Use
 
-- Live-action capture, human editing suites, or production 3D characters/environments — parametric 3D scenes here are limited to the built-in procedural categories (exploded hardware, stellarator/orbital torus), 2D overlays stay supersampled Pillow.
+- Live-action capture, human editing suites, or production 3D characters/environments — parametric 3D scenes here are limited to the built-in procedural categories (exploded hardware, stellarator/orbital torus, organic serpent, 3D network topology), 2D overlays stay supersampled Pillow.
 - Video *analysis* of existing files (transcription, summarisation) — use a media-analysis skill. Cinemagraphs/loops under 3 s — a GIF pipeline is simpler.
 
 ## Style Archetypes
@@ -83,9 +83,9 @@ Inspect thumbnails before spending a full render; the bundled demo takes ~60–9
 
 ### 3D scene backends (optional, `scene_spec`)
 
-A scene may replace `elements[]` with a `scene_spec` object routing it to a parametric 3D backend (`backend`: `auto` default, `blender_hybrid`, `blender_3d`, `canvas_2d`, `manim_math` → warns, renders as 2D canvas). Categories: `exploded_hardware_3d`, `orbital_or_field_3d`, `organic_serpent_3d` (others rejected at validation). Always renders via a stdlib 4×4-perspective Painter's-algorithm pass — Blender not required; with Blender ≥3.6 on PATH, frames are pre-baked and 3D→2D anchors pin frosted-glass telemetry cards placed collision-free by an AABB SAT solver. Elements still paint on top; `scene_spec` replaces the `elements` requirement. Example: `examples/hybrid_3d_storyboard.json` — see `references/storyboard-guide.md` + ADR 0003.
+A scene may replace `elements[]` with a `scene_spec` object routing it to a parametric 3D backend (`backend`: `auto` default, `threejs_hybrid`, `threejs_3d`, `blender_hybrid`, `blender_3d`, `canvas_2d`, `manim_math` → warns, renders as 2D canvas). Categories: `exploded_hardware_3d`, `orbital_or_field_3d`, `organic_serpent_3d`, `network_topology_3d` (others rejected at validation). Always renders via a stdlib 4×4-perspective Painter's-algorithm pass — neither Three.js nor Blender is required. With Node ≥22 + Chromium + local `three` (`cd scripts/threejs && npm install`, check via `scripts/threejs_bridge.py --check`), `threejs_*` scenes pre-bake fast PBR WebGL plates offline over native CDP; with Blender ≥3.6 on PATH, `blender_*` scenes pre-bake via bpy. In both hybrid modes, 3D→2D anchors pin frosted-glass telemetry cards placed collision-free by an AABB SAT solver. Examples: `examples/hybrid_3d_storyboard.json`, `examples/threejs_3d_storyboard.json` — see `references/storyboard-guide.md` + ADRs 0003/0004.
 
-**Creating a new 3D asset:** design history (`docs/plans/`) is a *pattern*, not an asset to reuse. Add a generator to BOTH `software_3d_projection.py` (polygon soup + spine function + anchors) and `blender_runner.py` (bpy builder), register the category in `scene_router.py` + `storyboard.py` + `schemas/storyboard.schema.json`, and land tests + docs/counts in the same change. Copying the example torus is not building an asset.
+**Creating a new 3D asset:** design history (`docs/plans/`) is a *pattern*, not an asset to reuse. Add a generator to `software_3d_projection.py`, `scripts/threejs/scenes.mjs`, AND `blender_runner.py`, register the category in `scene_router.py` + `storyboard.py` + `schemas/storyboard.schema.json`, and land tests + docs/counts in the same change. Copying the example torus is not building an asset.
 
 ## Hard Invariants
 
@@ -94,15 +94,15 @@ A scene may replace `elements[]` with a `scene_spec` object routing it to a para
 3. **No linear motion.** Camera/UI motion goes through `easings.py` (`ease_out_expo`, `ease_in_out_cubic`, `spring_pop`…). `linear` exists for debugging only.
 4. **2x supersample floor.** `SupersampledCanvas(..., scale>=2)` — Pillow has no sub-pixel AA on diagonals/circles.
 5. **Safe zones are load-bearing.** 9:16 content lives inside `(84, 220) → (w-150, h-440)`; captions never collide with platform chrome (`canvas.layout_zones`).
-6. **Claims match code.** If a feature is not in this repo and green under `pytest`, it does not ship. Manim/moviepy are deliberately out of scope. Blender is optional and never required.
+6. **Claims match code.** If a feature is not in this repo and green under `pytest`, it does not ship. Manim/moviepy are deliberately out of scope. Three.js and Blender are optional and never required.
 
 ## Verification
 
 ```bash
-python3 -m pytest tests/ -q                                   # 302 tests
+python3 -m pytest tests/ -q                                   # 316 tests
 python3 -m mypy scripts/                                      # strict — must be clean (gate 4/9)
+python3 scripts/threejs_bridge.py --check                     # optional Three.js runtime probe
 python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + QC
-python3 scripts/verify_output.py --input /tmp/demo.mp4 --storyboard examples/tri_archetype_storyboard.json
 ```
 
 ## Gotchas
@@ -115,7 +115,6 @@ python3 scripts/verify_output.py --input /tmp/demo.mp4 --storyboard examples/tri
 
 - `references/archetypes.md` + `references/storyboard-guide.md` + `references/ffmpeg-encoding.md` — field guide, element catalog/3D backends/safe zones, encoder reference
 - `scripts/fetch_assets.py` — licensed imagery (Openverse + Commons + iNaturalist; `by`/`by-sa`/`cc0`/`pdm` only), PIL-verified, writes `assets/manifest.json`; `scripts/blender_plate.py` — optional Blender Workbench plates (`earth`/`iceberg`/`ringed`) for the `image` element, exits 2 cleanly when absent
-- `scripts/{scene_router,software_3d_projection,hybrid_compositor,layout_solver,blender_runner}.py` — scene backends: routing + stdlib 4×4-perspective tracker, SAT-solved HUD cards, headless Blender bake; `assets/fonts/` — bundled OFL Inter + JetBrains Mono (SHA-256 pinned, canvas prefers them)
-- `schemas/{storyboard,script,investigation_brief}.schema.json` — Draft 2020-12 contracts; ADRs 0001 (stdlib+Pillow) + 0003 (scene-optional 3D)
-- `examples/tri_archetype_storyboard.json` — renderable 3-scene showcase (regenerated by `scripts/build_demo.py`); `examples/hybrid_3d_storyboard.json` — 2-scene HUD showcase
-- `scripts/` — `tts_align.py`, `storyboard.py`, `render_engine.py`, `verify_output.py`, `audio_dsp.py`, `camera.py`, `canvas.py`, `elements/` (package: painters by family), `rig.py`, `easings.py`, `build_demo.py`
+- `scripts/{scene_router,software_3d_projection,hybrid_compositor,layout_solver,blender_runner,threejs_bridge}.py` + `scripts/threejs/` — scene backends: routing + stdlib 4×4-perspective tracker, SAT-solved HUD cards, headless Three.js WebGL & Blender bakes; `assets/fonts/` — bundled OFL Inter + JetBrains Mono
+- `schemas/{storyboard,script,investigation_brief}.schema.json` — Draft 2020-12 contracts; ADRs 0001 (stdlib+Pillow), 0003 (3D backends), 0004 (Three.js WebGL)
+- `scripts/` — `tts_align.py`, `storyboard.py`, `render_engine.py`, `verify_output.py`, `audio_dsp.py`, `camera.py`, `canvas.py`, `elements/`, `rig.py`, `easings.py`, `build_demo.py`

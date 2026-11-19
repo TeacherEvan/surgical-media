@@ -1,0 +1,110 @@
+{
+  "meta": {
+    "title": "Surgical Media — Three.js WebGL 3D Showcase",
+    "author": "surgical-media",
+    "seed": 20261119
+  },
+  "format": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30
+  },
+  "scenes": [
+    {
+      "scene_id": "threejs_mesh_topology",
+      "archetype": "code_report",
+      "backend": "threejs_hybrid",
+      "narration": "A global edge mesh routes packets across five regional clusters from a single control plane.",
+      "duration_sec": 1.5,
+      "fade_in_sec": 0.2,
+      "fade_out_sec": 0.2,
+      "sfx_events": [
+        { "t_sec": 0.05, "sfx": "whoosh", "intensity": 0.6 },
+        { "t_sec": 0.6, "sfx": "confirm", "intensity": 0.6 }
+      ],
+      "scene_spec": {
+        "category": "network_topology_3d",
+        "hud_title": "THREE.JS WEBGL // EDGE MESH TOPOLOGY",
+        "lighting_preset": "cyber_studio_volumetric",
+        "camera_3d": {
+          "mode": "orbit",
+          "radius_start": 7.2,
+          "radius_end": 5.8,
+          "azimuth_start_deg": -35.0,
+          "azimuth_end_deg": 35.0,
+          "elevation_deg": 26.0,
+          "focal_length_mm": 48.0,
+          "fstop": 2.8
+        },
+        "anchors_3d": [
+          {
+            "anchor_id": "anchor_core",
+            "label": "CONTROL PLANE",
+            "metric": "0.8 MS P99",
+            "local_pos": [0.0, 0.0, 0.45],
+            "accent_hex": "#38BDF8"
+          },
+          {
+            "anchor_id": "anchor_edge_1",
+            "label": "EDGE-US-EAST",
+            "metric": "420K RPS",
+            "local_pos": [0.0, -1.85, -0.3],
+            "accent_hex": "#34D399"
+          },
+          {
+            "anchor_id": "anchor_edge_3",
+            "label": "EDGE-EU-WEST",
+            "metric": "380K RPS",
+            "local_pos": [-1.09, 1.5, -0.22],
+            "accent_hex": "#A78BFA"
+          }
+        ]
+      }
+    },
+    {
+      "scene_id": "threejs_cowos_stack",
+      "archetype": "mixed",
+      "backend": "threejs_hybrid",
+      "narration": "Real-time WebGL PBR shading renders the exploded package stack at interactive speed.",
+      "duration_sec": 1.5,
+      "fade_in_sec": 0.2,
+      "fade_out_sec": 0.2,
+      "sfx_events": [
+        { "t_sec": 0.08, "sfx": "whoosh", "intensity": 0.6 },
+        { "t_sec": 0.55, "sfx": "chime", "intensity": 0.6 }
+      ],
+      "scene_spec": {
+        "category": "exploded_hardware_3d",
+        "explode_factor": 1.1,
+        "hud_title": "THREE.JS WEBGL // EXPLODED PACKAGE STACK",
+        "lighting_preset": "clean_product_softbox",
+        "camera_3d": {
+          "mode": "orbit",
+          "radius_start": 7.6,
+          "radius_end": 6.4,
+          "azimuth_start_deg": -40.0,
+          "azimuth_end_deg": 28.0,
+          "elevation_deg": 24.0,
+          "focal_length_mm": 50.0,
+          "fstop": 2.8
+        },
+        "anchors_3d": [
+          {
+            "anchor_id": "anchor_vapor_chamber",
+            "label": "VAPOR CHAMBER",
+            "metric": "240W HEATSPREAD",
+            "local_pos": [0.0, 0.0, 0.56],
+            "accent_hex": "#38BDF8"
+          },
+          {
+            "anchor_id": "anchor_compute_die",
+            "label": "COMPUTE DIE",
+            "metric": "5NM-CLASS LOGIC",
+            "local_pos": [0.0, 0.0, 0.18],
+            "accent_hex": "#FACC15"
+          }
+        ]
+      }
+    }
+  ]
+}

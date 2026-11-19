@@ -1,6 +1,6 @@
 # Surgical Media — Project Plan & Task Status
 
-**Version:** 1.3.0 · **Updated:** 2026-11-19 · **Owner:** Evan (TeacherEvan), agent-assisted
+**Version:** 1.4.0 · **Updated:** 2026-11-19 · **Owner:** Evan (TeacherEvan), agent-assisted
 **Contract:** code + `tests/` are the contract; this plan is the living map. Verification is local-first — `bash scripts/ci_gates.sh` green *is* the quality bar ([ADR 0002](adr/0002-local-first-verification.md)).
 
 Docs entrypoint: [`docs/index.md`](index.md) · Human manual: [`README.md`](../README.md) · Agent manifest: [`SKILL.md`](../SKILL.md) · Agent rules: [`AGENTS.md`](../AGENTS.md) · Release history: [`CHANGELOG.md`](../CHANGELOG.md)
@@ -26,7 +26,7 @@ motion-tracked HUD — Blender-optional, stdlib software renderer always availab
 | Timing | `scripts/tts_align.py`, `scripts/audio_dsp.py` | Audio-first; measured edge-tts WordBoundary or offline syllable model; never re-split joined strings |
 | Contract | `schemas/*.schema.json`, `scripts/storyboard.py` | Draft 2020-12 + runtime validator, pinned to parity by `tests/test_schemas_contract.py` and `tests/test_scene_spec_integration.py` |
 | 2D render | `scripts/render_engine.py`, `scripts/canvas.py`, `scripts/camera.py`, `scripts/elements/`, `scripts/rig.py`, `scripts/easings.py` | RGB end-to-end, 2x SSAA floor, bloom pyramid, safe zones |
-| 3D backends | `scripts/scene_router.py`, `scripts/software_3d_projection.py`, `scripts/hybrid_compositor.py`, `scripts/layout_solver.py`, `scripts/blender_runner.py` | Routing + capability probe; stdlib 4×4 look-at/Painter's sort; SAT-solved HUD cards; optional headless Blender bake with software fallback |
+| 3D backends | `scripts/scene_router.py`, `scripts/software_3d_projection.py`, `scripts/hybrid_compositor.py`, `scripts/layout_solver.py`, `scripts/blender_runner.py`, `scripts/threejs_bridge.py`, `scripts/threejs/` | Routing + capability probes; stdlib 4×4 look-at/Painter's sort; SAT-solved HUD cards; optional headless Three.js WebGL PBR bake (Node ≥22 CDP) and optional Blender bake, both with software fallback |
 | Imagery | `scripts/fetch_assets.py`, `scripts/blender_plate.py` | Open-licensed photos (allowlist `by`/`by-sa`/`cc0`/`pdm`), optional Workbench plates |
 | QC | `scripts/verify_output.py`, `scripts/ci_gates.sh` | yuv420p/H.264 high 4.2/+faststart, −14 LUFS, ≤150 ms A/V drift, silence detection; 9 local gates |
 | Docs | `references/`, `docs/adr/`, this plan | Element catalog + 3D backend specs in [`references/storyboard-guide.md`](../references/storyboard-guide.md) |
@@ -66,7 +66,7 @@ Examples: [`examples/tri_archetype_storyboard.json`](../examples/tri_archetype_s
 | :--- | :--- | :--- | :--- |
 | P-01 | GitLab mirror **configured, never executed** | Import repo (Repository by URL), run one pipeline, record result here + ADR 0002 | Evan |
 | P-02 | v1.3.0 tagged locally, not pushed | Push `main` (fast-forward only) + `git push origin v1.3.0` when ready — main is protected: linear history only | Evan |
-| P-03 | 4 schema categories unimplemented: `network_topology_3d`, `rigid_body_physics_3d`, `mathematical_manifold_3d`, `external_asset_3d` | By design raise loud `NotImplementedError`; implement only with a tested use case (claims = code) | future |
+| P-03 | 3 schema categories unimplemented: `rigid_body_physics_3d`, `mathematical_manifold_3d`, `external_asset_3d` (`network_topology_3d` implemented in v1.4.0 across Software 3D, Three.js, and Blender) | By design raise loud `NotImplementedError`; implement only with a tested use case (claims = code) | future |
 | P-04 | `manim_math` backend accepted-with-warning, renders as `canvas_2d` | Manim deliberately excluded (ADR 0001/0003); no action unless policy changes | — |
 | P-05 | ~~mypy advisory only~~ — **resolved 2026-11-19**: strict-enforced as gate 4/9, `scripts/` annotated (249 → 0), verified 9/9 green | Keep it green; the gate now fails on any regression | — |
 | P-06 | markdownlint fails on pre-existing house docs (MD022/MD031/MD034/MD060) | Fix `references/` + `docs/adr/` formatting before ever adding it as a gate | future |

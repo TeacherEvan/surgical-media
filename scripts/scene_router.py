@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
 """scene_router.py — route a storyboard scene to a render backend.
 
-The pipeline has four backends:
+The pipeline has six backends:
 
 - ``blender_hybrid`` — Blender-rendered 3D plate composited with 2D canvas
   overlays (captions, kinetic type, annotations). Chosen when a scene needs
   3D *and* carries ``anchors_3d`` alignment anchors.
 - ``blender_3d`` — pure Blender 3D scene.
+- ``threejs_hybrid`` — headless Three.js WebGL 3D plate composited with the
+  2D motion-tracked HUD (falls back to software 3D when unavailable).
+- ``threejs_3d`` — pure headless Three.js WebGL 3D scene (falls back to
+  software 3D when unavailable).
 - ``manim_math`` — math-explainer scenes (equations, proofs), no 3D content.
 - ``canvas_2d`` — the default Pillow 2D renderer.
 
-``probe_blender_environment()`` detects a usable Blender binary and caches the
-result in a module-level private variable so repeated calls do not re-exec
-``blender --version``. Tests that need a fresh probe call
-``_probe_blender_environment_uncached()`` directly (or reset the cache).
+``probe_blender_environment()`` and ``probe_threejs_environment()`` detect
+usable local runtimes and cache their results in module-level private variables
+so repeated calls do not re-exec subprocesses. Tests that need a fresh probe
+call the ``_uncached`` helpers directly (or reset the cache).
 
-Pure and deterministic apart from the subprocess probe; no prints — the
+Pure and deterministic apart from the subprocess probes; no prints — the
 render layer owns logging.
 """
 
@@ -25,6 +29,7 @@ import os
 import re
 import shutil
 import subprocess
+from pathlib import Path
 from typing import Any
 
 # Shared camera defaults — consumed by both the software 3D renderer and the
@@ -103,14 +108,30 @@ KEYWORDS_MATH = {
     "calculus",
 }
 
-BACKENDS = ("blender_hybrid", "blender_3d", "manim_math", "canvas_2d")
+BACKENDS = (
+    "blender_hybrid",
+    "blender_3d",
+    "threejs_hybrid",
+    "threejs_3d",
+    "manim_math",
+    "canvas_2d",
+)
 _VALID_EXPLICIT = frozenset(BACKENDS) | {"auto"}
 
 _VERSION_RE = re.compile(r"Blender\s+(\d+)\.(\d+)(?:\.(\d+))?")
+MIN_NODE_VERSION = (22, 0, 0)
+_NODE_VERSION_RE = re.compile(r"v?(\d+)\.(\d+)\.(\d+)")
+_BROWSER_CANDIDATES = (
+    "chromium",
+    "chromium-browser",
+    "google-chrome",
+    "google-chrome-stable",
+)
 
-# Module-level probe cache. ``None`` means "not probed yet". Tests reset this
-# (or call the uncached variant) to avoid re-execing Blender.
+# Module-level probe caches. ``None`` means "not probed yet". Tests reset these
+# (or call the uncached variants) to avoid re-execing external binaries.
 _blender_probe_cache: dict[str, Any] | None = None
+_threejs_probe_cache: dict[str, Any] | None = None
 
 
 def _unavailable_probe() -> dict[str, Any]:
@@ -173,6 +194,101 @@ def probe_blender_environment() -> dict[str, Any]:
     if _blender_probe_cache is None:
         _blender_probe_cache = _probe_blender_environment_uncached()
     return dict(_blender_probe_cache)
+
+
+def _unavailable_threejs_probe(reason: str = "unavailable") -> dict[str, Any]:
+    return {
+        "available": False,
+        "node_binary": None,
+        "node_version": (0, 0, 0),
+        "browser_binary": None,
+        "three_module": None,
+        "runner_script": None,
+        "reason": reason,
+    }
+
+
+def _find_three_module() -> Path | None:
+    env_lib = os.environ.get("THREEJS_LIB")
+    if env_lib:
+        candidate = Path(env_lib)
+        return candidate if candidate.is_file() else None
+    script_dir = Path(__file__).resolve().parent
+    candidates = (
+        script_dir / "threejs" / "node_modules" / "three" / "build" / "three.module.js",
+        script_dir.parent / "node_modules" / "three" / "build" / "three.module.js",
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _probe_threejs_environment_uncached() -> dict[str, Any]:
+    """Probe Node.js (>=22), headless Chromium/Chrome, and local three.module.js.
+
+    All checks are local and offline: ``NODE_BIN`` / ``CHROME_BIN`` /
+    ``THREEJS_LIB`` override discovery. Any missing or incompatible component
+    yields ``available=False`` with a diagnostic ``reason``.
+    """
+    node_bin = os.environ.get("NODE_BIN") or shutil.which("node")
+    if not node_bin:
+        return _unavailable_threejs_probe("node binary not found")
+    try:
+        out = subprocess.check_output(
+            [node_bin, "--version"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=15,
+        )
+    except Exception:  # noqa: BLE001 — any probe failure means "no usable Node"
+        return _unavailable_threejs_probe("node --version failed")
+    match = _NODE_VERSION_RE.search(out.strip())
+    if match is None:
+        return _unavailable_threejs_probe("could not parse node version")
+    node_version = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    if node_version < MIN_NODE_VERSION:
+        return _unavailable_threejs_probe(
+            f"node {node_version[0]}.{node_version[1]}.{node_version[2]} < 22.0.0"
+        )
+
+    browser_bin = os.environ.get("CHROME_BIN")
+    if not browser_bin:
+        for name in _BROWSER_CANDIDATES:
+            found = shutil.which(name)
+            if found:
+                browser_bin = found
+                break
+    if not browser_bin:
+        return _unavailable_threejs_probe("chromium/chrome binary not found")
+
+    three_mod = _find_three_module()
+    if three_mod is None:
+        return _unavailable_threejs_probe(
+            "three.module.js not found (run `npm install` in scripts/threejs/)"
+        )
+
+    runner = Path(__file__).resolve().parent / "threejs" / "runner.mjs"
+    if not runner.is_file():
+        return _unavailable_threejs_probe("scripts/threejs/runner.mjs not found")
+
+    return {
+        "available": True,
+        "node_binary": node_bin,
+        "node_version": node_version,
+        "browser_binary": browser_bin,
+        "three_module": str(three_mod),
+        "runner_script": str(runner),
+        "reason": None,
+    }
+
+
+def probe_threejs_environment() -> dict[str, Any]:
+    """Return the cached Three.js runtime probe result, probing once if needed."""
+    global _threejs_probe_cache
+    if _threejs_probe_cache is None:
+        _threejs_probe_cache = _probe_threejs_environment_uncached()
+    return dict(_threejs_probe_cache)
 
 
 def _keyword_hits(keywords: set[str], haystack: str) -> int:

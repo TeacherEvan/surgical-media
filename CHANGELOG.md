@@ -11,7 +11,14 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-11-19
+
 ### Added
+- **Headless Three.js WebGL 3D backend (`threejs_hybrid`, `threejs_3d`)**: optional PBR WebGL plate baker (`scripts/threejs/{package.json,runner.mjs,scenes.mjs,stage.html}` + `scripts/threejs_bridge.py`) driving local Chromium/Chrome offline over Node ≥ 22 native CDP with zero browser-automation npm dependencies (`three` only, MIT). Z-up camera and focal-length parity with `software_3d_projection.py` and `blender_runner.py`; automatic software 3D fallback when Node/Chromium/three is absent or fails.
+- **`network_topology_3d` category** implemented in 3-way parity across `software_3d_projection.py`, `scripts/threejs/scenes.mjs`, and `blender_runner.py` (hub + 5 regional edge nodes, quadratic-bezier arcs, animated data packets, anchor tracking).
+- `examples/threejs_3d_storyboard.json` — 2-scene Three.js hybrid WebGL showcase (`network_topology_3d` + `exploded_hardware_3d`); validated in `scripts/ci_gates.sh` gates 1, 7, and 8.
+- `tests/test_threejs_backend.py` — 14 tests covering `probe_threejs_environment`, routing, schema parity, adapter defaults, prerender fallback paths, `network_topology_3d` parity, and a live headless Chromium WebGL integration test (skips cleanly when runtime is absent). Suite: 302 → 316 tests.
+- [ADR 0004](docs/adr/0004-optional-threejs-webgl-backend.md) documenting the Three.js WebGL architecture and offline CDP design.
 - `.gitattributes` — LF line endings for all text paths; binary markers for images, fonts, audio and video (nothing in the repo is CRLF today; this keeps it that way).
 - Pre-commit hooks now scoped: top-level `exclude` protects generated artifacts (`examples/*.json`, archived `snakes_friend_project/`) and the verbatim OFL license texts from whitespace/EOF rewriting — byte-identity of the generated example board stays pinned by `tests/test_build_demo.py`. The mypy hook uses the official isolated mirror pinned to mypy 2.4.1 (the gate venv's version) instead of a PATH-dependent `language: system` hook.
 - Docs: trailing-whitespace/EOF normalization in `Concept/`, `docs/plans/`, `docs/index.md`, `docs/project-plan.md` (whitespace only; no content changes).

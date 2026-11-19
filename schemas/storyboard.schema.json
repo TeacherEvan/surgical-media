@@ -42,7 +42,15 @@
           "narration": { "type": "string", "maxLength": 2000 },
           "backend": {
             "type": "string",
-            "enum": ["auto", "blender_hybrid", "blender_3d", "canvas_2d", "manim_math"],
+            "enum": [
+              "auto",
+              "blender_hybrid",
+              "blender_3d",
+              "threejs_hybrid",
+              "threejs_3d",
+              "canvas_2d",
+              "manim_math"
+            ],
             "default": "auto"
           },
           "scene_spec": {

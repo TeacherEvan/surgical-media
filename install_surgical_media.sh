@@ -22,12 +22,13 @@ set -euo pipefail
 HERMES_SKILL_DIR="${1:-${HOME}/.hermes/skills/creative/surgical-media}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "[install_surgical_media] Installing Surgical Media (v1.3.0) to:"
+echo "[install_surgical_media] Installing Surgical Media (v1.4.0) to:"
 echo "  ${HERMES_SKILL_DIR}"
 echo
 
 mkdir -p \
   "${HERMES_SKILL_DIR}/scripts" \
+  "${HERMES_SKILL_DIR}/scripts/threejs" \
   "${HERMES_SKILL_DIR}/assets/fonts" \
   "${HERMES_SKILL_DIR}/references" \
   "${HERMES_SKILL_DIR}/schemas" \
@@ -41,6 +42,11 @@ done
 cp "${SCRIPT_DIR}/scripts/"*.py "${HERMES_SKILL_DIR}/scripts/"
 rm -rf "${HERMES_SKILL_DIR}/scripts/elements"
 cp -r "${SCRIPT_DIR}/scripts/elements" "${HERMES_SKILL_DIR}/scripts/elements"
+cp "${SCRIPT_DIR}/scripts/threejs/package.json" \
+  "${SCRIPT_DIR}/scripts/threejs/runner.mjs" \
+  "${SCRIPT_DIR}/scripts/threejs/scenes.mjs" \
+  "${SCRIPT_DIR}/scripts/threejs/stage.html" \
+  "${HERMES_SKILL_DIR}/scripts/threejs/"
 cp "${SCRIPT_DIR}/references/"*.md "${HERMES_SKILL_DIR}/references/"
 cp "${SCRIPT_DIR}/schemas/"*.json "${HERMES_SKILL_DIR}/schemas/"
 cp "${SCRIPT_DIR}/assets/fonts/"*.ttf "${SCRIPT_DIR}/assets/fonts/"*.txt "${SCRIPT_DIR}/assets/fonts/README.md" "${HERMES_SKILL_DIR}/assets/fonts/"

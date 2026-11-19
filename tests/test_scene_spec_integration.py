@@ -139,7 +139,7 @@ def test_unsupported_camera_mode_and_lighting_preset_rejected_by_both():
 
 def test_unimplemented_category_rejected_at_validation_and_render():
     board = _spec_board()
-    board["scenes"][0]["scene_spec"]["category"] = "network_topology_3d"
+    board["scenes"][0]["scene_spec"]["category"] = "rigid_body_physics_3d"
     errors = storyboard.validate_storyboard(board)
     assert any("not implemented" in e for e in errors)
     with pytest.raises(NotImplementedError):

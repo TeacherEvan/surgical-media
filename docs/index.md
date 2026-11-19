@@ -12,6 +12,7 @@ Entrypoint for surgical-media docs. The contract is code + `tests/`; these docum
 - [`adr/0001-stdlib-first-verified-pipeline.md`](adr/0001-stdlib-first-verified-pipeline.md) — stdlib + Pillow, no NumPy/Manim/MoviePy; perf postscript
 - [`adr/0002-local-first-verification.md`](adr/0002-local-first-verification.md) — hosted CI removed; `scripts/ci_gates.sh` is the gate; GitLab mirror configured-not-verified
 - [`adr/0003-optional-3d-scene-backends.md`](adr/0003-optional-3d-scene-backends.md) — `scene_spec` routing, software 3D canonical, Blender optional; license footprint note
+- [`adr/0004-optional-threejs-webgl-backend.md`](adr/0004-optional-threejs-webgl-backend.md) — optional headless Three.js WebGL backend (`threejs_hybrid`/`threejs_3d`, Node ≥ 22 native CDP, local `three`, Z-up camera parity, `network_topology_3d`)
 
 ## Design history (input, not contract)
 

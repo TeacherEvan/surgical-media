@@ -65,9 +65,9 @@ SUPPORTED_CATEGORIES = (
     "exploded_hardware_3d",
     "orbital_or_field_3d",
     "organic_serpent_3d",
+    "network_topology_3d",
 )
 UNIMPLEMENTED_CATEGORIES = (
-    "network_topology_3d",
     "rigid_body_physics_3d",
     "mathematical_manifold_3d",
     "external_asset_3d",
@@ -780,6 +780,150 @@ def build_organic_serpent_3d(
     return anchors
 
 
+def _network_topology_nodes() -> list[
+    tuple[str, tuple[float, float, float], float, str, str]
+]:
+    """Pure node layout for ``network_topology_3d`` (matches software 3D & Three.js)."""
+    nodes: list[tuple[str, tuple[float, float, float], float, str, str]] = [
+        ("anchor_core", (0.0, 0.0, 0.45), 0.34, "#0284C7", "#38BDF8"),
+    ]
+    ring_colors = [
+        ("#065F46", "#34D399"),
+        ("#78350F", "#FACC15"),
+        ("#4C1D95", "#A78BFA"),
+        ("#7F1D1D", "#FB7185"),
+        ("#0C4A6E", "#38BDF8"),
+    ]
+    for i, (color_hex, accent_hex) in enumerate(ring_colors):
+        angle = 2.0 * math.pi * i / 5.0 - math.pi / 2.0
+        r = 1.85
+        z = -0.30 + 0.22 * math.sin(i * 1.4)
+        nodes.append(
+            (
+                f"anchor_edge_{i + 1}",
+                (r * math.cos(angle), r * math.sin(angle), z),
+                0.22,
+                color_hex,
+                accent_hex,
+            )
+        )
+    return nodes
+
+
+def build_network_topology_3d(
+    scene: Any, spec: dict[str, Any] | None, total_frames: int
+) -> dict[str, Any]:
+    """Build a 3D hub-and-ring network topology with emissive links and packets."""
+    if not INSIDE_BLENDER:
+        raise RuntimeError(
+            "build_network_topology_3d must run inside Blender via `blender -b -P`"
+        )
+    n = max(1, int(total_frames))
+    nodes = _network_topology_nodes()
+    node_pos = {aid: pos for aid, pos, _, _, _ in nodes}
+
+    for aid, pos, radius, color_hex, accent_hex in nodes:
+        bpy.ops.mesh.primitive_ico_sphere_add(
+            subdivisions=2, radius=radius, location=pos
+        )
+        obj = bpy.context.active_object
+        obj.name = f"Net_{aid}"
+        mat = create_pbr_material(
+            f"Mat_{aid}",
+            color_hex,
+            metallic=0.55,
+            roughness=0.22,
+            emission_hex=accent_hex,
+            emission_strength=1.4,
+            transmission=0.0,
+            coat=0.0,
+        )
+        obj.data.materials.append(mat)
+
+    edges: list[tuple[int, int]] = []
+    for i in range(1, len(nodes)):
+        edges.append((0, i))
+        edges.append((i, 1 if i == len(nodes) - 1 else i + 1))
+
+    link_mat = create_pbr_material(
+        "Net_Link_Mat",
+        "#0EA5E9",
+        metallic=0.2,
+        roughness=0.3,
+        emission_hex="#38BDF8",
+        emission_strength=1.6,
+        transmission=0.0,
+        coat=0.0,
+    )
+    pkt_mat = create_pbr_material(
+        "Net_Packet_Mat",
+        "#FACC15",
+        metallic=0.1,
+        roughness=0.15,
+        emission_hex="#FDE047",
+        emission_strength=3.0,
+        transmission=0.0,
+        coat=0.0,
+    )
+
+    for edge_idx, (a_idx, b_idx) in enumerate(edges):
+        p_a = nodes[a_idx][1]
+        p_b = nodes[b_idx][1]
+        mid = (
+            0.5 * (p_a[0] + p_b[0]),
+            0.5 * (p_a[1] + p_b[1]),
+            0.5 * (p_a[2] + p_b[2]) + 0.35,
+        )
+        curve = bpy.data.curves.new(f"Net_Link_{edge_idx}", type="CURVE")
+        curve.dimensions = "3D"
+        curve.bevel_depth = 0.024
+        curve.bevel_resolution = 3
+        spline = curve.splines.new("POLY")
+        spline.points.add(10)
+        for s in range(11):
+            u = s / 10.0
+            inv = 1.0 - u
+            px = inv * inv * p_a[0] + 2.0 * inv * u * mid[0] + u * u * p_b[0]
+            py = inv * inv * p_a[1] + 2.0 * inv * u * mid[1] + u * u * p_b[1]
+            pz = inv * inv * p_a[2] + 2.0 * inv * u * mid[2] + u * u * p_b[2]
+            spline.points[s].co = (px, py, pz, 1.0)
+        link_obj = bpy.data.objects.new(f"Net_Link_{edge_idx}", curve)
+        scene.collection.objects.link(link_obj)
+        curve.materials.append(link_mat)
+
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=8, ring_count=6, radius=0.065)
+        pkt = bpy.context.active_object
+        pkt.name = f"Net_Packet_{edge_idx}"
+        pkt.data.materials.append(pkt_mat)
+        for frame in range(1, n + 1):
+            t_norm = (frame - 1) / max(1, n - 1)
+            u = (t_norm * 1.4 + edge_idx * 0.17) % 1.0
+            inv = 1.0 - u
+            pkt.location = (
+                inv * inv * p_a[0] + 2.0 * inv * u * mid[0] + u * u * p_b[0],
+                inv * inv * p_a[1] + 2.0 * inv * u * mid[1] + u * u * p_b[1],
+                inv * inv * p_a[2] + 2.0 * inv * u * mid[2] + u * u * p_b[2],
+            )
+            pkt.keyframe_insert(data_path="location", frame=frame)
+
+    anchors: dict[str, Any] = {}
+    for anchor in (spec or {}).get("anchors_3d", []) or []:
+        if not isinstance(anchor, dict) or not anchor.get("anchor_id"):
+            continue
+        aid = str(anchor["anchor_id"])
+        empty = bpy.data.objects.new(aid, None)
+        _try_set(empty, "empty_display_type", "SPHERE")
+        _try_set(empty, "empty_display_size", 0.15)
+        scene.collection.objects.link(empty)
+        if aid in node_pos:
+            empty.location = node_pos[aid]
+        else:
+            local = anchor.get("local_pos", [0.0, 0.0, 0.0])
+            empty.location = tuple(float(c) for c in local[:3])
+        anchors[aid] = empty
+    return anchors
+
+
 def export_anchor_tracks(
     scene: Any,
     cam_obj: Any,
@@ -878,6 +1022,8 @@ def run_blender_scene(
         anchor_objs = build_orbital_or_field_3d(scene, spec, total_frames)
     elif category == "organic_serpent_3d":
         anchor_objs = build_organic_serpent_3d(scene, spec, total_frames)
+    elif category == "network_topology_3d":
+        anchor_objs = build_network_topology_3d(scene, spec, total_frames)
     elif category in UNIMPLEMENTED_CATEGORIES:
         raise NotImplementedError(
             f"Category {category!r} is not implemented in blender_runner.py. "

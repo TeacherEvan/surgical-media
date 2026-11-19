@@ -1,4 +1,4 @@
-# Surgical Media (`v1.3.0`)
+# Surgical Media (`v1.4.0`)
 
 **Deterministic, QC-gated pipeline for turning a topic prompt into a social-ready MP4 — research brief, audio-first timing, storyboard, 2x-supersampled Pillow rendering, ffmpeg H.264/AAC master, ffprobe verification.**
 
@@ -9,6 +9,7 @@
 python3 -m pip install -r requirements.txt          # Pillow ≥ 10
 python3 -m pip install -r requirements-tts.txt      # optional: edge-tts voice synthesis
 python3 -m pip install -r requirements-dev.txt      # hacking on this repo: pytest/jsonschema/ruff/mypy/check-jsonschema
+(cd scripts/threejs && npm install)                 # optional: headless Three.js WebGL 3D backend (requires Node >=22 + Chromium)
 
 python3 scripts/build_demo.py                       # (re)generate the example board
 python3 scripts/render_engine.py --demo --thumbnails /tmp/sm_thumbs   # seconds — see each scene first
@@ -42,11 +43,12 @@ python3 scripts/render_engine.py --storyboard storyboard.json --output final.mp4
 | [`scripts/verify_output.py`](scripts/verify_output.py) | ffprobe assertions (streams, H.264, yuv420p, fps, ≤150 ms A/V drift) |
 | [`scripts/fetch_assets.py`](scripts/fetch_assets.py) | Stage 1 subject imagery: Openverse + Wikimedia Commons + iNaturalist, license allowlist (`by`/`by-sa`/`cc0`/`pdm`), PIL-verified, cross-source deduped, writes `assets/manifest.json` |
 | [`scripts/blender_plate.py`](scripts/blender_plate.py) | Optional Blender (Workbench, headless) 3D plates — `earth` / `iceberg` / `ringed` → transparent PNG for the `image` element; exits 2 cleanly without Blender |
-| [`scripts/scene_router.py`](scripts/scene_router.py) | Scene backend routing: `auto`/`blender_hybrid`/`blender_3d`/`canvas_2d`/`manim_math` + Blender capability probe |
-| [`scripts/software_3d_projection.py`](scripts/software_3d_projection.py) | Stdlib 4×4-perspective renderer — parametric exploded-hardware, stellarator-torus and undulating snake (`organic_serpent_3d`) scenes; returns normalized 3D→2D anchor tracks |
+| [`scripts/scene_router.py`](scripts/scene_router.py) | Scene backend routing: `auto`/`threejs_hybrid`/`threejs_3d`/`blender_hybrid`/`blender_3d`/`canvas_2d`/`manim_math` + Three.js & Blender capability probes |
+| [`scripts/threejs_bridge.py`](scripts/threejs_bridge.py) + [`scripts/threejs/`](scripts/threejs/) | Optional headless Three.js WebGL PBR renderer (Node ≥22 native CDP + local Chromium + `three.module.js`, Z-up camera parity, offline, automatic software fallback) |
+| [`scripts/software_3d_projection.py`](scripts/software_3d_projection.py) | Stdlib 4×4-perspective renderer — parametric exploded-hardware, stellarator-torus, undulating snake (`organic_serpent_3d`), and `network_topology_3d`; returns normalized 3D→2D anchor tracks |
 | [`scripts/hybrid_compositor.py`](scripts/hybrid_compositor.py) | Motion-tracked HUD: reticles, 45° elbow leaders, glass telemetry cards placed by the SAT layout solver |
 | [`scripts/layout_solver.py`](scripts/layout_solver.py) | AABB min-axis collision solver with locked repulsors + 24 px canvas clamp (telemetry-card placement) |
-| [`scripts/blender_runner.py`](scripts/blender_runner.py) | Headless Blender (bpy) per-scene bake: EEVEE/Cycles detection, motion blur, `world_to_camera_view` anchor export; hardware, stellarator and snake builders |
+| [`scripts/blender_runner.py`](scripts/blender_runner.py) | Headless Blender (bpy) per-scene bake: EEVEE/Cycles detection, motion blur, `world_to_camera_view` anchor export; hardware, stellarator, snake, and network topology builders |
 | [`assets/fonts/`](assets/fonts/) | Bundled OFL Inter (Regular/SemiBold/Bold) + JetBrains Mono (Regular/Bold) — captions/HUD + code archetype faces, SHA-256 pinned, licenses included |
 | [`scripts/build_demo.py`](scripts/build_demo.py) | Regenerates `examples/tri_archetype_storyboard.json` |
 | [`schemas/`](schemas/) | Draft 2020-12 contracts for the investigation brief, beat script, and storyboard |
@@ -68,7 +70,7 @@ Or everything, in one call: `bash scripts/ci_gates.sh`
 
 ### Verification (local-first)
 
-- **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → `mypy --strict` → 302 tests → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC (9 gates). Run it before pushing; its green exit *is* this repo's quality bar. Install the toolchain with `requirements-dev.txt`.
+- **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → `mypy --strict` → 316 tests → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC (9 gates). Run it before pushing; its green exit *is* this repo's quality bar. Install the toolchain with `requirements-dev.txt`.
 - `main` is protected on GitHub: required linear history, force-push and branch deletion blocked, enforced for admins too. Direct fast-forward pushes remain allowed (the current flow).
 - The decision is recorded in [ADR 0002](docs/adr/0002-local-first-verification.md). An optional GitLab mirror ([`.gitlab-ci.yml`](.gitlab-ci.yml)) executes the identical script once a project is imported: **New project → Import project → Repository by URL** → paste this repo's URL → create. Optionally enable *Settings → Repository → Mirroring* to auto-sync `main`. The mirror is **configured, not verified** — do not treat its presence as a green pipeline until one passes.
 
@@ -86,6 +88,7 @@ URL-safety issues via GitHub advisories or labeled issues.
 ## Dependencies & Licensing
 
 - Repo code: **MIT** ([`LICENSE`](LICENSE)). Runtime deps: Pillow ≥ 10.1 + ffmpeg/ffprobe on PATH; audio and geometry are stdlib-only ([ADR 0001](docs/adr/0001-stdlib-first-verified-pipeline.md)).
+- **Three.js** (MIT) is optional and installed locally under `scripts/threejs/` (`npm install`), driven offline via headless Chromium over Node ≥ 22 native CDP — zero browser-automation npm dependencies; MIT license unchanged ([ADR 0004](docs/adr/0004-optional-threejs-webgl-backend.md)).
 - **Blender** (GNU GPL, Blender Foundation) is optional and invoked only as an external subprocess (`blender -b -P scripts/blender_runner.py`); nothing here imports `bpy` or links Blender, so the MIT footprint is unchanged ([ADR 0003](docs/adr/0003-optional-3d-scene-backends.md)).
 - **edge-tts** (LGPL-3.0) is an optional, user-installed extra (`requirements-tts.txt`) for the online voice path only — never bundled; the offline timing path is stdlib.
 - Bundled fonts: OFL-1.1 (Inter, JetBrains Mono), licenses verbatim in [`assets/fonts/`](assets/fonts/).

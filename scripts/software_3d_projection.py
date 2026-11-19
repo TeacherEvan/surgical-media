@@ -35,6 +35,7 @@ SUPPORTED_CATEGORIES = (
     "exploded_hardware_3d",
     "orbital_or_field_3d",
     "organic_serpent_3d",
+    "network_topology_3d",
 )
 
 _ZNEAR = 0.15
@@ -399,6 +400,92 @@ def generate_serpent_mesh(t_norm: float) -> list[MeshFace]:
     return polys
 
 
+def network_topology_nodes() -> list[tuple[str, Vec3, float, str, str]]:
+    """World-space nodes for ``network_topology_3d`` (matches Three.js & Blender).
+
+    Returns ``(anchor_id, position, box_size, color_hex, edge_hex)``.
+    """
+    nodes: list[tuple[str, Vec3, float, str, str]] = [
+        ("anchor_core", (0.0, 0.0, 0.45), 0.54, "#0284C7", "#38BDF8"),
+    ]
+    ring_colors = [
+        ("#065F46", "#34D399"),
+        ("#78350F", "#FACC15"),
+        ("#4C1D95", "#A78BFA"),
+        ("#7F1D1D", "#FB7185"),
+        ("#0C4A6E", "#38BDF8"),
+    ]
+    for i, (color_hex, edge_hex) in enumerate(ring_colors):
+        angle = 2.0 * math.pi * i / 5.0 - math.pi / 2.0
+        r = 1.85
+        z = -0.30 + 0.22 * math.sin(i * 1.4)
+        nodes.append(
+            (
+                f"anchor_edge_{i + 1}",
+                (r * math.cos(angle), r * math.sin(angle), z),
+                0.36,
+                color_hex,
+                edge_hex,
+            )
+        )
+    return nodes
+
+
+def generate_network_topology_mesh(
+    t_norm: float,
+) -> tuple[list[MeshFace], dict[str, Vec3]]:
+    """3D distributed-systems graph: hub + 5 satellite nodes + animated packet cubes."""
+    t = _clamp01(float(t_norm))
+    nodes = network_topology_nodes()
+    polys: list[MeshFace] = []
+    dynamic_anchors: dict[str, Vec3] = {}
+    for aid, pos, size, color_hex, edge_hex in nodes:
+        polys.extend(
+            generate_box_mesh(pos, (size, size, size), color_hex, edge_hex, True)
+        )
+        dynamic_anchors[aid] = pos
+
+    edges: list[tuple[int, int]] = []
+    for i in range(1, len(nodes)):
+        edges.append((0, i))
+        edges.append((i, 1 if i == len(nodes) - 1 else i + 1))
+
+    # Build segmented 3D quadratic bezier arcs + moving emissive packet cubes.
+    for edge_idx, (a_idx, b_idx) in enumerate(edges):
+        p_a = nodes[a_idx][1]
+        p_b = nodes[b_idx][1]
+        mid = (
+            0.5 * (p_a[0] + p_b[0]),
+            0.5 * (p_a[1] + p_b[1]),
+            0.5 * (p_a[2] + p_b[2]) + 0.35,
+        )
+
+        def _qbez(u: float, a: Vec3 = p_a, m: Vec3 = mid, b: Vec3 = p_b) -> Vec3:
+            inv = 1.0 - u
+            return (
+                inv * inv * a[0] + 2.0 * inv * u * m[0] + u * u * b[0],
+                inv * inv * a[1] + 2.0 * inv * u * m[1] + u * u * b[1],
+                inv * inv * a[2] + 2.0 * inv * u * m[2] + u * u * b[2],
+            )
+
+        steps = 6
+        for s in range(steps):
+            pt = _qbez((s + 0.5) / steps)
+            polys.extend(
+                generate_box_mesh(
+                    pt, (0.06, 0.06, 0.06), "#0C4A6E", "#38BDF8", emissive=False
+                )
+            )
+        u_pkt = (t * 1.4 + edge_idx * 0.17) % 1.0
+        pkt_pos = _qbez(u_pkt)
+        polys.extend(
+            generate_box_mesh(
+                pkt_pos, (0.14, 0.14, 0.14), "#CA8A04", "#FDE047", emissive=True
+            )
+        )
+    return polys, dynamic_anchors
+
+
 # ---------------------------------------------------------------------------
 # Scene render + anchor tracking
 # ---------------------------------------------------------------------------
@@ -469,6 +556,8 @@ def _build_scene(
             "anchor_body": serpent_spine_point(0.5, t_norm),
             "anchor_tail": serpent_spine_point(0.12, t_norm),
         }
+    if category == "network_topology_3d":
+        return generate_network_topology_mesh(t_norm)
     raise NotImplementedError(
         f"unsupported 3D scene category {category!r}; "
         f"supported categories: {', '.join(SUPPORTED_CATEGORIES)}"

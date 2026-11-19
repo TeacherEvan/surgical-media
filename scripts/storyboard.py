@@ -43,7 +43,15 @@ KNOWN_ELEMENTS = {
 }
 MIN_DIM, MAX_DIM = 160, 3840
 
-VALID_BACKENDS = {"auto", "blender_hybrid", "blender_3d", "canvas_2d", "manim_math"}
+VALID_BACKENDS = {
+    "auto",
+    "blender_hybrid",
+    "blender_3d",
+    "threejs_hybrid",
+    "threejs_3d",
+    "canvas_2d",
+    "manim_math",
+}
 VALID_3D_CATEGORIES = {
     "exploded_hardware_3d",
     "orbital_or_field_3d",
@@ -57,6 +65,7 @@ IMPLEMENTED_3D_CATEGORIES = {
     "exploded_hardware_3d",
     "orbital_or_field_3d",
     "organic_serpent_3d",
+    "network_topology_3d",
 }
 VALID_BLENDER_ENGINES = {"AUTO_EEVEE", "CYCLES"}
 VALID_LIGHTING_PRESETS = {"cyber_studio_volumetric", "clean_product_softbox"}

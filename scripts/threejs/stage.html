@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>surgical-media Three.js stage</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: transparent;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <script type="module">
+      import * as THREE from "/three.module.js";
+      import { createSceneController } from "/scenes.mjs";
+
+      async function boot() {
+        const res = await fetch("/config.json");
+        const cfg = await res.json();
+        const { spec, width, height } = cfg;
+
+        const canvas = document.getElementById("stage");
+        canvas.width = width;
+        canvas.height = height;
+
+        const renderer = new THREE.WebGLRenderer({
+          canvas,
+          antialias: true,
+          alpha: Boolean(spec.transparent_bg),
+          preserveDrawingBuffer: true,
+          powerPreference: "high-performance",
+        });
+        renderer.setPixelRatio(1);
+        renderer.setSize(width, height, false);
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.15;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        if (spec.transparent_bg) {
+          renderer.setClearColor(0x000000, 0);
+        }
+
+        const controller = createSceneController(THREE, spec, width, height);
+
+        window.__renderFrame = function (frameIdx, totalFrames) {
+          const tNorm = frameIdx / Math.max(1, totalFrames - 1);
+          const anchors = controller.update(tNorm);
+          renderer.render(controller.scene, controller.camera);
+          const dataUrl = canvas.toDataURL("image/png");
+          const comma = dataUrl.indexOf(",");
+          const pngBase64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+          return { pngBase64, anchors, tNorm };
+        };
+
+        window.__THREE_READY__ = true;
+      }
+
+      boot().catch((err) => {
+        window.__THREE_ERROR__ = String(err && err.stack ? err.stack : err);
+      });
+    </script>
+  </body>
+</html>

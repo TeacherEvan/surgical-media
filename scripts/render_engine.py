@@ -36,6 +36,7 @@ import audio_dsp
 import hybrid_compositor
 import scene_router
 import software_3d_projection
+import threejs_bridge
 from camera import WorldCamera2D
 from canvas import SupersampledCanvas, classify_aspect, layout_zones
 from elements import ElementContext, render_element
@@ -340,12 +341,13 @@ def _paint_scene_frame(
 
     if spec:
         route = _spec_route(scene)
-        if route in ("blender_hybrid", "blender_3d"):
+        if route in ("blender_hybrid", "blender_3d", "threejs_hybrid", "threejs_3d"):
             tracks = _scene_spec_frame(scene, cv, local_idx, local_t, blender_dir)
-            if route == "blender_hybrid":
+            if route in ("blender_hybrid", "threejs_hybrid"):
                 if tracks:
+                    prefix = "THREE.JS 3D" if route == "threejs_hybrid" else "3D HYBRID"
                     title = spec.get("hud_title") or (
-                        f"3D HYBRID // {str(spec.get('category', '')).upper()}"
+                        f"{prefix} // {str(spec.get('category', '')).upper()}"
                     )
                     hybrid_compositor.composite_3d_tracked_hud(
                         cv,
@@ -471,10 +473,10 @@ def estimate(board: dict[str, Any]) -> dict[str, Any]:
     if spec_routes:
         report["scene_spec_scenes"] = spec_routes
         report["scene_spec_note"] = (
-            "scene_spec scenes render via the software 3D pass; when a blender binary "
-            "is available, blender_hybrid/blender_3d scenes are pre-rendered into "
-            "<work_dir>/blender_<scene_id>/ and composited under the HUD, with automatic "
-            "software fallback on any blender failure"
+            "scene_spec scenes render via the software 3D pass; when Blender (>=3.6) "
+            "or Three.js (Node >=22 + Chromium + local three.module.js) is available, "
+            "blender_* / threejs_* scenes are pre-rendered into <work_dir>/ and "
+            "composited under the HUD, with automatic software fallback on any failure"
         )
     return report
 
@@ -562,6 +564,60 @@ def _prerender_blender_plates(
             f"render_engine: scene {sid!r}: blender plate pre-rendered to {plate_dir} "
             f"({n_frames} frames)"
         )
+    return plates
+
+
+def _prerender_threejs_plates(
+    board: dict[str, Any],
+    work_dir: Path,
+    width: int,
+    height: int,
+    fps: int,
+    per_scene_frames: list[int],
+) -> dict[str, Path]:
+    """Pre-render threejs_hybrid/threejs_3d scene_spec scenes to per-scene PNG plates.
+
+    Returns ``{scene_id: plate_dir}``. Any failure (missing Node/Chromium/three,
+    non-zero exit, timeout) leaves the scene out of the map — the frame painter
+    falls back to the software 3D pass. Never raises and never aborts the render.
+    """
+    wanted = [
+        (scene, n)
+        for scene, n in zip(board["scenes"], per_scene_frames)
+        if _spec_route(scene) in ("threejs_hybrid", "threejs_3d")
+    ]
+    if not wanted:
+        return {}
+    probe = scene_router.probe_threejs_environment()
+    if not probe.get("available"):
+        reason = probe.get("reason") or "runtime unavailable"
+        print(
+            f"render_engine: threejs runtime not available ({reason}); "
+            "scene_spec scenes will use the software 3D renderer"
+        )
+        return {}
+    plates: dict[str, Path] = {}
+    for scene, n_frames in wanted:
+        sid = str(scene["scene_id"])
+        plate_dir = work_dir / f"threejs_{sid}"
+        spec_path = work_dir / f"threejs_{sid}_spec.json"
+        rendered = threejs_bridge.prerender_threejs_scene(
+            sid,
+            scene["scene_spec"],
+            plate_dir,
+            spec_path,
+            width,
+            height,
+            fps,
+            n_frames,
+            probe,
+        )
+        if rendered is not None:
+            plates[sid] = rendered
+            print(
+                f"render_engine: scene {sid!r}: threejs plate pre-rendered to "
+                f"{rendered} ({n_frames} frames)"
+            )
     return plates
 
 
@@ -685,9 +741,14 @@ def render(args: argparse.Namespace) -> int:
     frame_idx = 0
     per_scene_frames = frame_counts(board["scenes"], fps)
     total_frames = sum(per_scene_frames)
-    blender_dirs = _prerender_blender_plates(
-        board, work_dir, width, height, fps, per_scene_frames
-    )
+    plate_dirs = {
+        **_prerender_blender_plates(
+            board, work_dir, width, height, fps, per_scene_frames
+        ),
+        **_prerender_threejs_plates(
+            board, work_dir, width, height, fps, per_scene_frames
+        ),
+    }
     t0 = time.time()
     try:
         for scene, n_frames in zip(board["scenes"], per_scene_frames):
@@ -720,7 +781,7 @@ def render(args: argparse.Namespace) -> int:
                     fps,
                     trauma,
                     base_dir=str(board_path.parent),
-                    blender_dir=blender_dirs.get(str(scene.get("scene_id"))),
+                    blender_dir=plate_dirs.get(str(scene.get("scene_id"))),
                     camera=scene_camera,
                     zones=scene_zones,
                 )
