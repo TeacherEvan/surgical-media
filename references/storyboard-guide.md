@@ -194,6 +194,32 @@ HUD cards (`blender_hybrid` / `threejs_hybrid`) are placed by `scripts/layout_so
 `pop` · `whoosh` · `chime` · `confirm` · `type_click` · `error_buzz` — synthesized offline, mixed at scene offset, ducked pad, −1 dBFS ceiling, loudnorm −14 LUFS on mux.
 `trauma` — camera-only; no audio. `intensity` scales SFX or shake (0.1–1.0).
 
+## Genre painters
+
+Two new painter families cover comedy and political news (registered in `RENDERERS` + `KNOWN_ELEMENTS`; deterministic — pure functions of `ElementContext`).
+
+**Horse Tenny genre** (`scripts/elements/ui_mockups.py`, element types):
+- `phone_frame` — device silhouette with notch and corner chrome.
+- `swipe_card` — stacked dating-app cards; top card pops with a scene-time wobble. `cards: [{accent, label}]`.
+- `social_post` — feed card: avatar + name, body lines, heart + comments + share.
+- `chat_bubble` — message bubbles with tails; per-bubble `delay` for slide-in entry.
+- `app_toast` — bottom pill that slides in after a time delay.
+
+**Political news genre** (`scripts/elements/maps.py`):
+- `map` — stylized world-map clusters (Europe/Africa/Asia/Australia/Americas), regions override via `regions: [{x,y,w,h,color,label}]` (normalized within box).
+- `map_callout` — labeled hot-spot bubble with arrow tail.
+- `map_arrow` — animated route leader (reuses `leader_arrow`).
+
+Reference boards: `examples/ref_horse_tinder.json` (swipe_card, phone_frame, typewriter_text), `examples/ref_geopolitics_explainer.json` (map, map_callout, map_arrow, source_tag), `examples/ref_true_story_noir.json`, `examples/ref_tech_explainer.json` — all at 100/100 on `style_lint`.
+
+## Monetization & retention gates
+
+Three built-in, mostly-advisory tools. For ads revenue the losers are: **0% CTR thumbnails**, **synthetic-looking physics-driven stock fills**, and **non-commercial stock in paid videos** — guards against all three.
+
+- `scripts/monetization_gate.py` — `monetization_gate.py --board storyboard.json --manifest assets/manifest.json --script script.json`. Runs: commercial-license firewall (`LICENSE_ALLOWLIST` = cc0/pdm/by/by-sa/ai-generated; hard-blocks by-nc*, by-nd*, pd, missing/unknown — assets with allowlisted licenses still need `attribution`), asset file existence, adversarial narration scan (fabricated quotes, defamation, election/medical misinformation → ERROR), `retention_static_hold` (ERROR when >3.0 s @9:16 / >6.0 s @16:9 without motion/SFX — add a camera move, typewriter, pulse, or SFX). ERRORs fail the export when wired into `verify_output.py` (`--manifest`/`--script`); run manually to audit beforehand.
+- `scripts/thumbnail_gen.py` — `thumbnail_gen.py --storyboard storyboard.json --out publish/thumbnail.jpg`. Renders scene thumbnails, scores by contrast (≥4.5:1 proxy) and 168×94 legibility (non-white fraction ≥ 0.45), writes the best JPEG < 2 MB. Human-review the pick (subject/face fill, 2-4 word hook) — it's a heuristic.
+- `scripts/tool_probe.py` — `tool_probe.py --out capabilities.json` (host: GPU, Blender, Three.js/Chromium, local STT/TTS modules, API keys by *presence* only). The "use all available tools" decision input: hosts can auto-select render/voice tiers from what's actually there.
+
 ## Validation & failure modes
 
 `scripts/storyboard.py board.json` prints one line per violation with the owning scene — fix and re-run; `render_engine.py` refuses to start on any violation. Most common: `sfx_events[].t_sec` beyond `duration_sec` (trim the event or extend the beat), and `zoom_*` outside `[1.0, 10.0]`.

@@ -1,7 +1,7 @@
 ---
 name: surgical-media
 description: "Use when creating, planning, or rendering social video from a topic prompt."
-version: 2.0.0
+version: 2.2.0
 author: "TeacherEvan, Hermes Agent"
 license: MIT
 platforms: [linux, macos]
@@ -13,15 +13,16 @@ metadata:
     related_skills: [video-production-pipeline, surgical-orchestration, surgical-audit]
 ---
 
-# Surgical Media (v2.0.0)
+# Surgical Media (v2.2.0)
 
-Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow + SVG 2.0 rendering (plus optional Three.js WebGL Studio / Blender 3D passes) → ffmpeg H.264/AAC master → ffprobe QC gate. Art direction comes in two optional top-level blocks: `style` (palette/type/material/light/grade/motion — `scripts/style.py`, presets in `assets/styles/`) and `platform` (caption style, safe zones, hook/beat budgets — `scripts/platform_presets.py`). Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 439 tests including rendered-MP4, Three.js IBL/bloom/SVG-3D/custom-script, Chromium SVG 2.0, and style/platform/grade passes).
+Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow + SVG 2.0 rendering (plus optional Three.js WebGL Studio / Blender 3D passes) → ffmpeg H.264/AAC master → ffprobe QC gate. Art direction comes in two optional top-level blocks: `style` (palette/type/material/light/grade/motion — `scripts/style.py`, presets in `assets/styles/`) and `platform` (caption style, safe zones, hook/beat budgets — `scripts/platform_presets.py`). Comedy time uses `ui_mockups` painters (dating cards, chats, social posts); news/ops titles use `maps` (world clusters, callouts, route arrows). Monetization gates ship built-in (`monetization_gate.py`, `thumbnail_gen.py` — see Verification). Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 476 tests including rendered-MP4, Three.js IBL/bloom/SVG-3D/custom-script, Chromium SVG 2.0, style/platform/grade, monetization, monetization-gate/thumbnail/voice-cast, and mockup/map passes).
 
 ## When to Use
 
 - The user wants a complete video, explainer, Short, Reel, or TikTok generated from a topic or URL.
 - The user wants procedural animations in the Alan Becker (geometry/stick-figure), Matt Madigan (documentary essay), or Fireship (code report) visual styles — or a parametric 3D scene (exploded package stack, stellarator torus) with HUD telemetry pinned to 3D anchors.
 - The user wants a repeatable script-to-MP4 pipeline with frame-accurate audio sync.
+- The user wants monetizable comedy ("Horse Tenny"-style) or geopolitical news shorts — or needs export guards (non-commercial stock, defamation triggers, static holds).
 - The user needs social-ready masters verified for yuv420p/faststart/-14 LUFS before upload.
 
 ## When Not to Use
@@ -38,8 +39,6 @@ Blend per scene via the `archetype` field; see `references/archetypes.md` for th
 | `doc_essay` | Matt Madigan — AI Is Bigger Than Aliens | `#0A0E17` slate + grid | exponential scaling curve, spring-pop milestone badges, glass quote cards, odometer telemetry | 150–165 WPM |
 | `code_report` | Fireship — tech code reports | `#0D1117` IDE dark | 200 OK → 503 DAG cascade, cubic-bezier packet routing, macOS-style diff terminal, trauma shake | 175–195 WPM, tight beats |
 
-### Art direction + platform practice — see `references/storyboard-guide.md`
-Two optional blocks: `style` + `platform` (palettes, captions, safe zones, hook/beat budgets).
 ## Procedure
 
 ### Stage 1 — Investigate & Extract Visual Anchors
@@ -50,7 +49,7 @@ Research the subject **as a producer would**: facts **and** footage. Emit a brie
 python3 scripts/fetch_assets.py --query "<subject>" --out-dir assets --count 3   # --source openverse|commons|inaturalist|all (default: all)
 ```
 
-`fetch_assets.py` searches Openverse (240k+ CC assets), rejects non-remixable licenses (`by-nc*`, `by-nd*`), verifies each file decodes, and writes `assets/manifest.json` with per-image attribution strings — paste those verbatim into storyboard `image` elements. **A subject video with no image of the subject is a failure**; fetch ≥1 photograph unless the format is deliberately typographic-only. Never hotlink images into a render — download and attribute. Pick the format: `1920x1080@30/60` (16:9), `1080x1920` (9:16), or `1080x1080` (1:1); defaults live in `references/ffmpeg-encoding.md`.
+`fetch_assets.py` searches Openverse (240k+ CC assets), rejects non-remixable licenses (`by-nc*`, `by-nd*`), verifies each file decodes, and writes `assets/manifest.json` with per-image attribution strings — paste those verbatim into storyboard `image` elements. **A subject video with no image of the subject is a failure**; fetch ≥1 photograph unless the format is deliberately typographic-only. Never hotlink images into a render — download and attribute. Pick the format: `1920x1080@30/60` (16:9), `1080x1920` (9:16), or `1080x1080` (1:1); defaults live in `references/ffmpeg-encoding.md`. Probe hosts first: `python3 scripts/tool_probe.py --out capabilities.json` (GPU/Blender/Three.js/Chromium/STT-TTS/API keys → JSON; Director Matrix uses it to pick adapter tiers).
 
 ### Stage 2 — Audio-First Timing
 
@@ -61,7 +60,7 @@ python3 scripts/tts_align.py --input script.json --output storyboard.json \
     --voice en-US-ChristopherNeural --aspect 9:16   # add --offline for no-network runs
 ```
 
-This voices each beat (edge-tts when reachable, otherwise a WPM estimate), probes exact durations via ffprobe, and writes `storyboard.json` with per-word syllable-weighted timestamps for karaoke captions. Voice stems land in `audio/` next to the board.
+This voices each beat (edge-tts when reachable, otherwise a WPM estimate), probes exact durations via ffprobe, and writes `storyboard.json` with per-word syllable-weighted timestamps for karaoke captions. Voice stems land in `audio/` next to the board. Multi-voice casting: set `voices: {scene_id: voice}` in script.json — per-scene override beats the script-global voice (CLI `--voice` > script.voice).
 
 ### Stage 3 — Storyboard
 
@@ -80,7 +79,7 @@ python3 scripts/render_engine.py --storyboard storyboard.json --output final.mp4
 python3 scripts/render_engine.py --demo --output demo.mp4                      # bundled 3-archetype showcase (~70s on 4 cores)
 ```
 
-Inspect thumbnails before spending a full render; the bundled demo takes ~60–90 s (draft) on a 4-core CPU. Every frame is drawn at 2x target resolution (e.g. 2560x1440 → 1280x720) and BOX-averaged down (ideal SSAA kernel; ~3× cheaper than LANCZOS at integer scale); RGB-emissive primitives feed a dual-radius Gaussian bloom pyramid computed at half resolution; raw RGB frames pipe directly into ffmpeg (`libx264 -crf 18 -profile:v high -level 4.2 -pix_fmt yuv420p -movflags +faststart`); audio is synthesized offline (just-intonation pad ducked −12 dB under VO, SFX on a frame-accurate timeline, −1 dBFS ceiling) and loudnorm'd to −14 LUFS. After encoding, `verify_output.py` asserts streams, H.264/yuv420p, fps, resolution and ≤150 ms A/V drift — a failed gate exits 3.
+Inspect thumbnails before spending a full render; the bundled demo takes ~60–90 s (draft) on a 4-core CPU. Every frame is drawn at 2x target resolution (e.g. 2560x1440 → 1280x720) and BOX-averaged down (ideal SSAA kernel; ~3× cheaper than LANCZOS at integer scale); RGB-emissive primitives feed a dual-radius Gaussian bloom pyramid computed at half resolution; raw RGB frames pipe directly into ffmpeg (`libx264 -crf 18 -profile:v high -level 4.2 -pix_fmt yuv420p -movflags +faststart`); audio is synthesized offline (just-intonation pad ducked −12 dB under VO, SFX on a frame-accurate timeline, −1 dBFS ceiling) and loudnorm'd to −14 LUFS. After encoding, `verify_output.py` asserts streams, H.264/yuv420p, fps, resolution and ≤150 ms A/V drift — a failed gate exits 3. Run guards after render: `python3 scripts/monetization_gate.py --board storyboard.json --manifest assets/manifest.json --script script.json` — commercial-license firewall (`by-nc*`/`by-nd*`/`pd`/unknown/missing attribution in `assets/manifest.json`), adversarial narration scan (fabricated quotes, defamation, election/medical misinformation → ERROR), static-hold pacing (>3.0 s @9:16 / >6.0 s @16:9 without motion/SFX → ERROR).
 
 ### 3D scene backends (optional, `scene_spec`)
 
@@ -100,9 +99,10 @@ A scene may replace `elements[]` with a `scene_spec` object routing it to a para
 ## Verification
 
 ```bash
-python3 -m pytest tests/ -q                                   # 439 tests
-python3 -m mypy scripts/                                      # strict — must be clean (gate 4/10)
+python3 -m pytest tests/ -q                                    # 476 tests
+python3 -m mypy scripts/                                       # strict — must be clean (gate 4/10)
 python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + QC
+python3 scripts/monetization_gate.py --board storyboard.json --manifest assets/manifest.json --script script.json && python3 scripts/thumbnail_gen.py --storyboard storyboard.json --out publish/thumbnail.jpg   # monetization guards + CTR picker
 ```
 
 ## Gotchas
@@ -115,5 +115,6 @@ python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + Q
 - `references/archetypes.md` + `references/storyboard-guide.md` + `references/ffmpeg-encoding.md` — field guide, element catalog/3D backends/safe zones, encoder reference
 - `scripts/fetch_assets.py` — licensed imagery (Openverse + Commons + iNaturalist; `by`/`by-sa`/`cc0`/`pdm` only), PIL-verified, writes `assets/manifest.json`; `scripts/blender_plate.py` — optional Blender Workbench plates (`earth`/`iceberg`/`ringed`) for the `image` element, exits 2 cleanly when absent
 - `scripts/{scene_router,software_3d_projection,hybrid_compositor,layout_solver,blender_runner,threejs_bridge}.py` + `scripts/threejs/` — scene backends: routing + stdlib 4×4-perspective tracker, SAT-solved HUD cards, headless Three.js WebGL & Blender bakes; `assets/fonts/` — bundled OFL Inter + JetBrains Mono
-- `schemas/{storyboard,script,investigation_brief}.schema.json` — Draft 2020-12 contracts; ADRs 0001 (stdlib+Pillow), 0003 (3D backends), 0004 (Three.js WebGL)
-- `scripts/` — `tts_align.py`, `storyboard.py`, `render_engine.py`, `verify_output.py`, `camera.py`, `canvas.py`, `elements/`, `rig.py`, `easings.py`, `style.py`, `platform_presets.py`, `grade.py`, `composition.py`, `style_lint.py`, `contact_sheet.py`, `publish_kit.py`
+- `schemas/{storyboard,script,investigation_brief}.schema.json` — Draft 2020-12 contracts; ADRs 0001 (stdlib+Pillow), 0003 (3D backends), 0004 (Three.js WebGL). `script.schema.json` accepts `voices` (per-scene cast)
+- `scripts/` — `tts_align.py`, `storyboard.py`, `render_engine.py`, `verify_output.py`, `camera.py`, `canvas.py`, `elements/`, `rig.py`, `easings.py`, `style.py`, `platform_presets.py`, `grade.py`, `composition.py`, `style_lint.py`, `contact_sheet.py`, `publish_kit.py`, `monetization_gate.py`, `thumbnail_gen.py`, `tool_probe.py`
+- Style/platform blocks + genre painters — `references/storyboard-guide.md` (style/platform blocks, six presets, genre painters `ui_mockups`/`maps`, composition anchors, grade pass, Advisor links; comedy=`punchy_pop`, documentary=`noir_restraint`, essay=`soft_clay`, tech=`tech_blueprint`, politics=`newsroom_clean`)

@@ -1,6 +1,6 @@
 # Surgical Media — Project Plan & Task Status
 
-**Version:** 1.5.0 · **Updated:** 2026-11-20 · **Owner:** Evan (TeacherEvan), agent-assisted
+**Version:** 2.2.0 · **Updated:** 2026-11-20 · **Owner:** Evan (TeacherEvan), agent-assisted
 **Contract:** code + `tests/` are the contract; this plan is the living map. Verification is local-first — `bash scripts/ci_gates.sh` green *is* the quality bar ([ADR 0002](adr/0002-local-first-verification.md)).
 
 Docs entrypoint: [`docs/index.md`](index.md) · Human manual: [`README.md`](../README.md) · Agent manifest: [`SKILL.md`](../SKILL.md) · Agent rules: [`AGENTS.md`](../AGENTS.md) · Release history: [`CHANGELOG.md`](../CHANGELOG.md)
@@ -74,6 +74,18 @@ Examples: [`examples/tri_archetype_storyboard.json`](../examples/tri_archetype_s
 | P-06 | markdownlint fails on pre-existing house docs (MD022/MD031/MD034/MD060) | Fix `references/` + `docs/adr/` formatting before ever adding it as a gate | future |
 | P-07 | Blender-path verification is host-dependent | Blender 5.3 present on this host; capability probes in `blender_runner.py` must keep passing on 4.2–4.5/5.x hosts. Measured 2026-11-19 (CPU-only N150): EEVEE bake ≈ 6–10 s/frame — a 45-frame scene takes ~5–8 min, the 3 s hybrid board ~16 min with Blender vs ~2 min software-only. The per-scene bake timeout is 600 s (`render_engine._prerender_blender_plates`); slower scenes fall back to software by design — keep hero scenes short. | agents |
 
+## 3b. Task status — v2.2.0 wave (completed 2026-11-20)
+
+Comedy time: `ui_mockups` painters (`phone_frame`, `swipe_card`, `social_post`, `chat_bubble`, `app_toast` — Horse Tenny genre), `maps` (`paint_map` world clusters + `paint_map_callout` + `paint_map_arrow`) — registered in `RENDERERS` + `KNOWN_ELEMENTS`.
+
+Monetization guards (advisory → blocking where required):
+- `scripts/monetization_gate.py` — `check_board_monetization` (license firewall on `assets/manifest.json`, asset-file existence, adversarial-phrasing scan of script narration, `retention_static_hold` static-hold pacing); wired into `verify_output.py` (`--manifest`/`--script` — ERRORs fail export).
+- `scripts/thumbnail_gen.py` — CTR thumbnail picker (contrast ≥4.5:1 + 168×94 legibility, JPEG < 2 MB).
+- `scripts/tool_probe.py` — host capability probe → `capabilities.json`.
+- Multi-voice casting: `voices` map in `schemas/script.schema.json`, `tts_align` per-scene override (priority: scene override > script.voice > CLI `--voice`).
+
+Suite 302 → 476 tests. Design plans: `docs/plans/implementation_plan2.md` (v2.0.1), monetization gates §"Pillar 3" of the style pass.
+
 ## 4. Invariants (do not regress)
 
 The full list lives in [`AGENTS.md`](../AGENTS.md) → "Hard-won invariants" and [`SKILL.md`](../SKILL.md) → "Hard Invariants". Headlines: audio-first timing; yuv420p or nothing; RGB-only buffers; no NumPy ever; Blender optional, never required; claims = tested code; zero PII; no golden-image tests; open-licensed imagery only (AI generation is not a fallback).
@@ -88,5 +100,5 @@ Single gate detail and the local-first decision: [ADR 0002](adr/0002-local-first
 
 ## 6. Design history (input, not contract)
 
-- [`docs/plans/Conversation with Gemini.txt`](plans/Conversation%20with%20Gemini.txt) — the multi-engine design conversation behind ADR 0003 (NumPy-heavy reference implementation was deliberately NOT adopted; see ADR 0003 Context).
+- `docs/plans/Conversation with Gemini.txt` — deleted 2026-11-20 (raw chat transcripts are not shipped in the skill package; roadmap lives in this doc).
 - `Concept/` — original pipeline design transcript.

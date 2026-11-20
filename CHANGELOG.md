@@ -9,6 +9,25 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 (`bash scripts/ci_gates.sh`) are the enforced standard; the GitLab mirror
 (`.gitlab-ci.yml`) is configured, not verified.
 
+## [v2.2.0]
+
+### Added
+- **Comedy time: `ui_mockups` painters (Horse Tenny/`ref_horse_tinder.json` genre), `maps` (world clusters, `paint_map_callout`, `paint_map_arrow` leader-arrow). Registered in `RENDERERS` + `KNOWN_ELEMENTS`.
+- **Monetization guards (advisory → blocking where required):** `scripts/monetization_gate.py` — commercial-license firewall for `assets/manifest.json` (`LICENSE_ALLOWLIST` + attribution-required), `asset_files_exist` for `image` elements, `adversarial_safe_phrasing` on script narration (fabricated quotes, defamation, election/medical triggers), `retention_static_hold` (ERROR when >3.0 s @9:16 / >6.0 s @16:9 without motion/SFX). Wired into `verify_output.py` via `--manifest`/`--script` (ERRORs fail the export).
+- **CTR thumbnails: `scripts/thumbnail_gen.py`** — renders scene thumbnails, scores by contrast (≥4.5:1 proxy) and 168×94 legibility (non-white fraction), writes best JPEG < 2 MB.
+- **Tool probe: `scripts/tool_probe.py`** — host capability probe (local GPU, Blender, Three.js/Chromium, local STT/TTS, API-key presence) → `capabilities.json`; drives the "use all available tools" tier decision.
+- **Multi-voice casting:** `voices` map in `schemas/script.schema.json` + `tts_align.py` per-scene voice override (priority: scene override > script.voice > CLI --voice).
+
+### Changed
+- `SKILL.md` ≤120 (v2.2.0, new pipeline stages, guards in Verification, genre painter catalog, topic→preset table); `references/storyboard-guide.md` gains genre-painter chapter (`ui_mockups`, `maps`).
+- `docs/project-plan.md` quotes: 476 tests, 10 gates.
+
+### Fixed
+- `tests/test_verify_output.py` — no new tests; existing suite adapted for new wiring (`--manifest/--script`).
+
+### Docs
+- New boards `examples/ref_*` already in v2.0.1 are now at 100/100 on `style_lint` (horse card uses `&#183;`, not `&middot;`).
+
 ## [v2.0.1]
 
 ### Added
