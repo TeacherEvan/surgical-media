@@ -27,7 +27,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from PIL import Image
 
@@ -39,10 +39,11 @@ MOBILE_FEED_WIDTH = 168  # vertical/square feed width proxy
 
 
 def _frame_contrast(im: Image.Image) -> float:
-    px = list(im.convert("L").getdata())
-    if not px:
+    if im.width == 0 or im.height == 0:
         return 0.0
-    return float(max(px) - min(px)) / 255.0
+    extrema = im.convert("L").getextrema()  # single band -> (min, max)
+    lo, hi = cast("tuple[int, int]", extrema)
+    return float(hi - lo) / 255.0
 
 
 def _frame_legibility(im: Image.Image) -> float:

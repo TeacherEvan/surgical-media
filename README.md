@@ -1,4 +1,4 @@
-# Surgical Media (`v2.2.0`)
+# Surgical Media (`v2.3.0`)
 
 **Deterministic, QC-gated pipeline for turning a topic prompt into a social-ready MP4 — research brief, audio-first timing, storyboard, 2x-supersampled Pillow rendering, ffmpeg H.264/AAC master, ffprobe verification.**
 
