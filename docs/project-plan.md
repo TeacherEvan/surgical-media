@@ -86,7 +86,21 @@ Monetization guards (advisory → blocking where required):
 
 Suite 302 → 476 tests. Design plans: `docs/plans/implementation_plan2.md` (v2.0.1), monetization gates §"Pillar 3" of the style pass.
 
+## 3c. Task status — 3.0 wave (Wave 0 + Wave 1, 2026-11-21)
+
+Source proposal: [`plans/Surgical_Media_3.0_Master_Implementation_Plan.md`](plans/Surgical_Media_3.0_Master_Implementation_Plan.md) · decisions: [ADR 0005](adr/0005-production-job-layer.md) · audit: [`audits/initial-baseline.md`](audits/initial-baseline.md) · usage: [`references/job-workflow.md`](../references/job-workflow.md).
+
+| ID | Item | Status | Evidence |
+| :-- | :-- | :-- | :-- |
+| SM30-001/003/004/005 | Repo inventory, interface map, baseline, security review | Done | `docs/audits/initial-baseline.md` |
+| SM30-002 | Reconcile test-count claims | Done (476 before, 514 after; 11/11 gates green) | audit doc |
+| SM30-006/007 | Job contract + ADR | Done | `schemas/production_job.schema.json`, ADR 0005 |
+| SM30-010/012/013/014 | Job model, persistence, validation, CLI, idempotency/recovery | Done | `scripts/job_model.py`, `job_store.py`, `job_cli.py`, `tests/test_job_layer.py` |
+| SM30-011/015 | Production Director + topic→storyboard→render flow | Done (agent step is file hand-off) | `scripts/job_director.py` |
+| SM30-020…055 | Research/claims, Audio/Visual Directors, providers, visual QA, originality, editorial, publishing adapters, analytics | **Deferred** (Waves 2–5) | master plan §9 |
+
 ## 4. Invariants (do not regress)
+
 
 The full list lives in [`AGENTS.md`](../AGENTS.md) → "Hard-won invariants" and [`SKILL.md`](../SKILL.md) → "Hard Invariants". Headlines: audio-first timing; yuv420p or nothing; RGB-only buffers; no NumPy ever; Blender optional, never required; claims = tested code; zero PII; no golden-image tests; open-licensed imagery only (AI generation is not a fallback).
 

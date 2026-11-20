@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0.0",
+  "topic": "Horse Tenny's disastrous first date",
+  "profile": "comedy",
+  "audience": "general",
+  "language": "en",
+  "target_duration_seconds": 45,
+  "platforms": ["shorts_tiktok_reels"],
+  "approval_policy": "human_before_export",
+  "budget": { "currency": "USD", "maximum_cost": 0 },
+  "creative_constraints": { "tone": "playful", "fictional_content": true }
+}

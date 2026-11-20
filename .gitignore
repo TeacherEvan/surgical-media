@@ -31,3 +31,6 @@ render_final.log
 thumbs_contact.jpg
 contact_sheet.jpg
 *.thumbnail.jpg
+
+# production-job workspaces (runtime state, never commit)
+/jobs/

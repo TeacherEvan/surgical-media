@@ -9,6 +9,18 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 (`bash scripts/ci_gates.sh`) are the enforced standard; the GitLab mirror
 (`.gitlab-ci.yml`) is configured, not verified.
 
+## [Unreleased]
+
+### Added
+- 3.0 production-job layer (Wave 0/1): `scripts/job_model.py`, `job_store.py`,
+  `job_director.py`, `job_cli.py`; `schemas/production_job.schema.json`;
+  `examples/jobs/horse_tenny.json`; `tests/test_job_layer.py`; ADR 0005;
+  `docs/audits/initial-baseline.md`; `references/job-workflow.md`.
+- Gate 11/11: production-job examples validate (schema + runtime).
+
+### Changed
+- `ci_gates.sh` gate labels corrected (`x/9` → `x/11`); `jobs/` gitignored.
+
 ## [v2.2.0]
 
 ### Added

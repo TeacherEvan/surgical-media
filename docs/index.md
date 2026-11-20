@@ -14,6 +14,14 @@ Entrypoint for surgical-media docs. The contract is code + `tests/`; these docum
 - [`adr/0003-optional-3d-scene-backends.md`](adr/0003-optional-3d-scene-backends.md) — `scene_spec` routing, software 3D canonical, Blender optional; license footprint note
 - [`adr/0004-optional-threejs-webgl-backend.md`](adr/0004-optional-threejs-webgl-backend.md) — optional headless Three.js WebGL backend (`threejs_hybrid`/`threejs_3d`, Node ≥ 22 native CDP, local `three`, Z-up camera parity, `network_topology_3d`)
 
+- [`adr/0005-production-job-layer.md`](adr/0005-production-job-layer.md) — 3.0 job layer (flat `scripts/job_*.py`, file-based agent contract, prepare-never-publish, human approval bound to video hash)
+
+## 3.0 wave
+
+- [`audits/initial-baseline.md`](audits/initial-baseline.md) — Wave 0 audit (capability inventory, measured baseline)
+- [`plans/Surgical_Media_3.0_Master_Implementation_Plan.md`](plans/Surgical_Media_3.0_Master_Implementation_Plan.md) — proposal (Waves 2–5 deferred)
+- [`../references/job-workflow.md`](../references/job-workflow.md) — CLI + lifecycle
+
 ## Design history (input, not contract)
 
 - [`plans/Conversation with Gemini.txt`](plans/Conversation%20with%20Gemini.txt) — multi-engine design conversation behind ADR 0003
