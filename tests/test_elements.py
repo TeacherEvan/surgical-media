@@ -14,7 +14,8 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import elements
-from canvas import SupersampledCanvas, get_font, layout_zones
+from camera import WorldCamera2D
+from canvas import SupersampledCanvas, get_font, layout_zones, rgb
 from elements import ElementContext, render_element
 
 W, H = 220, 390  # 9:16-ish, small for speed
@@ -124,6 +125,22 @@ PAINTER_ELEMENTS = {
             {"id": "ex2", "role": "exchange", "label": "RELAY-2", "x": 170, "y": 300},
         ],
     },
+    # personality painters (scripts/elements/visual.py)
+    "orb_pulse": {"type": "orb_pulse", "radius": 40},
+    "dot_field": {"type": "dot_field", "n": 8, "radius": 3},
+    "orbit_ring": {"type": "orbit_ring", "radius": 40, "n": 6, "size": 4},
+    "equalizer": {"type": "equalizer", "n": 8, "bar_width": 6, "peak": 150},
+    "typewriter_text": {
+        "type": "typewriter_text",
+        "text": "hello world",
+        "start": -0.2,
+        "size": 14,
+    },
+    "leader_arrow": {
+        "type": "leader_arrow",
+        "points": [[20, 195], [180, 90]],
+        "speed": 1.0,
+    },
 }
 
 
@@ -137,7 +154,20 @@ def test_painter_never_crashes_across_timeline(etype, t, local_time):
 
 
 @pytest.mark.parametrize(
-    "etype", ["background", "grid", "hud_badge", "quote_card", "code_terminal"]
+    "etype",
+    [
+        "background",
+        "grid",
+        "hud_badge",
+        "quote_card",
+        "code_terminal",
+        "orb_pulse",
+        "dot_field",
+        "orbit_ring",
+        "equalizer",
+        "typewriter_text",
+        "leader_arrow",
+    ],
 )
 def test_painter_actually_paints_pixels(etype):
     before, after = _bytes_after(
@@ -200,3 +230,53 @@ def test_image_painter_paints_real_plate(tmp_path):
         )
     )
     assert before != after
+
+
+def test_gradient_and_vignette_masks_are_cached():
+    """paint_background rebuilds gradient/vignette per frame — now cached."""
+    from elements.scenes import _render_gradient, _vignette_mask
+
+    g1 = _render_gradient((W, H), ("#111C31", "#1D2740", "#0E1421"), "vertical")
+    g2 = _render_gradient((W, H), ("#111C31", "#1D2740", "#0E1421"), "vertical")
+    assert g2 is g1, "identical gradient params must share the cached mask"
+    assert _render_gradient((W, H), ("#111C31", "#1D2740"), "horizontal") is not g1
+    v1 = _vignette_mask((W, H), 0.9, rgb("#DFCFC0"))
+    v2 = _vignette_mask((W, H), 0.9, rgb("#DFCFC0"))
+    assert v2 is v1, "identical vignette params must share the cached mask"
+    assert _vignette_mask((W, H), 0.5, rgb("#DFCFC0")) is not v1
+
+
+def test_quote_card_translucent_card_text_is_camera_independent():
+    """With alpha < 1 the soft-pill card is pasted at design coords; its text
+    must not drift under a world camera — identity and zoomed renders have
+    the same light-ink bbox."""
+    box = (80, 120, 640, 420)
+    el = {
+        "type": "quote_card",
+        "quote": "Measured card.",
+        "attribution": "— E",
+        "alpha": 0.5,
+        "box": box,
+    }
+
+    def ink_bbox(cam):
+        cv = _canvas()
+        cv.camera = cam
+        render_element(cv, dict(el), _ctx(0.5, 0.5))
+        if cam is not None:
+            assert cv.camera is cam, "camera must be restored after the card"
+        px = cv.final().convert("RGB").load()
+        xs, ys = [], []
+        for y in range(H):
+            for x in range(W):
+                if sum(px[x, y]) > 300:  # INK + GOLD + attribution DIM
+                    xs.append(x)
+                    ys.append(y)
+        assert xs, "quote card drew no light-ink pixels"
+        return min(xs), min(ys), max(xs), max(ys)
+
+    b_id = ink_bbox(None)
+    b_zoom = ink_bbox(WorldCamera2D(W, H, zoom_start=1.6))
+    assert all(abs(a - b) <= 2 for a, b in zip(b_id, b_zoom)), (
+        f"translucent card text drifted under camera: identity={b_id}, zoom={b_zoom}"
+    )

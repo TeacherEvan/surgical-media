@@ -131,6 +131,15 @@
               "zoom_end": { "type": "number", "minimum": 1.0, "maximum": 10.0 },
               "pan_x": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
               "pan_y": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+              "mode": { "type": "string", "enum": ["zoom", "orbit", "static"], "default": "zoom", "description": "zoom: zoom_start→zoom_end through easing (default). orbit: center moves around pivot by orbit radius. static: zoom frozen at zoom_start; shake still applies." },
+              "pivot_x": { "type": "number", "minimum": 0.0, "maximum": 1.0, "description": "orbit mode only; pivot point as fraction of canvas width" },
+              "pivot_y": { "type": "number", "minimum": 0.0, "maximum": 1.0, "description": "orbit mode only; pivot point as fraction of canvas height" },
+              "orbit_radius_start": { "type": "number", "minimum": 0.5, "maximum": 100.0, "description": "orbit mode only; orbit radius in design px" },
+              "orbit_radius_end": { "type": "number", "minimum": 0.5, "maximum": 100.0, "description": "orbit mode only; defaults to orbit_radius_start" },
+              "azimuth_start_deg": { "type": "number", "minimum": -360.0, "maximum": 360.0, "description": "orbit mode only; initial polar angle in design space" },
+              "azimuth_end_deg": { "type": "number", "minimum": -360.0, "maximum": 360.0, "description": "orbit mode only; final polar angle; defaults to azimuth_start_deg" },
+              "orbit_easing": { "type": "string", "enum": ["linear", "ease_out_expo", "ease_in_out_cubic", "ease_in_out_sine", "ease_out_back", "spring_pop"], "description": "orbit mode only; defaults to the camera's easing" },
+              "elevation_deg": { "type": "number", "minimum": -90.0, "maximum": 90.0, "description": "orbit mode only; vertical offset of the orbit above the pivot" },
               "easing": { "type": "string", "enum": ["linear", "ease_out_expo", "ease_in_out_cubic", "ease_in_out_sine", "ease_out_back", "spring_pop"] },
               "shake_amplitude_px": { "type": "number", "minimum": 0.0, "maximum": 80.0 }
             }

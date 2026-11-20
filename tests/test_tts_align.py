@@ -1,7 +1,15 @@
+import argparse
 import json
 
 import pytest
-from tts_align import align_words, estimate_duration, syllable_count, word_weight
+from tts_align import (
+    align_words,
+    estimate_duration,
+    syllable_count,
+    validate_pitch,
+    validate_rate,
+    word_weight,
+)
 
 
 def test_syllable_count_basic():
@@ -132,3 +140,25 @@ def test_word_boundaries_from_events_skips_empty_tokens():
             "end": pytest.approx(1.0, abs=1e-3),
         }
     ]
+
+
+@pytest.mark.parametrize("rate", ["+0%", "-12%", "+50%"])
+def test_validate_rate_accepts_edge_tts_form(rate):
+    assert validate_rate(rate) == rate
+
+
+@pytest.mark.parametrize("rate", ["12%", "+12", "x", "+12%%", "", "+Hz"])
+def test_validate_rate_rejects_bad_form(rate):
+    with pytest.raises(argparse.ArgumentTypeError):
+        validate_rate(rate)
+
+
+@pytest.mark.parametrize("pitch", ["+0Hz", "-2Hz", "+5Hz"])
+def test_validate_pitch_accepts_edge_tts_form(pitch):
+    assert validate_pitch(pitch) == pitch
+
+
+@pytest.mark.parametrize("pitch", ["2Hz", "+2", "0", "-Hz", ""])
+def test_validate_pitch_rejects_bad_form(pitch):
+    with pytest.raises(argparse.ArgumentTypeError):
+        validate_pitch(pitch)

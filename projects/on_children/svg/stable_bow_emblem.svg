@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <defs>
+    <radialGradient id="sunsetHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFBF2" stop-opacity="0.92"/>
+      <stop offset="48%" stop-color="#F6DDD0" stop-opacity="0.48"/>
+      <stop offset="100%" stop-color="#FAF3EB" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="goldBow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#DFBE80"/>
+      <stop offset="50%" stop-color="#BD8C4D"/>
+      <stop offset="100%" stop-color="#D7B270"/>
+    </linearGradient>
+    <linearGradient id="sageEmblem" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B9CEB9"/>
+      <stop offset="100%" stop-color="#809A84"/>
+    </linearGradient>
+    <filter id="blurMed" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+  </defs>
+
+  <!-- Soft golden-rose watercolor halo -->
+  <circle cx="640" cy="285" r="220" fill="url(#sunsetHalo)" filter="url(#blurMed)"/>
+
+  <!-- Fine double halo ring -->
+  <circle cx="640" cy="285" r="168" fill="none" stroke="#CEAB70" stroke-opacity="0.52" stroke-width="1.4"/>
+  <circle cx="640" cy="285" r="154" fill="none" stroke="#DEC7A6" stroke-opacity="0.34" stroke-width="1.0"/>
+
+  <!-- Graceful stable recurve bow & sunlit arrow emblem -->
+  <g transform="translate(640, 285)">
+    <!-- Bow limbs -->
+    <path d="M -42,-132 C 18,-102 48,-46 48,0 C 48,46 18,102 -42,132" fill="none" stroke="url(#goldBow)" stroke-width="6.5" stroke-linecap="round"/>
+    <path d="M -42,-132 C -50,-138 -56,-146 -50,-152" fill="none" stroke="url(#goldBow)" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M -42,132 C -50,138 -56,146 -50,152" fill="none" stroke="url(#goldBow)" stroke-width="4.5" stroke-linecap="round"/>
+    <!-- Taut golden bowstring -->
+    <line x1="-46" y1="-142" x2="-46" y2="142" stroke="#CBA466" stroke-opacity="0.72" stroke-width="1.6"/>
+    <!-- Delicate soaring arrow pointing gracefully upward-right -->
+    <g transform="rotate(-14)">
+      <line x1="-88" y1="0" x2="132" y2="0" stroke="#B68249" stroke-width="2.6" stroke-linecap="round"/>
+      <polygon points="146,0 124,-8 130,0 124,8" fill="#C69454"/>
+      <path d="M -88,0 L -108,-11 L -96,0 L -108,11 Z" fill="#E3B3A3"/>
+    </g>
+
+    <!-- Entwining olive leaves along the stable bow -->
+    <path d="M 38,-56 C 64,-74 88,-60 76,-38 C 60,-34 46,-42 38,-56 Z" fill="url(#sageEmblem)" opacity="0.88"/>
+    <path d="M 46,-14 C 78,-22 96,2 78,18 C 62,16 50,4 46,-14 Z" fill="url(#sageEmblem)" opacity="0.85"/>
+    <path d="M 36,48 C 68,46 84,72 62,84 C 46,78 38,64 36,48 Z" fill="url(#sageEmblem)" opacity="0.88"/>
+    <path d="M 8,-96 C 28,-122 56,-116 48,-92 C 34,-84 18,-86 8,-96 Z" fill="url(#sageEmblem)" opacity="0.84"/>
+    <path d="M 8,96 C 28,122 56,116 48,92 C 34,84 18,86 8,96 Z" fill="url(#sageEmblem)" opacity="0.84"/>
+
+    <!-- Tiny blossom buds -->
+    <circle cx="48" cy="-32" r="5" fill="#F4C7BA"/>
+    <circle cx="42" cy="28" r="4.8" fill="#F4C7BA"/>
+    <circle cx="22" cy="-74" r="4.2" fill="#E3C17C"/>
+    <circle cx="22" cy="74" r="4.2" fill="#E3C17C"/>
+  </g>
+
+  <rect x="44" y="36" width="1192" height="648" rx="18" fill="none" stroke="#CBB59B" stroke-opacity="0.34" stroke-width="1.2"/>
+</svg>

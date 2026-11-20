@@ -78,13 +78,16 @@ def prerender_threejs_scene(
     *,
     base_dir: Path | str | None = None,
     frame_t: float | None = None,
-    timeout: int = 240,
+    timeout: int | None = None,
 ) -> Path | None:
     """Pre-render a single scene_spec via headless Three.js; return ``plate_dir`` or ``None``."""
     node_bin = str(probe.get("node_binary") or "node")
     browser_bin = str(probe.get("browser_binary") or "")
     three_mod = str(probe.get("three_module") or "")
     runner = str(probe.get("runner_script") or (SCRIPT_DIR / "threejs" / "runner.mjs"))
+    eff_timeout = (
+        int(timeout) if timeout is not None else max(240, int(n_frames * 1.5) + 90)
+    )
 
     if not browser_bin or not three_mod:
         print(
@@ -127,7 +130,7 @@ def prerender_threejs_scene(
         result = subprocess.run(
             argv,
             check=False,
-            timeout=timeout,
+            timeout=eff_timeout,
             capture_output=True,
         )
     except Exception as exc:  # noqa: BLE001 — timeout/OSError → software fallback

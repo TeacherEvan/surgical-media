@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <defs>
+    <radialGradient id="haloWarm" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFDF8" stop-opacity="0.90"/>
+      <stop offset="52%" stop-color="#F7E4D8" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#FAF3EB" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="eucLeaf" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C6DACB"/>
+      <stop offset="100%" stop-color="#8FA897"/>
+    </linearGradient>
+    <linearGradient id="roseBud" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBE4DC"/>
+      <stop offset="100%" stop-color="#DFA598"/>
+    </linearGradient>
+    <linearGradient id="lavSprig" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E2D9EE"/>
+      <stop offset="100%" stop-color="#B8A9CE"/>
+    </linearGradient>
+    <filter id="glowSoft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+
+  <!-- Warm luminous center medallion wash -->
+  <circle cx="640" cy="295" r="228" fill="url(#haloWarm)" filter="url(#glowSoft)"/>
+
+  <!-- Fine double gilded botanical wreath ring -->
+  <circle cx="640" cy="295" r="176" fill="none" stroke="#CCA66B" stroke-opacity="0.62" stroke-width="1.6"/>
+  <circle cx="640" cy="295" r="185" fill="none" stroke="#D5BFA2" stroke-opacity="0.38" stroke-width="1.0" stroke-dasharray="6 8"/>
+
+  <!-- Left botanical wreath cluster (eucalyptus, blush rosebuds, lavender) -->
+  <g transform="translate(640, 295)">
+    <!-- Left curving stem -->
+    <path d="M -92,150 C -168,108 -198,12 -162,-82 C -144,-128 -106,-162 -60,-174" fill="none" stroke="#9B8778" stroke-width="2.2" stroke-linecap="round"/>
+    <!-- Right curving stem -->
+    <path d="M 92,150 C 168,108 198,12 162,-82 C 144,-128 106,-162 60,-174" fill="none" stroke="#9B8778" stroke-width="2.2" stroke-linecap="round"/>
+
+    <!-- Eucalyptus & sage leaves left -->
+    <ellipse cx="-164" cy="78" rx="18" ry="30" transform="rotate(-38 -164 78)" fill="url(#eucLeaf)" opacity="0.88"/>
+    <ellipse cx="-192" cy="18" rx="17" ry="28" transform="rotate(-12 -192 18)" fill="url(#eucLeaf)" opacity="0.85"/>
+    <ellipse cx="-178" cy="-46" rx="16" ry="28" transform="rotate(24 -178 -46)" fill="url(#eucLeaf)" opacity="0.88"/>
+    <ellipse cx="-138" cy="-112" rx="15" ry="26" transform="rotate(46 -138 -112)" fill="url(#eucLeaf)" opacity="0.82"/>
+    <ellipse cx="-122" cy="128" rx="16" ry="26" transform="rotate(-64 -122 128)" fill="url(#eucLeaf)" opacity="0.84"/>
+
+    <!-- Eucalyptus & sage leaves right -->
+    <ellipse cx="164" cy="78" rx="18" ry="30" transform="rotate(38 164 78)" fill="url(#eucLeaf)" opacity="0.88"/>
+    <ellipse cx="192" cy="18" rx="17" ry="28" transform="rotate(12 192 18)" fill="url(#eucLeaf)" opacity="0.85"/>
+    <ellipse cx="178" cy="-46" rx="16" ry="28" transform="rotate(-24 178 -46)" fill="url(#eucLeaf)" opacity="0.88"/>
+    <ellipse cx="138" cy="-112" rx="15" ry="26" transform="rotate(-46 138 -112)" fill="url(#eucLeaf)" opacity="0.82"/>
+    <ellipse cx="122" cy="128" rx="16" ry="26" transform="rotate(64 122 128)" fill="url(#eucLeaf)" opacity="0.84"/>
+
+    <!-- Lavender accents -->
+    <g fill="url(#lavSprig)" opacity="0.85">
+      <ellipse cx="-148" cy="46" rx="7" ry="12" transform="rotate(-25 -148 46)"/>
+      <ellipse cx="-154" cy="-16" rx="7" ry="12" transform="rotate(14 -154 -16)"/>
+      <ellipse cx="148" cy="46" rx="7" ry="12" transform="rotate(25 148 46)"/>
+      <ellipse cx="154" cy="-16" rx="7" ry="12" transform="rotate(-14 154 -16)"/>
+    </g>
+
+    <!-- Blush rosebuds -->
+    <g transform="translate(-174, 42)">
+      <circle cx="0" cy="0" r="14" fill="url(#roseBud)"/>
+      <circle cx="-3" cy="-3" r="6" fill="#FFF3EC" opacity="0.65"/>
+    </g>
+    <g transform="translate(174, 42)">
+      <circle cx="0" cy="0" r="14" fill="url(#roseBud)"/>
+      <circle cx="3" cy="-3" r="6" fill="#FFF3EC" opacity="0.65"/>
+    </g>
+    <g transform="translate(-146, -86) scale(0.82)">
+      <circle cx="0" cy="0" r="14" fill="url(#roseBud)"/>
+      <circle cx="-2" cy="-2" r="5" fill="#FFF3EC" opacity="0.65"/>
+    </g>
+    <g transform="translate(146, -86) scale(0.82)">
+      <circle cx="0" cy="0" r="14" fill="url(#roseBud)"/>
+      <circle cx="2" cy="-2" r="5" fill="#FFF3EC" opacity="0.65"/>
+    </g>
+
+    <!-- Delicate dandelion/thistle seeds floating free across the center -->
+    <g stroke="#9D836E" stroke-width="1.35" stroke-linecap="round" fill="none" opacity="0.82">
+      <!-- Seed 1 -->
+      <g transform="translate(-52, 22) rotate(-24)">
+        <line x1="0" y1="0" x2="0" y2="34"/>
+        <ellipse cx="0" cy="36" rx="2.5" ry="5" fill="#A68267" stroke="none"/>
+        <path d="M 0,0 L -18,-14 M 0,0 L -10,-20 M 0,0 L 0,-22 M 0,0 L 10,-20 M 0,0 L 18,-14"/>
+      </g>
+      <!-- Seed 2 -->
+      <g transform="translate(14, -26) rotate(16) scale(1.15)">
+        <line x1="0" y1="0" x2="0" y2="36"/>
+        <ellipse cx="0" cy="38" rx="2.6" ry="5.2" fill="#A68267" stroke="none"/>
+        <path d="M 0,0 L -18,-14 M 0,0 L -10,-20 M 0,0 L 0,-22 M 0,0 L 10,-20 M 0,0 L 18,-14"/>
+      </g>
+      <!-- Seed 3 -->
+      <g transform="translate(88, -68) rotate(32) scale(0.88)">
+        <line x1="0" y1="0" x2="0" y2="32"/>
+        <ellipse cx="0" cy="34" rx="2.2" ry="4.5" fill="#A68267" stroke="none"/>
+        <path d="M 0,0 L -16,-13 M 0,0 L -8,-18 M 0,0 L 0,-20 M 0,0 L 8,-18 M 0,0 L 16,-13"/>
+      </g>
+      <!-- Seed 4 drifting out past the wreath -->
+      <g transform="translate(248, -118) rotate(40) scale(0.76)" opacity="0.65">
+        <line x1="0" y1="0" x2="0" y2="30"/>
+        <ellipse cx="0" cy="32" rx="2.2" ry="4.2" fill="#A68267" stroke="none"/>
+        <path d="M 0,0 L -15,-12 M 0,0 L -7,-17 M 0,0 L 0,-19 M 0,0 L 7,-17 M 0,0 L 15,-12"/>
+      </g>
+    </g>
+
+    <!-- Warm champagne-gold shimmer specks -->
+    <g fill="#D5AE6B" opacity="0.72">
+      <circle cx="-86" cy="-42" r="2.8"/>
+      <circle cx="64" cy="48" r="2.4"/>
+      <circle cx="118" cy="-16" r="2.2"/>
+      <circle cx="-18" cy="84" r="2.0"/>
+      <circle cx="212" cy="-78" r="2.6"/>
+    </g>
+  </g>
+
+  <rect x="44" y="36" width="1192" height="648" rx="18" fill="none" stroke="#CBB59B" stroke-opacity="0.34" stroke-width="1.2"/>
+</svg>

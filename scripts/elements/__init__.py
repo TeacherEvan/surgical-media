@@ -27,6 +27,14 @@ from elements.media import paint_image
 from elements.scenes import paint_background, paint_grid
 from elements.svg import paint_svg
 from elements.text import paint_hud_badge, paint_kinetic_captions, paint_quote_card
+from elements.visual import (
+    paint_dot_field,
+    paint_equalizer,
+    paint_leader_arrow,
+    paint_orb_pulse,
+    paint_orbit_ring,
+    paint_typewriter_text,
+)
 
 if TYPE_CHECKING:
     from canvas import SupersampledCanvas
@@ -40,10 +48,15 @@ __all__ = [
     "_wrap_text",
     "paint_background",
     "paint_code_terminal",
+    "paint_dot_field",
+    "paint_equalizer",
     "paint_grid",
     "paint_hud_badge",
     "paint_image",
     "paint_kinetic_captions",
+    "paint_leader_arrow",
+    "paint_orb_pulse",
+    "paint_orbit_ring",
     "paint_phi_divider",
     "paint_quote_card",
     "paint_scaling_chart",
@@ -51,6 +64,7 @@ __all__ = [
     "paint_svg",
     "paint_system_architecture",
     "paint_tesseract",
+    "paint_typewriter_text",
     "render_element",
 ]
 
@@ -82,4 +96,11 @@ RENDERERS = {
     "stick_rig": paint_stick_rig,
     "image": paint_image,
     "svg": paint_svg,
+    # personality painters (visual.py) — motion by local_time, fully deterministic
+    "orb_pulse": paint_orb_pulse,
+    "dot_field": paint_dot_field,
+    "orbit_ring": paint_orbit_ring,
+    "equalizer": paint_equalizer,
+    "typewriter_text": paint_typewriter_text,
+    "leader_arrow": paint_leader_arrow,
 }

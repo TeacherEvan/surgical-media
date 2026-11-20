@@ -1,7 +1,7 @@
 ---
 name: surgical-media
 description: "Use when creating, planning, or rendering social video from a topic prompt."
-version: 1.4.0
+version: 1.5.0
 author: "TeacherEvan, Hermes Agent"
 license: MIT
 platforms: [linux, macos]
@@ -13,9 +13,9 @@ metadata:
     related_skills: [video-production-pipeline, surgical-orchestration, surgical-audit]
 ---
 
-# Surgical Media (v1.4.0)
+# Surgical Media (v1.5.0)
 
-Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow + SVG 2.0 rendering (plus optional Three.js WebGL Studio / Blender 3D passes) → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 329 tests including rendered-MP4, Three.js IBL/bloom/SVG-3D/custom-script, and Chromium SVG 2.0 passes).
+Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow + SVG 2.0 rendering (plus optional Three.js WebGL Studio / Blender 3D passes) → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 395 tests including rendered-MP4, Three.js IBL/bloom/SVG-3D/custom-script, and Chromium SVG 2.0 passes).
 
 ## When to Use
 
@@ -64,7 +64,7 @@ This voices each beat (edge-tts when reachable, otherwise a WPM estimate), probe
 
 ### Stage 3 — Storyboard
 
-Edit `storyboard.json` (schema: `schemas/storyboard.schema.json`, checked by `scripts/storyboard.py`). Every scene requires `scene_id`, `archetype`, `duration_sec`, and `elements[]` — unless it carries a `scene_spec` (see "3D scene backends"). Elements render in array order: `background`, `grid`, `scaling_chart`, `phi_divider`, `tesseract`, `system_architecture`, `code_terminal`, `quote_card`, `hud_badge`, `stick_rig`, `kinetic_captions`, `image`, `svg` (catalog with parameters: `references/storyboard-guide.md`). Keep visual beats ≤3.0 s — split longer clauses into sub-beats.
+Edit `storyboard.json` (schema: `schemas/storyboard.schema.json`, checked by `scripts/storyboard.py`). Every scene requires `scene_id`, `archetype`, `duration_sec`, and `elements[]` — unless it carries a `scene_spec` (see "3D scene backends"). Elements render in array order: `background`, `grid`, `scaling_chart`, `phi_divider`, `tesseract`, `system_architecture`, `code_terminal`, `quote_card`, `hud_badge`, `stick_rig`, `kinetic_captions`, `image`, `svg`, and the personality painters `orb_pulse`, `dot_field`, `orbit_ring`, `equalizer`, `typewriter_text`, `leader_arrow` (catalog + visual grammar + recipe cards: `references/storyboard-guide.md`; persona overlays: `references/archetypes.md`). Keep visual beats ≤3.0 s — split longer clauses into sub-beats. Visual quality checklist (one hero per scene, no dead frames, payload on top): `references/storyboard-guide.md`.
 
 ```bash
 python3 scripts/storyboard.py storyboard.json          # validate only
@@ -99,7 +99,7 @@ A scene may replace `elements[]` with a `scene_spec` object routing it to a para
 ## Verification
 
 ```bash
-python3 -m pytest tests/ -q                                   # 329 tests
+python3 -m pytest tests/ -q                                   # 395 tests
 python3 -m mypy scripts/                                      # strict — must be clean (gate 4/9)
 python3 scripts/threejs_bridge.py --check                     # optional Three.js runtime probe
 python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + QC

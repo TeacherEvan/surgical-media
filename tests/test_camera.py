@@ -62,3 +62,66 @@ def test_invalid_camera_rejected():
         WorldCamera2D(1280, 720, zoom_start=0.5)
     with pytest.raises(ValueError):
         WorldCamera2D(1280, 720, pan_x=1.5)
+
+
+# ---------------------------------------------------------------------------
+# orbit mode
+# ---------------------------------------------------------------------------
+
+
+def test_orbit_mode_advances_around_pivot():
+    cam = WorldCamera2D(
+        1920,
+        1080,
+        mode="orbit",
+        pivot_x=0.5,
+        pivot_y=0.5,
+        orbit_radius_start=50.0,
+        orbit_radius_end=50.0,
+        azimuth_start_deg=-30.0,
+        azimuth_end_deg=90.0,
+        orbit_easing="linear",
+    )
+    cx0, cy0 = cam.center_at(0.0)
+    assert cx0 == pytest.approx(960.0 + 50.0 * math.cos(math.radians(-30)))
+    assert cy0 == pytest.approx(540.0 + 50.0 * math.sin(math.radians(-30)))
+    cx1, cy1 = cam.center_at(1.0)
+    assert cx1 == pytest.approx(960.0 + 50.0 * math.cos(math.radians(90)))
+    assert cy1 == pytest.approx(540.0 + 50.0 * math.sin(math.radians(90)))
+
+
+def test_orbit_apply_matches_center_at():
+    cam = WorldCamera2D(
+        1280,
+        720,
+        mode="orbit",
+        pivot_x=0.4,
+        pivot_y=0.6,
+        orbit_radius_start=70.0,
+        azimuth_start_deg=10.0,
+        azimuth_end_deg=190.0,
+    )
+    t = 0.35
+    cx, cy = cam.center_at(t)
+    sx, sy = cam.apply(500.0, 400.0, t)
+    assert sx == pytest.approx((500.0 - cx) * cam.zoom_at(t) + 640.0)
+    assert sy == pytest.approx((400.0 - cy) * cam.zoom_at(t) + 360.0)
+
+
+def test_static_mode_freezes_zoom():
+    cam = WorldCamera2D(1280, 720, mode="static", zoom_start=1.2, zoom_end=2.5)
+    assert cam.zoom_at(0.0) == pytest.approx(1.2)
+    assert cam.zoom_at(0.5) == pytest.approx(1.2)
+    assert cam.zoom_at(1.0) == pytest.approx(1.2)
+    sx, sy = cam.apply(300.0, 300.0, 0.0)
+    assert sx == pytest.approx(232.0)
+    assert sy == pytest.approx(288.0)
+
+
+def test_orbit_invalid_params_rejected():
+    with pytest.raises(ValueError):
+        WorldCamera2D(1280, 720, mode="orbit", orbit_radius_start=0.1)
+    with pytest.raises(ValueError):
+        WorldCamera2D(1280, 720, mode="orbit", pivot_x=1.5)
+    with pytest.raises(ValueError):
+        WorldCamera2D(1280, 720, mode="spin")

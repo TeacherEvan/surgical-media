@@ -90,6 +90,22 @@ _FONT_MONO_CANDIDATES = [
     "/System/Library/Fonts/Menlo.ttc",
     "C:/Windows/Fonts/consola.ttf",
 ]
+_FONT_SERIF_CANDIDATES = [
+    str(_BUNDLED_FONTS / "CormorantGaramond-Regular.ttf"),
+    "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
+    "/System/Library/Fonts/Supplemental/Georgia.ttf",
+    "C:/Windows/Fonts/georgia.ttf",
+]
+_FONT_SERIF_ITALIC_CANDIDATES = [
+    str(_BUNDLED_FONTS / "CormorantGaramond-Italic.ttf"),
+    "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSerifItalic.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+    "/System/Library/Fonts/Supplemental/Georgia Italic.ttf",
+    "C:/Windows/Fonts/georgiai.ttf",
+]
 
 
 def rgb(value: str | Sequence[int], default_alpha: int = 255) -> RGB:
@@ -97,30 +113,50 @@ def rgb(value: str | Sequence[int], default_alpha: int = 255) -> RGB:
     return parse_color(value, default_alpha)[:3]
 
 
-def find_font(mono: bool = False) -> str | None:
-    for candidate in _FONT_MONO_CANDIDATES if mono else _FONT_CANDIDATES:
+def find_font(mono: bool = False, family: str | None = None) -> str | None:
+    fam = (family or ("mono" if mono else "sans")).lower()
+    if fam == "mono":
+        candidates = _FONT_MONO_CANDIDATES
+    elif fam in ("serif_italic", "italic"):
+        candidates = _FONT_SERIF_ITALIC_CANDIDATES
+    elif fam == "serif":
+        candidates = _FONT_SERIF_CANDIDATES
+    else:
+        candidates = _FONT_CANDIDATES
+    for candidate in candidates:
         if Path(candidate).is_file():
             return candidate
     return None
 
 
-_FONT_CACHE: dict[tuple[int, bool], ImageFont.FreeTypeFont | ImageFont.ImageFont] = {}
+_FONT_CACHE: dict[
+    tuple[int, str, bool], ImageFont.FreeTypeFont | ImageFont.ImageFont
+] = {}
 
 
 def get_font(
-    size: int, mono: bool = False, bold: bool = True
+    size: int,
+    mono: bool = False,
+    bold: bool = True,
+    family: str | None = None,
 ) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     size = max(6, int(size))
-    key = (size, mono)
+    fam = (family or ("mono" if mono else "sans")).lower()
+    key = (size, fam, bool(bold))
     cached = _FONT_CACHE.get(key)
     if cached is not None:
         return cached
-    path = find_font(mono=mono)
+    path = find_font(mono=mono, family=fam)
     if path:
         try:
-            cached = ImageFont.truetype(path, size=size)
-            _FONT_CACHE[key] = cached
-            return cached
+            ft = ImageFont.truetype(path, size=size)
+            if fam in ("serif", "serif_italic", "italic"):
+                try:
+                    ft.set_variation_by_axes([600 if bold else 500])
+                except (OSError, ValueError, AttributeError):
+                    pass
+            _FONT_CACHE[key] = ft
+            return ft
         except OSError:
             pass
     try:
@@ -333,10 +369,12 @@ class _Draw:
         stroke_fill: str | Sequence[int] | None = None,
         stroke_width: float = 0.0,
         camera_scaled: bool = True,
+        family: str | None = None,
+        bold: bool = True,
     ) -> None:
         s = self.canvas.scale
         zoom = self.canvas._z if (self.canvas.camera and camera_scaled) else 1.0
-        font = get_font(round(size * zoom * s), mono=mono)
+        font = get_font(round(size * zoom * s), mono=mono, bold=bold, family=family)
         px, py = self._tp(*pos)
         self.draw.text(
             (px, py),
@@ -391,7 +429,7 @@ class SupersampledCanvas:
         cam = self.camera
         if cam is not None:
             self._z = cam.zoom_at(self.frame_t)
-            self._cx, self._cy = cam._center
+            self._cx, self._cy = cam.center_at(self.frame_t)
             if self.trauma > 0.0:
                 self._ox, self._oy = cam.shake_offset(time_sec, self.trauma)
             else:

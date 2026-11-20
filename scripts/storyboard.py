@@ -26,7 +26,18 @@ VALID_EASINGS = {
     "ease_out_back",
     "spring_pop",
 }
-VALID_SFX = {"pop", "whoosh", "chime", "type_click", "error_buzz", "confirm", "trauma"}
+VALID_SFX = {
+    "pop",
+    "whoosh",
+    "chime",
+    "type_click",
+    "error_buzz",
+    "confirm",
+    "trauma",
+    "soft_chime",
+}
+VALID_TRANSITIONS = {"cut", "dissolve"}
+VALID_PAD_STYLES = {"drone", "pastel_harp"}
 KNOWN_ELEMENTS = {
     "background",
     "grid",
@@ -41,6 +52,13 @@ KNOWN_ELEMENTS = {
     "stick_rig",
     "image",
     "svg",
+    # personality painters (scripts/elements/visual.py)
+    "orb_pulse",
+    "dot_field",
+    "orbit_ring",
+    "equalizer",
+    "typewriter_text",
+    "leader_arrow",
 }
 MIN_DIM, MAX_DIM = 160, 3840
 
@@ -376,6 +394,18 @@ def _validate_scene(scene: Any, i: int, errors: list[str]) -> None:
     ):
         errors.append(f"{where}: start_sec must be >= 0")
 
+    fade_color = scene.get("fade_color")
+    if fade_color is not None and not (
+        isinstance(fade_color, str) and ACCENT_HEX_RE.match(fade_color)
+    ):
+        errors.append(f"{where}: fade_color must match ^#[0-9A-Fa-f]{{6}}$")
+    transition = scene.get("transition")
+    if transition is not None and transition not in VALID_TRANSITIONS:
+        errors.append(f"{where}: transition must be one of {sorted(VALID_TRANSITIONS)}")
+    t_sec = scene.get("transition_sec")
+    if t_sec is not None and (not _is_num(t_sec) or not (0.0 <= float(t_sec) <= 3.0)):
+        errors.append(f"{where}: transition_sec must be in [0, 3]")
+
     _validate_camera(scene.get("camera"), where, errors)
 
     backend = scene.get("backend")
@@ -404,6 +434,12 @@ def validate_storyboard(data: Any) -> list[str]:
 
     for i, scene in enumerate(scenes):
         _validate_scene(scene, i, errors)
+
+    audio = data.get("audio")
+    if isinstance(audio, dict):
+        ps = audio.get("pad_style")
+        if ps is not None and ps not in VALID_PAD_STYLES:
+            errors.append(f"audio.pad_style must be one of {sorted(VALID_PAD_STYLES)}")
 
     return errors
 

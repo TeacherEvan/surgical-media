@@ -38,7 +38,8 @@ import scene_router
 import software_3d_projection
 import threejs_bridge
 from camera import WorldCamera2D
-from canvas import SupersampledCanvas, classify_aspect, layout_zones
+from canvas import SupersampledCanvas, classify_aspect, layout_zones, rgb
+from easings import ease_in_out_cubic
 from elements import ElementContext, render_element
 from scene_router import CAMERA_3D_DEFAULTS
 from storyboard import assign_start_times, total_duration, validate_storyboard
@@ -63,6 +64,8 @@ def build_camera(
     scene_cfg: dict[str, Any], width: int, height: int, seed: int
 ) -> WorldCamera2D:
     cam = scene_cfg.get("camera") or {}
+    orbit_radius_start = float(cam.get("orbit_radius_start", 0.0))
+    azimuth_start = float(cam.get("azimuth_start_deg", 0.0))
     return WorldCamera2D(
         width,
         height,
@@ -73,6 +76,25 @@ def build_camera(
         easing=str(cam.get("easing", "ease_out_expo")),
         shake_amplitude_px=float(cam.get("shake_amplitude_px", 0.0)),
         seed=seed,
+        mode=str(cam.get("mode", "zoom")),
+        pivot_x=(None if cam.get("pivot_x") is None else float(cam["pivot_x"])),
+        pivot_y=(None if cam.get("pivot_y") is None else float(cam["pivot_y"])),
+        orbit_radius_start=orbit_radius_start,
+        orbit_radius_end=(
+            None
+            if cam.get("orbit_radius_end") is None
+            else float(cam["orbit_radius_end"])
+        ),
+        azimuth_start_deg=azimuth_start,
+        azimuth_end_deg=(
+            None
+            if cam.get("azimuth_end_deg") is None
+            else float(cam["azimuth_end_deg"])
+        ),
+        orbit_easing=(
+            None if cam.get("orbit_easing") is None else str(cam["orbit_easing"])
+        ),
+        elevation_deg=float(cam.get("elevation_deg", 0.0)),
     )
 
 
@@ -384,12 +406,15 @@ def _paint_scene_frame(
     fade_out = float(scene.get("fade_out_sec", 0.25))
     fade = 0.0
     if fade_in > 0 and local_time < fade_in:
-        fade = max(fade, 1.0 - local_time / fade_in)
+        u = max(0.0, min(1.0, local_time / fade_in))
+        fade = max(fade, 1.0 - ease_in_out_cubic(u))
     if fade_out > 0 and (scene_dur - local_time) < fade_out:
-        fade = max(fade, 1.0 - (scene_dur - local_time) / fade_out)
+        u = max(0.0, min(1.0, (scene_dur - local_time) / fade_out))
+        fade = max(fade, 1.0 - ease_in_out_cubic(u))
     if fade > 0.0:
-        black = Image.new("RGB", (width, height), (0, 0, 0))
-        frame = Image.blend(frame, black, min(1.0, fade))
+        fade_rgb = rgb(str(scene.get("fade_color", "#000000")))
+        veil = Image.new("RGB", (width, height), fade_rgb)
+        frame = Image.blend(frame, veil, min(1.0, fade))
     return frame
 
 
@@ -624,6 +649,7 @@ def _prerender_threejs_plates(
     per_scene_frames: list[int],
     *,
     base_dir: Path | str | None = None,
+    reuse_plates: bool = False,
 ) -> dict[str, Path]:
     """Pre-render threejs_hybrid/threejs_3d scene_spec scenes to per-scene PNG plates.
 
@@ -651,6 +677,17 @@ def _prerender_threejs_plates(
         sid = str(scene["scene_id"])
         plate_dir = work_dir / f"threejs_{sid}"
         spec_path = work_dir / f"threejs_{sid}_spec.json"
+        if (
+            reuse_plates
+            and (plate_dir / "anchor_tracks.json").is_file()
+            and (plate_dir / f"frame_{n_frames:04d}.png").is_file()
+        ):
+            plates[sid] = plate_dir
+            print(
+                f"render_engine: scene {sid!r}: reusing cached threejs plate at "
+                f"{plate_dir} ({n_frames} frames)"
+            )
+            continue
         rendered = threejs_bridge.prerender_threejs_scene(
             sid,
             scene["scene_spec"],
@@ -698,6 +735,7 @@ def render(args: argparse.Namespace) -> int:
     pad = bool(audio_cfg.get("pad", True))
     pad_level = float(audio_cfg.get("pad_level", 0.055))
     duck_depth = float(audio_cfg.get("duck_depth", 0.72))
+    pad_style = str(audio_cfg.get("pad_style", "drone"))
 
     # resolve VO paths relative to the storyboard location
     for scene in board["scenes"]:
@@ -735,7 +773,12 @@ def render(args: argparse.Namespace) -> int:
     build_scenes = [dict(sc) for sc in board["scenes"]]
     t0 = time.time()
     audio_dsp.build_master_wav(
-        build_scenes, master_wav, pad=pad, pad_level=pad_level, duck_depth=duck_depth
+        build_scenes,
+        master_wav,
+        pad=pad,
+        pad_level=pad_level,
+        duck_depth=duck_depth,
+        pad_style=pad_style,
     )
     t_audio = time.time() - t0
 
@@ -804,9 +847,11 @@ def render(args: argparse.Namespace) -> int:
             fps,
             per_scene_frames,
             base_dir=board_path.parent,
+            reuse_plates=bool(getattr(args, "reuse_plates", False)),
         ),
     }
     t0 = time.time()
+    prev_scene_tail: Image.Image | None = None
     try:
         for scene, n_frames in zip(board["scenes"], per_scene_frames):
             trauma = 0.0
@@ -817,6 +862,13 @@ def render(args: argparse.Namespace) -> int:
                 key=lambda ev: float(ev.get("t_sec", 0.0)),
             )
             fired: set[int] = set()
+            transition_mode = str(scene.get("transition", "cut")).lower()
+            transition_sec = (
+                float(scene.get("transition_sec", 0.75))
+                if transition_mode == "dissolve"
+                else 0.0
+            )
+            last_scene_frame: Image.Image | None = None
 
             for local_idx in range(n_frames):
                 local_time = local_idx / fps
@@ -843,6 +895,19 @@ def render(args: argparse.Namespace) -> int:
                     zones=scene_zones,
                 )
 
+                if (
+                    prev_scene_tail is not None
+                    and transition_sec > 0.0
+                    and local_time < transition_sec
+                ):
+                    alpha = ease_in_out_cubic(
+                        max(0.0, min(1.0, local_time / transition_sec))
+                    )
+                    frame = Image.blend(prev_scene_tail, frame, alpha)
+
+                if local_idx == n_frames - 1:
+                    last_scene_frame = frame.copy()
+
                 assert proc.stdin is not None
                 proc.stdin.write(frame.tobytes())
                 frame_idx += 1
@@ -861,6 +926,7 @@ def render(args: argparse.Namespace) -> int:
                         f"({rate:.1f} fps, eta {(total_frames - frame_idx) / max(rate, 1e-6):.0f}s)",
                         flush=True,
                     )
+            prev_scene_tail = last_scene_frame
     except BrokenPipeError:
         proc.wait()
         stderr_tail = (
@@ -946,6 +1012,11 @@ def main() -> int:
         default=None,
         metavar="DIR",
         help="Write one representative PNG per scene to DIR and exit",
+    )
+    parser.add_argument(
+        "--reuse-plates",
+        action="store_true",
+        help="Reuse complete cached 3D plates already present in --work-dir",
     )
     parser.add_argument(
         "--demo",

@@ -1,6 +1,6 @@
 # Surgical Media — Project Plan & Task Status
 
-**Version:** 1.4.0 · **Updated:** 2026-11-19 · **Owner:** Evan (TeacherEvan), agent-assisted
+**Version:** 1.5.0 · **Updated:** 2026-11-20 · **Owner:** Evan (TeacherEvan), agent-assisted
 **Contract:** code + `tests/` are the contract; this plan is the living map. Verification is local-first — `bash scripts/ci_gates.sh` green *is* the quality bar ([ADR 0002](adr/0002-local-first-verification.md)).
 
 Docs entrypoint: [`docs/index.md`](index.md) · Human manual: [`README.md`](../README.md) · Agent manifest: [`SKILL.md`](../SKILL.md) · Agent rules: [`AGENTS.md`](../AGENTS.md) · Release history: [`CHANGELOG.md`](../CHANGELOG.md)
@@ -39,6 +39,8 @@ Examples: [`examples/tri_archetype_storyboard.json`](../examples/tri_archetype_s
 
 | Item | Evidence |
 | :--- | :--- |
+| v1.5.0 creative visuals: personality painters (`orb_pulse`, `dot_field`, `orbit_ring`, `equalizer`, `typewriter_text`, `leader_arrow` — `scripts/elements/visual.py`), camera `orbit`/`static` modes + schema, Visual Grammar docs, persona palettes | `scripts/elements/visual.py`, `tests/test_visual_creativity.py`, `tests/test_elements.py`, `tests/test_camera.py`, `references/storyboard-guide.md`, `references/archetypes.md`, `docs/plans/creative-visual-richness.md`; suite 329 → 375 |
+| Design doc: guard-rail review of flat videos (element catalog/palettes/motion) + enhancement plan | `docs/plans/creative-visual-richness.md` |
 | Scene routing (`auto`/`blender_hybrid`/`blender_3d`/`canvas_2d`/`manim_math`) + Blender ≥3.6 capability probe | `scripts/scene_router.py`, `tests/test_scene_router.py` |
 | Stdlib software 3D projection + anchor tracks | `scripts/software_3d_projection.py`, `tests/test_software_3d_projection.py` |
 | Motion-tracked HUD (reticles, elbow leaders, glass cards) + SAT layout solver | `scripts/hybrid_compositor.py`, `scripts/layout_solver.py` + their tests |

@@ -34,9 +34,52 @@
 
 `start_sec` values are auto-assigned sequentially when omitted. `words` are **scene-relative** (0 = scene start); `sfx_events[].t_sec` too. The mixer offsets both by `start_sec`. When edge-tts is reachable, `words` carry the service's measured WordBoundary timestamps (100 ns ticks); offline runs fall back to a syllable-weighted model fit to the measured scene duration.
 
+## Visual Grammar — how scenes come alive
+
+Rich videos are **stacked layers**: a hero motion, a payload (caption/diagram/quote), an emphasis beat, and a sound. The default look is fine, but the biggest quality lever for agents is motion — most of today's flat output is because nothing moves after the pop.
+
+**Layer stack per scene (pick 1–3 of these):**
+
+1. **Hero motion** — one moving visual: `orb_pulse` heartbeat, `orbit_ring` spin, `typewriter_text` reveal, `equalizer` bars, camera `orbit`/`static`, `dot_field` drift, `leader_arrow` walkthrough. Under-used: many agents only move text.
+2. **Payload** — story on top (`hud_badge`, `caption`, `quote_card`, `scaling_chart`, `system_architecture`, …).
+3. **Emphasis** — pops timed to words (`pop` springs, scale-pop) or milestones.
+4. **Sound** — `sfx_events` on beats (`pop`, `whoosh`, `chime`, `error_buzz`…).
+
+**Rules of thumb:**
+
+- **No dead frames.** Idle is OK as the *start* of a beat, but by ~60–70% of a beat something should move (the hero motion, a pop, a stroke-draw). If every element is static at the same moment, the frame is dead — split the beat.
+- **One hero per scene.** Two spinners + a pulse at full size = visual mud. Stack **personality** painters around the hero: `dot_field` faintness behind, `kinetic_captions` on top.
+- **Camera is motion too.** `zoom` (default) is safe but motionless; when the script benefits, use `orbit` (a turn around the subject) or `static` (frozen). A slow `ease_out_expo` zoom-in is a classic tension beat — put it in on a hook scene, then `static` for the deep beats.
+- **Motion leads, payload follows.** Pops/reveals at the start of a beat, the caption/quotes after — the eye sees motion first.
+- **Payload sizing rule.** `kinetic_captions` alone is a text slide; prefer scenes where motion carries the weight (orbit, typewriter, pulse) and captions are the footnote.
+
+### Scene Recipe Cards (starting palettes)
+
+| Scene type | Elements (stacking order) | Typical motion |
+| :--- | :--- | :--- |
+| **Data reveal** | `background` → `scaling_chart` → `grid` → `kinetic_captions` | playhead sweep; odo meter after sentence |
+| **Character moment** | `background` → `orb_pulse` → `dot_field` → `typewriter_text` → `kinetic_captions` | pulse breathing + gentle text reveal |
+| **Tour / walkthrough** | `background` → `leader_arrow` → `orbit_ring` → `hud_badge` → `kinetic_captions` | arrow walks the path; ring spins |
+| **Impact beat** | `background` → `orb_pulse` (big) → `hud_badge` → `kinetic_captions` + `trauma` sfx | pulse + zoom push-in + shake |
+| **Network tour** | `system_architecture` → `dot_field` | packets fly; dots drift on the floor |
+
+### Scene visual quality checklist (one per board, read before writing scenes)
+
+- **One hero per scene** — pick exactly one moving hero (`orb_pulse`, `orbit_ring`, `typewriter_text`, `equalizer`, camera `orbit`/`static`, …). A scene with only captions looks like a text slide.
+- **No dead frames** — the hero moves on a beat, captions land after motion, pops happen early in a beat.
+- **Payload on top** — captions/quotes/diagrams overlay the motion, never compete with it.
+- **Copy a recipe card** from the table above (`data reveal`, `character moment`, `tour`, `impact beat`) instead of composing from scratch — same grammar, ship-tested combos.
+- **Palette** — canonical archetype palette or an alternate persona overlay from `references/archetypes.md`; pick once per video, not per scene.
+
 ### Camera
 
-Screen = `(world − center) · zoom + viewport_center + shake`. `center` derives from normalized `pan_x/pan_y`. Zoom interpolates `zoom_start → zoom_end` through `easing`; zoom is clamped to `[1.0, 10.0]`. `shake_amplitude_px` enables a deterministic trauma shake (quadratic decay) — trigger it with `{"sfx": "trauma"}` events; no other event shakes the camera.
+Modes (`camera.mode`):
+
+- **`zoom`** (default) — `zoom_start → zoom_end` through `easing`; world offsets get zoomed around `pan_x/pan_y`. Zoom clamped `[1.0, 10.0]`.
+- **`orbit`** — the center orbits around `pivot_x/pivot_y` (normalized) from `azimuth_start_deg → azimuth_end_deg` by `orbit_radius_start/end` design px; `orbit_easing` (defaults to the camera `easing`); `elevation_deg` for a rising/lowering arc. Use it when the subject has "a place to be around" — the ring becomes the composition's center.
+- **`static`** — zoom frozen at `zoom_start`; shake still applies. Good for deep-think/reading scenes.
+
+Screen = `(world − center(t)) · zoom + viewport_center + shake`. `shake_amplitude_px` enables a deterministic trauma shake (quadratic decay) — trigger it with `{"sfx": "trauma"}` events; no other event shakes the camera.
 
 ### Easings
 
@@ -97,6 +140,24 @@ Raster imagery: cover (fills box, center-crop), contain (letterbox), or backdrop
 
 ### `svg` — `{ "type": "svg", "svg": "<svg viewBox='0 0 200 200'>…</svg>", "box": [x0, y0, x1, y1], "reveal": "draw", "glow": true }`
 Vector art, custom icons, diagrams, callouts, and animated line drawings. Accepts either inline `svg` markup or an external `src` path (relative to the storyboard file). Supports `fit` (`contain` default | `cover` | `stretch`), `reveal` (`none` | `fade` | `draw` progressive stroke animation | `pop` spring-pop), `glow` (feeds strokes/shapes into the Gaussian bloom pyramid), `tint` (hex color override), `opacity`, `rotation_deg` / `rotation_end_deg`, `scale_start` / `scale_end`, `stroke_scale`, and `render_mode` (`auto` | `browser` | `raster` | `vector`). For static SVGs (`reveal != "draw"`, no `glow`/`tint`), automatically upgrades to `resvg`/`rsvg-convert` or headless Chromium (`scripts/threejs/svg_raster.mjs`) for full **SVG 2.0** fidelity (linear/radial gradients, `<filter>` drop-shadows/blurs, `<style>`, `<mask>`, `fill-rule="evenodd"`, cached RGBA with pop/fade/rotation/scale); always falls back cleanly to the offline pure-Python stdlib vector engine. Rejects unsafe `DOCTYPE`/`ENTITY` declarations and strips `<script>`.
+
+### `orb_pulse` — `{ "type": "orb_pulse", "cx": 640, "cy": 350, "radius": 90, "color": "#FFD700", "pulse_hz": 1.1, "bob_amp": 8 }`
+Pulsing hero orb + soft glow halo; breath (`pulse_hz`) and optional slow vertical bob. Use as the scene's single hero. Compact palettes: gold+cyan, gold+white, teal+white.
+
+### `dot_field` — `{ "type": "dot_field", "n": 28, "radius": 6, "color": "#38BDF8", "speed": 0.95, "jitter": 8, "bob_amp": 0.9 }`
+Floating particle swarm on a golden spiral — persistent Life behind other content. Small per-dot blooms; 30–60 px wide field, 50–80% opacity feel.
+
+### `orbit_ring` — `{ "type": "orbit_ring", "cx": 640, "cy": 360, "radius": 150, "n": 9, "size": 7, "spin_hz": 0.45, "color": "#38BDF8", "pulse_hz": 0.9 }`
+Dots spinning on a circle — shows rotation/time. Size/spacing controls the reading scale; sparkle with a second element of different color for extra life.
+
+### `equalizer` — `{ "type": "equalizer", "n": 12, "bar_width": 10, "bar_top": 500, "peak": 230, "color": "#FFD700", "beat_hz": 1.35 }`
+Audio-style bars that pulse by a phase — good on music/impact scenes. Give the bars a slightly different hue than the hero orb for multi-color character.
+
+### `typewriter_text` — `{ "type": "typewriter_text", "text": "The frontier…", "size": 30, "x": 640, "y": 450, "speed": 18, "accent": "#38BDF8", "color": "#E5E9F0", "cursor": true }`
+Progressive glyph reveal with a blinking block cursor — tells stories through pacing (hook at `speed` 12–22 on socials). Place mid-scene; it ends with the text fully revealed.
+
+### `leader_arrow` — `{ "type": "leader_arrow", "points": [[640, 660], [200, 240], [820, 300]], "speed": 3.0, "radius": 10, "width": 6, "color": "#8BE9FD" }`
+Animated leader walking a polyline (arc-speed `speed` px/s, can `wrap`) — walkthrough/tour scenes. Fade it or set `speed` to 0 when the tour ends.
 
 ### `kinetic_captions` — `{ "type": "kinetic_captions", "accent": "#FFD700", "size": 22 }`
 Reads the scene's `words` array; word-by-word karaoke in the caption band. `accent` (current word) and `size` optional.

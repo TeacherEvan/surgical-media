@@ -22,7 +22,7 @@ set -euo pipefail
 HERMES_SKILL_DIR="${1:-${HOME}/.hermes/skills/creative/surgical-media}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "[install_surgical_media] Installing Surgical Media (v1.4.0) to:"
+echo "[install_surgical_media] Installing Surgical Media (v1.5.0) to:"
 echo "  ${HERMES_SKILL_DIR}"
 echo
 

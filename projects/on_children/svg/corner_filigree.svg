@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <!-- Whisper-light editorial book-plate frame for 3D pastel scenes -->
+  <rect x="34" y="28" width="1212" height="664" rx="18" fill="none" stroke="#FFFBF4" stroke-opacity="0.58" stroke-width="1.5"/>
+  <rect x="42" y="36" width="1196" height="648" rx="14" fill="none" stroke="#C9AA7A" stroke-opacity="0.32" stroke-width="0.9"/>
+  <!-- Delicate corner gold leaf dots -->
+  <circle cx="56" cy="50" r="2.6" fill="#CFA869" opacity="0.65"/>
+  <circle cx="1224" cy="50" r="2.6" fill="#CFA869" opacity="0.65"/>
+  <circle cx="56" cy="670" r="2.6" fill="#CFA869" opacity="0.65"/>
+  <circle cx="1224" cy="670" r="2.6" fill="#CFA869" opacity="0.65"/>
+</svg>

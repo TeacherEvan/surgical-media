@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <defs>
+    <radialGradient id="sunAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF9EB" stop-opacity="0.96"/>
+      <stop offset="32%" stop-color="#FCE9CC" stop-opacity="0.68"/>
+      <stop offset="68%" stop-color="#F4D9C7" stop-opacity="0.24"/>
+      <stop offset="100%" stop-color="#FBF6EE" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hillFar" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#DCE6E1" stop-opacity="0.86"/>
+      <stop offset="100%" stop-color="#EDF2EC" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="hillMid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#CBDAC9" stop-opacity="0.88"/>
+      <stop offset="100%" stop-color="#E7EFE5" stop-opacity="0.55"/>
+    </linearGradient>
+    <linearGradient id="hillNear" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#B9CBB9" stop-opacity="0.72"/>
+      <stop offset="100%" stop-color="#EFE7DB" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="ribbonRose" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E4B5A4" stop-opacity="0.10"/>
+      <stop offset="45%" stop-color="#E8BBA8" stop-opacity="0.68"/>
+      <stop offset="85%" stop-color="#F4D3BD" stop-opacity="0.52"/>
+      <stop offset="100%" stop-color="#FFF2DC" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="ribbonSage" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#A6BEA9" stop-opacity="0.10"/>
+      <stop offset="50%" stop-color="#9DB7A1" stop-opacity="0.62"/>
+      <stop offset="100%" stop-color="#D7E6D9" stop-opacity="0.15"/>
+    </linearGradient>
+    <filter id="mistBlur" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+
+  <!-- Soft rising morning sun -->
+  <circle cx="880" cy="210" r="210" fill="url(#sunAura)"/>
+  <circle cx="880" cy="210" r="56" fill="#FFF9EC" opacity="0.92"/>
+
+  <!-- Layered pastel watercolor hills -->
+  <path d="M -20,440 C 210,365 420,388 670,418 C 910,446 1110,362 1300,398 L 1300,720 L -20,720 Z" fill="url(#hillFar)"/>
+  <path d="M -20,492 C 260,442 520,478 780,454 C 1020,432 1160,468 1300,455 L 1300,720 L -20,720 Z" fill="url(#hillMid)"/>
+  <path d="M -20,565 C 290,520 580,552 890,528 C 1090,512 1210,542 1300,535 L 1300,720 L -20,720 Z" fill="url(#hillNear)"/>
+
+  <!-- Morning fog ribbon -->
+  <ellipse cx="640" cy="480" rx="580" ry="42" fill="#FFFBF5" opacity="0.46" filter="url(#mistBlur)"/>
+
+  <!-- Slender Mediterranean cypress & olive silhouettes in soft sage -->
+  <g fill="#8DA38E" opacity="0.62">
+    <path d="M 192,468 C 185,432 186,385 196,356 C 206,385 207,432 200,468 Z"/>
+    <path d="M 222,474 C 217,448 218,412 225,392 C 232,412 233,448 228,474 Z"/>
+    <path d="M 1054,458 C 1048,424 1049,382 1058,354 C 1067,382 1068,424 1062,458 Z"/>
+  </g>
+
+  <!-- Two intertwined luminous currents parting gracefully into the open sky -->
+  <path d="M 90,510 C 280,465 390,340 560,318 C 710,298 785,248 935,168" fill="none" stroke="url(#ribbonRose)" stroke-width="26" stroke-linecap="round" filter="url(#mistBlur)"/>
+  <path d="M 90,510 C 280,465 390,340 560,318 C 710,298 785,248 935,168" fill="none" stroke="#E0A993" stroke-opacity="0.72" stroke-width="3.2" stroke-linecap="round"/>
+
+  <path d="M 130,535 C 325,478 430,368 615,355 C 775,342 885,296 1085,232" fill="none" stroke="url(#ribbonSage)" stroke-width="22" stroke-linecap="round" filter="url(#mistBlur)"/>
+  <path d="M 130,535 C 325,478 430,368 615,355 C 775,342 885,296 1085,232" fill="none" stroke="#8CA891" stroke-opacity="0.74" stroke-width="2.8" stroke-linecap="round"/>
+
+  <!-- Distant soaring swallow silhouettes catching sunlight -->
+  <g fill="none" stroke="#8A7668" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" opacity="0.72">
+    <path d="M 740,224 Q 752,212 764,220 Q 776,210 788,220"/>
+    <path d="M 796,196 Q 805,187 814,193 Q 823,185 832,193"/>
+    <path d="M 692,258 Q 700,250 708,255 Q 716,249 724,255" opacity="0.55"/>
+  </g>
+
+  <!-- Subtle editorial hairline frame -->
+  <rect x="44" y="36" width="1192" height="648" rx="18" fill="none" stroke="#CBB59B" stroke-opacity="0.34" stroke-width="1.2"/>
+</svg>

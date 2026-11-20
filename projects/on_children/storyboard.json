@@ -1,0 +1,1703 @@
+{
+  "meta": {
+    "title": "On Children \u2014 Kahlil Gibran",
+    "author": "Kahlil Gibran (The Prophet, 1923)",
+    "seed": 19230101
+  },
+  "format": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30
+  },
+  "scenes": [
+    {
+      "scene_id": "01_opening_title",
+      "archetype": "mixed",
+      "duration_sec": 4.0,
+      "silent_beat": true,
+      "fade_in_sec": 1.2,
+      "fade_out_sec": 0.0,
+      "fade_color": "#FAF5EC",
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.03,
+        "pan_x": 0.5,
+        "pan_y": 0.5,
+        "easing": "ease_in_out_sine"
+      },
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#FCF8F1",
+            "#F5E7DA",
+            "#EAEFE9"
+          ],
+          "direction": "diagonal",
+          "soft_glows": [
+            {
+              "x": 0.28,
+              "y": 0.3,
+              "radius": 0.42,
+              "color": "#F7DED0",
+              "alpha": 0.42,
+              "drift_x": 0.03,
+              "drift_y": -0.02
+            },
+            {
+              "x": 0.74,
+              "y": 0.72,
+              "radius": 0.45,
+              "color": "#D9E6DA",
+              "alpha": 0.4,
+              "drift_x": -0.03,
+              "drift_y": 0.02
+            }
+          ],
+          "vignette_color": "#E2D5C5",
+          "vignette_strength": 0.22
+        },
+        {
+          "type": "svg",
+          "src": "svg/botanical_garland.svg",
+          "box": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "reveal": "fade",
+          "fade_in_sec": 1.1
+        },
+        {
+          "type": "quote_card",
+          "box": [
+            240,
+            235,
+            1040,
+            485
+          ],
+          "quote": "On Children",
+          "attribution": "from The Prophet  \u00b7  Kahlil Gibran",
+          "attribution_prefix": "",
+          "align": "center",
+          "show_quote_mark": false,
+          "fill": "none",
+          "outline": "none",
+          "ink_color": "#3C3028",
+          "dim_color": "#7D6E62",
+          "font_family": "serif",
+          "attribution_family": "serif_italic",
+          "bold": true,
+          "size": 76,
+          "attribution_size": 30,
+          "reveal_start": 0.08,
+          "reveal_end": 0.55,
+          "slide_px": 18.0
+        }
+      ],
+      "sfx_events": [
+        {
+          "t_sec": 0.35,
+          "sfx": "soft_chime",
+          "intensity": 0.3
+        }
+      ]
+    },
+    {
+      "scene_id": "02_lifes_longing",
+      "archetype": "mixed",
+      "backend": "threejs_3d",
+      "narration": "Your children are not your children. They are the sons and daughters of Life's longing for itself.",
+      "duration_sec": 8.484,
+      "vo_wav": "audio/02_lifes_longing.wav",
+      "words": [
+        {
+          "word": "Your",
+          "start": 0.115,
+          "end": 0.23
+        },
+        {
+          "word": "children",
+          "start": 0.244,
+          "end": 0.79
+        },
+        {
+          "word": "are",
+          "start": 0.79,
+          "end": 0.905
+        },
+        {
+          "word": "not",
+          "start": 0.92,
+          "end": 1.408
+        },
+        {
+          "word": "your",
+          "start": 1.422,
+          "end": 1.552
+        },
+        {
+          "word": "children.",
+          "start": 1.552,
+          "end": 2.083
+        },
+        {
+          "word": "They",
+          "start": 2.543,
+          "end": 2.644
+        },
+        {
+          "word": "are",
+          "start": 2.644,
+          "end": 2.73
+        },
+        {
+          "word": "the",
+          "start": 2.73,
+          "end": 2.845
+        },
+        {
+          "word": "sons",
+          "start": 2.845,
+          "end": 3.463
+        },
+        {
+          "word": "and",
+          "start": 3.463,
+          "end": 3.649
+        },
+        {
+          "word": "daughters",
+          "start": 3.664,
+          "end": 4.181
+        },
+        {
+          "word": "of",
+          "start": 4.181,
+          "end": 4.296
+        },
+        {
+          "word": "Life's",
+          "start": 4.296,
+          "end": 4.971
+        },
+        {
+          "word": "longing",
+          "start": 5.374,
+          "end": 6.034
+        },
+        {
+          "word": "for",
+          "start": 6.193,
+          "end": 6.422
+        },
+        {
+          "word": "itself.",
+          "start": 6.437,
+          "end": 7.155
+        }
+      ],
+      "fade_in_sec": 0.0,
+      "fade_out_sec": 0.0,
+      "transition": "dissolve",
+      "transition_sec": 0.9,
+      "scene_spec": {
+        "category": "external_asset_3d",
+        "lighting_preset": "clean_product_softbox",
+        "camera_3d": {
+          "mode": "orbit",
+          "focal_length_mm": 40,
+          "radius_start": 7.4,
+          "radius_end": 6.4,
+          "azimuth_start_deg": -16.0,
+          "azimuth_end_deg": 10.0,
+          "elevation_deg": 11.0
+        },
+        "params": {
+          "threejs_script": "scenes_3d/blossom_stream.mjs",
+          "camera_target": [
+            0.0,
+            2.8,
+            0.45
+          ],
+          "exposure": 1.0,
+          "bloom_strength": 0.14,
+          "bloom_radius": 0.55,
+          "bloom_threshold": 0.88
+        }
+      },
+      "elements": [
+        {
+          "type": "svg",
+          "src": "svg/corner_filigree.svg",
+          "box": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "reveal": "none"
+        },
+        {
+          "type": "kinetic_captions",
+          "font_family": "serif",
+          "bold": true,
+          "size": 33,
+          "ink_color": "#3C3028",
+          "dim_color": "#9B8E82",
+          "accent": "#A65A38",
+          "bg_color": "#FCF8F2",
+          "bg_alpha": 0.78,
+          "bg_outline": "#DFD1BF",
+          "bg_radius": 18.0,
+          "stroke_color": "none",
+          "stroke_width": 0.0,
+          "active_stroke_width": 0.0,
+          "pop_scale": 0.035,
+          "line_height": 1.32,
+          "max_width_frac": 0.84,
+          "y_anchor": 0.855
+        }
+      ],
+      "sfx_events": []
+    },
+    {
+      "scene_id": "03_through_you",
+      "archetype": "mixed",
+      "narration": "They come through you but not from you, and though they are with you yet they belong not to you.",
+      "duration_sec": 7.908,
+      "vo_wav": "audio/03_through_you.wav",
+      "words": [
+        {
+          "word": "They",
+          "start": 0.115,
+          "end": 0.244
+        },
+        {
+          "word": "come",
+          "start": 0.244,
+          "end": 0.517
+        },
+        {
+          "word": "through",
+          "start": 0.532,
+          "end": 0.876
+        },
+        {
+          "word": "you",
+          "start": 0.876,
+          "end": 1.307
+        },
+        {
+          "word": "but",
+          "start": 1.552,
+          "end": 1.767
+        },
+        {
+          "word": "not",
+          "start": 1.782,
+          "end": 2.198
+        },
+        {
+          "word": "from",
+          "start": 2.198,
+          "end": 2.457
+        },
+        {
+          "word": "you,",
+          "start": 2.471,
+          "end": 2.759
+        },
+        {
+          "word": "and",
+          "start": 3.305,
+          "end": 3.448
+        },
+        {
+          "word": "though",
+          "start": 3.448,
+          "end": 3.621
+        },
+        {
+          "word": "they",
+          "start": 3.621,
+          "end": 3.779
+        },
+        {
+          "word": "are",
+          "start": 3.793,
+          "end": 3.98
+        },
+        {
+          "word": "with",
+          "start": 3.98,
+          "end": 4.181
+        },
+        {
+          "word": "you",
+          "start": 4.181,
+          "end": 4.612
+        },
+        {
+          "word": "yet",
+          "start": 4.914,
+          "end": 5.244
+        },
+        {
+          "word": "they",
+          "start": 5.244,
+          "end": 5.388
+        },
+        {
+          "word": "belong",
+          "start": 5.388,
+          "end": 5.876
+        },
+        {
+          "word": "not",
+          "start": 5.891,
+          "end": 6.135
+        },
+        {
+          "word": "to",
+          "start": 6.135,
+          "end": 6.25
+        },
+        {
+          "word": "you.",
+          "start": 6.25,
+          "end": 6.595
+        }
+      ],
+      "fade_in_sec": 0.0,
+      "fade_out_sec": 0.0,
+      "transition": "dissolve",
+      "transition_sec": 0.9,
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.03,
+        "pan_x": 0.52,
+        "pan_y": 0.46,
+        "easing": "ease_in_out_sine"
+      },
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#F6F8F3",
+            "#EAEFE7",
+            "#F7ECE1"
+          ],
+          "direction": "vertical",
+          "soft_glows": [
+            {
+              "x": 0.68,
+              "y": 0.28,
+              "radius": 0.36,
+              "color": "#FCE8CB",
+              "alpha": 0.45,
+              "drift_x": 0.03,
+              "drift_y": -0.02
+            },
+            {
+              "x": 0.24,
+              "y": 0.62,
+              "radius": 0.4,
+              "color": "#D4E3D6",
+              "alpha": 0.36,
+              "drift_x": 0.02,
+              "drift_y": 0.02
+            }
+          ]
+        },
+        {
+          "type": "svg",
+          "src": "svg/two_currents_meadow.svg",
+          "box": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "reveal": "none",
+          "scale_start": 1.0,
+          "scale_end": 1.035
+        },
+        {
+          "type": "kinetic_captions",
+          "font_family": "serif",
+          "bold": true,
+          "size": 33,
+          "ink_color": "#3C3028",
+          "dim_color": "#9B8E82",
+          "accent": "#A65A38",
+          "bg_color": "#FCF8F2",
+          "bg_alpha": 0.78,
+          "bg_outline": "#DFD1BF",
+          "bg_radius": 18.0,
+          "stroke_color": "none",
+          "stroke_width": 0.0,
+          "active_stroke_width": 0.0,
+          "pop_scale": 0.035,
+          "line_height": 1.32,
+          "max_width_frac": 0.84,
+          "y_anchor": 0.855
+        }
+      ],
+      "sfx_events": []
+    },
+    {
+      "scene_id": "04_love_not_thoughts",
+      "archetype": "mixed",
+      "narration": "You may give them your love but not your thoughts, for they have their own thoughts.",
+      "duration_sec": 6.252,
+      "vo_wav": "audio/04_love_not_thoughts.wav",
+      "words": [
+        {
+          "word": "You",
+          "start": 0.115,
+          "end": 0.216
+        },
+        {
+          "word": "may",
+          "start": 0.23,
+          "end": 0.402
+        },
+        {
+          "word": "give",
+          "start": 0.402,
+          "end": 0.603
+        },
+        {
+          "word": "them",
+          "start": 0.603,
+          "end": 0.704
+        },
+        {
+          "word": "your",
+          "start": 0.704,
+          "end": 0.833
+        },
+        {
+          "word": "love",
+          "start": 0.833,
+          "end": 1.336
+        },
+        {
+          "word": "but",
+          "start": 1.738,
+          "end": 1.94
+        },
+        {
+          "word": "not",
+          "start": 1.94,
+          "end": 2.371
+        },
+        {
+          "word": "your",
+          "start": 2.385,
+          "end": 2.586
+        },
+        {
+          "word": "thoughts,",
+          "start": 2.586,
+          "end": 3.391
+        },
+        {
+          "word": "for",
+          "start": 3.405,
+          "end": 3.506
+        },
+        {
+          "word": "they",
+          "start": 3.52,
+          "end": 3.621
+        },
+        {
+          "word": "have",
+          "start": 3.621,
+          "end": 3.865
+        },
+        {
+          "word": "their",
+          "start": 3.865,
+          "end": 4.009
+        },
+        {
+          "word": "own",
+          "start": 4.009,
+          "end": 4.224
+        },
+        {
+          "word": "thoughts.",
+          "start": 4.224,
+          "end": 4.942
+        }
+      ],
+      "fade_in_sec": 0.0,
+      "fade_out_sec": 0.0,
+      "transition": "dissolve",
+      "transition_sec": 0.9,
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.045,
+        "pan_x": 0.5,
+        "pan_y": 0.45,
+        "easing": "ease_in_out_sine"
+      },
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#FDF8F2",
+            "#F7E6DC",
+            "#EFE4E0"
+          ],
+          "direction": "radial",
+          "soft_glows": [
+            {
+              "x": 0.5,
+              "y": 0.4,
+              "radius": 0.4,
+              "color": "#FFF6E6",
+              "alpha": 0.55,
+              "drift_x": 0.02,
+              "drift_y": -0.01
+            },
+            {
+              "x": 0.78,
+              "y": 0.24,
+              "radius": 0.34,
+              "color": "#E6DDF0",
+              "alpha": 0.38,
+              "drift_x": -0.03,
+              "drift_y": 0.02
+            }
+          ],
+          "vignette_color": "#E3D2C4",
+          "vignette_strength": 0.18
+        },
+        {
+          "type": "svg",
+          "src": "svg/botanical_wreath_seeds.svg",
+          "box": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "reveal": "none",
+          "scale_start": 0.98,
+          "scale_end": 1.03
+        },
+        {
+          "type": "kinetic_captions",
+          "font_family": "serif",
+          "bold": true,
+          "size": 33,
+          "ink_color": "#3C3028",
+          "dim_color": "#9B8E82",
+          "accent": "#A65A38",
+          "bg_color": "#FCF8F2",
+          "bg_alpha": 0.78,
+          "bg_outline": "#DFD1BF",
+          "bg_radius": 18.0,
+          "stroke_color": "none",
+          "stroke_width": 0.0,
+          "active_stroke_width": 0.0,
+          "pop_scale": 0.035,
+          "line_height": 1.32,
+          "max_width_frac": 0.84,
+          "y_anchor": 0.855
+        }
+      ],
+      "sfx_events": []
+    },
+    {
+      "scene_id": "05_house_of_tomorrow",
+      "archetype": "mixed",
+      "backend": "threejs_3d",
+      "narration": "You may house their bodies but not their souls, for their souls dwell in the house of tomorrow, which you cannot visit, not even in your dreams.",
+      "duration_sec": 11.748,
+      "vo_wav": "audio/05_house_of_tomorrow.wav",
+      "words": [
+        {
+          "word": "You",
+          "start": 0.101,
+          "end": 0.187
+        },
+        {
+          "word": "may",
+          "start": 0.187,
+          "end": 0.417
+        },
+        {
+          "word": "house",
+          "start": 0.417,
+          "end": 0.848
+        },
+        {
+          "word": "their",
+          "start": 0.848,
+          "end": 1.006
+        },
+        {
+          "word": "bodies",
+          "start": 1.006,
+          "end": 1.566
+        },
+        {
+          "word": "but",
+          "start": 1.566,
+          "end": 1.853
+        },
+        {
+          "word": "not",
+          "start": 1.94,
+          "end": 2.443
+        },
+        {
+          "word": "their",
+          "start": 2.443,
+          "end": 2.672
+        },
+        {
+          "word": "souls,",
+          "start": 2.687,
+          "end": 3.448
+        },
+        {
+          "word": "for",
+          "start": 3.693,
+          "end": 3.822
+        },
+        {
+          "word": "their",
+          "start": 3.822,
+          "end": 3.994
+        },
+        {
+          "word": "souls",
+          "start": 3.994,
+          "end": 4.54
+        },
+        {
+          "word": "dwell",
+          "start": 4.555,
+          "end": 5.23
+        },
+        {
+          "word": "in",
+          "start": 5.23,
+          "end": 5.316
+        },
+        {
+          "word": "the",
+          "start": 5.316,
+          "end": 5.374
+        },
+        {
+          "word": "house",
+          "start": 5.388,
+          "end": 5.833
+        },
+        {
+          "word": "of",
+          "start": 5.833,
+          "end": 5.934
+        },
+        {
+          "word": "tomorrow,",
+          "start": 5.948,
+          "end": 6.681
+        },
+        {
+          "word": "which",
+          "start": 7.112,
+          "end": 7.284
+        },
+        {
+          "word": "you",
+          "start": 7.285,
+          "end": 7.385
+        },
+        {
+          "word": "cannot",
+          "start": 7.385,
+          "end": 7.874
+        },
+        {
+          "word": "visit,",
+          "start": 7.874,
+          "end": 8.362
+        },
+        {
+          "word": "not",
+          "start": 8.836,
+          "end": 9.167
+        },
+        {
+          "word": "even",
+          "start": 9.181,
+          "end": 9.454
+        },
+        {
+          "word": "in",
+          "start": 9.468,
+          "end": 9.555
+        },
+        {
+          "word": "your",
+          "start": 9.569,
+          "end": 9.67
+        },
+        {
+          "word": "dreams.",
+          "start": 9.684,
+          "end": 10.445
+        }
+      ],
+      "fade_in_sec": 0.0,
+      "fade_out_sec": 0.0,
+      "transition": "dissolve",
+      "transition_sec": 0.95,
+      "scene_spec": {
+        "category": "external_asset_3d",
+        "lighting_preset": "clean_product_softbox",
+        "camera_3d": {
+          "mode": "dolly",
+          "focal_length_mm": 40,
+          "radius_start": 8.2,
+          "radius_end": 5.8,
+          "azimuth_start_deg": -5.0,
+          "azimuth_end_deg": -5.0,
+          "elevation_deg": 7.5
+        },
+        "params": {
+          "threejs_script": "scenes_3d/house_of_tomorrow.mjs",
+          "camera_target": [
+            0.0,
+            4.8,
+            0.85
+          ],
+          "exposure": 1.0,
+          "bloom_strength": 0.17,
+          "bloom_radius": 0.56,
+          "bloom_threshold": 0.86
+        }
+      },
+      "elements": [
+        {
+          "type": "svg",
+          "src": "svg/corner_filigree.svg",
+          "box": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "reveal": "none"
+        },
+        {
+          "type": "kinetic_captions",
+          "font_family": "serif",
+          "bold": true,
+          "size": 31,
+          "ink_color": "#3C3028",
+          "dim_color": "#9B8E82",
+          "accent": "#A65A38",
+          "bg_color": "#FCF8F2",
+          "bg_alpha": 0.78,
+          "bg_outline": "#DFD1BF",
+          "bg_radius": 18.0,
+          "stroke_color": "none",
+          "stroke_width": 0.0,
+          "active_stroke_width": 0.0,
+          "pop_scale": 0.035,
+          "line_height": 1.32,
+          "max_width_frac": 0.84,
+          "y_anchor": 0.855
+        }
+      ],
+      "sfx_events": [
+        {
+          "t_sec": 4.8,
+          "sfx": "soft_chime",
+          "intensity": 0.22
+        }
+      ]
+    },
+    {
+      "scene_id": "06_life_goes_forward",
+      "archetype": "mixed",
+      "backend": "threejs_3d",
+      "narration": "You may strive to be like them, but seek not to make them like you. For life goes not backward nor tarries with yesterday.",
+      "duration_sec": 9.684,
+      "vo_wav": "audio/06_life_goes_forward.wav",
+      "words": [
+        {
+          "word": "You",
+          "start": 0.115,
+          "end": 0.201
+        },
+        {
+          "word": "may",
+          "start": 0.201,
+          "end": 0.359
+        },
+        {
+          "word": "strive",
+          "start": 0.359,
+          "end": 0.905
+        },
+        {
+          "word": "to",
+          "start": 0.905,
+          "end": 0.991
+        },
+        {
+          "word": "be",
+          "start": 1.006,
+          "end": 1.164
+        },
+        {
+          "word": "like",
+          "start": 1.164,
+          "end": 1.509
+        },
+        {
+          "word": "them,",
+          "start": 1.523,
+          "end": 1.81
+        },
+        {
+          "word": "but",
+          "start": 2.284,
+          "end": 2.457
+        },
+        {
+          "word": "seek",
+          "start": 2.457,
+          "end": 2.816
+        },
+        {
+          "word": "not",
+          "start": 2.816,
+          "end": 3.175
+        },
+        {
+          "word": "to",
+          "start": 3.175,
+          "end": 3.276
+        },
+        {
+          "word": "make",
+          "start": 3.276,
+          "end": 3.563
+        },
+        {
+          "word": "them",
+          "start": 3.563,
+          "end": 3.721
+        },
+        {
+          "word": "like",
+          "start": 3.736,
+          "end": 3.994
+        },
+        {
+          "word": "you.",
+          "start": 3.994,
+          "end": 4.31
+        },
+        {
+          "word": "For",
+          "start": 4.799,
+          "end": 4.885
+        },
+        {
+          "word": "life",
+          "start": 4.885,
+          "end": 5.201
+        },
+        {
+          "word": "goes",
+          "start": 5.201,
+          "end": 5.445
+        },
+        {
+          "word": "not",
+          "start": 5.445,
+          "end": 5.747
+        },
+        {
+          "word": "backward",
+          "start": 5.761,
+          "end": 6.379
+        },
+        {
+          "word": "nor",
+          "start": 6.695,
+          "end": 7.026
+        },
+        {
+          "word": "tarries",
+          "start": 7.04,
+          "end": 7.557
+        },
+        {
+          "word": "with",
+          "start": 7.557,
+          "end": 7.687
+        },
+        {
+          "word": "yesterday.",
+          "start": 7.687,
+          "end": 8.376
+        }
+      ],
+      "fade_in_sec": 0.0,
+      "fade_out_sec": 0.0,
+      "transition": "dissolve",
+      "transition_sec": 0.9,
+      "scene_spec": {
+        "category": "external_asset_3d",
+        "lighting_preset": "clean_product_softbox",
+        "camera_3d": {
+          "mode": "orbit",
+          "focal_length_mm": 42,
+          "radius_start": 7.6,
+          "radius_end": 6.4,
+          "azimuth_start_deg": 18.0,
+          "azimuth_end_deg": -10.0,
+          "elevation_deg": 20.0
+        },
+        "params": {
+          "threejs_script": "scenes_3d/river_of_tomorrow.mjs",
+          "camera_target": [
+            0.0,
+            3.8,
+            0.0
+          ],
+          "exposure": 1.0,
+          "bloom_strength": 0.14,
+          "bloom_radius": 0.52,
+          "bloom_threshold": 0.87
+        }
+      },
+      "elements": [
+        {
+          "type": "svg",
+          "src": "svg/corner_filigree.svg",
+          "box": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "reveal": "none"
+        },
+        {
+          "type": "kinetic_captions",
+          "font_family": "serif",
+          "bold": true,
+          "size": 32,
+          "ink_color": "#3C3028",
+          "dim_color": "#9B8E82",
+          "accent": "#A65A38",
+          "bg_color": "#FCF8F2",
+          "bg_alpha": 0.78,
+          "bg_outline": "#DFD1BF",
+          "bg_radius": 18.0,
+          "stroke_color": "none",
+          "stroke_width": 0.0,
+          "active_stroke_width": 0.0,
+          "pop_scale": 0.035,
+          "line_height": 1.32,
+          "max_width_frac": 0.84,
+          "y_anchor": 0.855
+        }
+      ],
+      "sfx_events": []
+    },
+    {
+      "scene_id": "07_living_bow",
+      "archetype": "mixed",
+      "backend": "threejs_3d",
+      "narration": "You are the bows from which your children as living arrows are sent forth.",
+      "duration_sec": 6.324,
+      "vo_wav": "audio/07_living_bow.wav",
+      "words": [
+        {
+          "word": "You",
+          "start": 0.101,
+          "end": 0.172
+        },
+        {
+          "word": "are",
+          "start": 0.172,
+          "end": 0.259
+        },
+        {
+          "word": "the",
+          "start": 0.259,
+          "end": 0.374
+        },
+        {
+          "word": "bows",
+          "start": 0.388,
+          "end": 0.761
+        },
+        {
+          "word": "from",
+          "start": 0.761,
+          "end": 0.905
+        },
+        {
+          "word": "which",
+          "start": 0.905,
+          "end": 1.063
+        },
+        {
+          "word": "your",
+          "start": 1.063,
+          "end": 1.192
+        },
+        {
+          "word": "children",
+          "start": 1.207,
+          "end": 2.011
+        },
+        {
+          "word": "as",
+          "start": 2.17,
+          "end": 2.371
+        },
+        {
+          "word": "living",
+          "start": 2.371,
+          "end": 2.902
+        },
+        {
+          "word": "arrows",
+          "start": 2.902,
+          "end": 3.52
+        },
+        {
+          "word": "are",
+          "start": 3.779,
+          "end": 4.009
+        },
+        {
+          "word": "sent",
+          "start": 4.009,
+          "end": 4.397
+        },
+        {
+          "word": "forth.",
+          "start": 4.397,
+          "end": 5.029
+        }
+      ],
+      "fade_in_sec": 0.0,
+      "fade_out_sec": 0.0,
+      "transition": "dissolve",
+      "transition_sec": 0.9,
+      "scene_spec": {
+        "category": "external_asset_3d",
+        "lighting_preset": "clean_product_softbox",
+        "camera_3d": {
+          "mode": "orbit",
+          "focal_length_mm": 42,
+          "radius_start": 8.4,
+          "radius_end": 7.5,
+          "azimuth_start_deg": -22.0,
+          "azimuth_end_deg": -6.0,
+          "elevation_deg": 9.0
+        },
+        "params": {
+          "threejs_script": "scenes_3d/living_bow.mjs",
+          "phase": "draw",
+          "camera_target": [
+            -0.35,
+            0.0,
+            -0.15
+          ],
+          "exposure": 1.02,
+          "bloom_strength": 0.18,
+          "bloom_radius": 0.55,
+          "bloom_threshold": 0.86
+        }
+      },
+      "elements": [
+        {
+          "type": "svg",
+          "src": "svg/corner_filigree.svg",
+          "box": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "reveal": "none"
+        },
+        {
+          "type": "kinetic_captions",
+          "font_family": "serif",
+          "bold": true,
+          "size": 33,
+          "ink_color": "#3C3028",
+          "dim_color": "#9B8E82",
+          "accent": "#A65A38",
+          "bg_color": "#FCF8F2",
+          "bg_alpha": 0.78,
+          "bg_outline": "#DFD1BF",
+          "bg_radius": 18.0,
+          "stroke_color": "none",
+          "stroke_width": 0.0,
+          "active_stroke_width": 0.0,
+          "pop_scale": 0.035,
+          "line_height": 1.32,
+          "max_width_frac": 0.84,
+          "y_anchor": 0.855
+        }
+      ],
+      "sfx_events": [
+        {
+          "t_sec": 0.4,
+          "sfx": "soft_chime",
+          "intensity": 0.24
+        }
+      ]
+    },
+    {
+      "scene_id": "08_infinite_mark",
+      "archetype": "mixed",
+      "backend": "threejs_3d",
+      "narration": "The archer sees the mark upon the path of the infinite, and He bends you with His might that His arrows may go swift and far.",
+      "duration_sec": 10.332,
+      "vo_wav": "audio/08_infinite_mark.wav",
+      "words": [
+        {
+          "word": "The",
+          "start": 0.115,
+          "end": 0.215
+        },
+        {
+          "word": "archer",
+          "start": 0.215,
+          "end": 0.704
+        },
+        {
+          "word": "sees",
+          "start": 0.718,
+          "end": 1.178
+        },
+        {
+          "word": "the",
+          "start": 1.178,
+          "end": 1.264
+        },
+        {
+          "word": "mark",
+          "start": 1.279,
+          "end": 1.652
+        },
+        {
+          "word": "upon",
+          "start": 1.667,
+          "end": 1.997
+        },
+        {
+          "word": "the",
+          "start": 1.997,
+          "end": 2.083
+        },
+        {
+          "word": "path",
+          "start": 2.083,
+          "end": 2.759
+        },
+        {
+          "word": "of",
+          "start": 2.773,
+          "end": 2.874
+        },
+        {
+          "word": "the",
+          "start": 2.874,
+          "end": 2.931
+        },
+        {
+          "word": "infinite,",
+          "start": 2.931,
+          "end": 3.477
+        },
+        {
+          "word": "and",
+          "start": 4.037,
+          "end": 4.08
+        },
+        {
+          "word": "He",
+          "start": 4.08,
+          "end": 4.224
+        },
+        {
+          "word": "bends",
+          "start": 4.239,
+          "end": 4.641
+        },
+        {
+          "word": "you",
+          "start": 4.641,
+          "end": 4.77
+        },
+        {
+          "word": "with",
+          "start": 4.77,
+          "end": 4.899
+        },
+        {
+          "word": "His",
+          "start": 4.899,
+          "end": 5.057
+        },
+        {
+          "word": "might",
+          "start": 5.057,
+          "end": 5.517
+        },
+        {
+          "word": "that",
+          "start": 5.532,
+          "end": 5.718
+        },
+        {
+          "word": "His",
+          "start": 5.718,
+          "end": 5.991
+        },
+        {
+          "word": "arrows",
+          "start": 6.006,
+          "end": 6.595
+        },
+        {
+          "word": "may",
+          "start": 6.595,
+          "end": 6.868
+        },
+        {
+          "word": "go",
+          "start": 6.882,
+          "end": 7.126
+        },
+        {
+          "word": "swift",
+          "start": 7.126,
+          "end": 7.902
+        },
+        {
+          "word": "and",
+          "start": 8.161,
+          "end": 8.261
+        },
+        {
+          "word": "far.",
+          "start": 8.261,
+          "end": 9.037
+        }
+      ],
+      "fade_in_sec": 0.0,
+      "fade_out_sec": 0.0,
+      "transition": "dissolve",
+      "transition_sec": 0.85,
+      "scene_spec": {
+        "category": "external_asset_3d",
+        "lighting_preset": "clean_product_softbox",
+        "camera_3d": {
+          "mode": "orbit",
+          "focal_length_mm": 40,
+          "radius_start": 8.8,
+          "radius_end": 9.6,
+          "azimuth_start_deg": -10.0,
+          "azimuth_end_deg": 14.0,
+          "elevation_deg": 10.0
+        },
+        "params": {
+          "threejs_script": "scenes_3d/living_bow.mjs",
+          "phase": "flight",
+          "camera_target": [
+            2.2,
+            0.0,
+            0.4
+          ],
+          "exposure": 1.02,
+          "bloom_strength": 0.2,
+          "bloom_radius": 0.55,
+          "bloom_threshold": 0.86
+        }
+      },
+      "elements": [
+        {
+          "type": "svg",
+          "src": "svg/corner_filigree.svg",
+          "box": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "reveal": "none"
+        },
+        {
+          "type": "kinetic_captions",
+          "font_family": "serif",
+          "bold": true,
+          "size": 31,
+          "ink_color": "#3C3028",
+          "dim_color": "#9B8E82",
+          "accent": "#A65A38",
+          "bg_color": "#FCF8F2",
+          "bg_alpha": 0.78,
+          "bg_outline": "#DFD1BF",
+          "bg_radius": 18.0,
+          "stroke_color": "none",
+          "stroke_width": 0.0,
+          "active_stroke_width": 0.0,
+          "pop_scale": 0.035,
+          "line_height": 1.32,
+          "max_width_frac": 0.84,
+          "y_anchor": 0.855
+        }
+      ],
+      "sfx_events": []
+    },
+    {
+      "scene_id": "09_gladness_bow",
+      "archetype": "mixed",
+      "narration": "Let your bending in the archer's hand be for gladness; for even as He loves the arrow that flies, so He loves also the bow that is stable.",
+      "duration_sec": 11.628,
+      "vo_wav": "audio/09_gladness_bow.wav",
+      "words": [
+        {
+          "word": "Let",
+          "start": 0.101,
+          "end": 0.259
+        },
+        {
+          "word": "your",
+          "start": 0.259,
+          "end": 0.417
+        },
+        {
+          "word": "bending",
+          "start": 0.431,
+          "end": 1.02
+        },
+        {
+          "word": "in",
+          "start": 1.02,
+          "end": 1.092
+        },
+        {
+          "word": "the",
+          "start": 1.092,
+          "end": 1.193
+        },
+        {
+          "word": "archer's",
+          "start": 1.193,
+          "end": 1.71
+        },
+        {
+          "word": "hand",
+          "start": 1.71,
+          "end": 2.342
+        },
+        {
+          "word": "be",
+          "start": 2.414,
+          "end": 2.672
+        },
+        {
+          "word": "for",
+          "start": 2.672,
+          "end": 2.83
+        },
+        {
+          "word": "gladness;",
+          "start": 2.845,
+          "end": 3.678
+        },
+        {
+          "word": "for",
+          "start": 4.124,
+          "end": 4.31
+        },
+        {
+          "word": "even",
+          "start": 4.397,
+          "end": 4.67
+        },
+        {
+          "word": "as",
+          "start": 4.67,
+          "end": 4.77
+        },
+        {
+          "word": "He",
+          "start": 4.77,
+          "end": 4.871
+        },
+        {
+          "word": "loves",
+          "start": 4.885,
+          "end": 5.33
+        },
+        {
+          "word": "the",
+          "start": 5.33,
+          "end": 5.474
+        },
+        {
+          "word": "arrow",
+          "start": 5.603,
+          "end": 6.034
+        },
+        {
+          "word": "that",
+          "start": 6.035,
+          "end": 6.25
+        },
+        {
+          "word": "flies,",
+          "start": 6.264,
+          "end": 6.997
+        },
+        {
+          "word": "so",
+          "start": 7.428,
+          "end": 7.557
+        },
+        {
+          "word": "He",
+          "start": 7.557,
+          "end": 7.687
+        },
+        {
+          "word": "loves",
+          "start": 7.687,
+          "end": 8.118
+        },
+        {
+          "word": "also",
+          "start": 8.19,
+          "end": 8.592
+        },
+        {
+          "word": "the",
+          "start": 8.606,
+          "end": 8.707
+        },
+        {
+          "word": "bow",
+          "start": 8.721,
+          "end": 9.296
+        },
+        {
+          "word": "that",
+          "start": 9.454,
+          "end": 9.598
+        },
+        {
+          "word": "is",
+          "start": 9.598,
+          "end": 9.713
+        },
+        {
+          "word": "stable.",
+          "start": 9.713,
+          "end": 10.316
+        }
+      ],
+      "fade_in_sec": 0.0,
+      "fade_out_sec": 0.0,
+      "transition": "dissolve",
+      "transition_sec": 0.95,
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.035,
+        "pan_x": 0.5,
+        "pan_y": 0.44,
+        "easing": "ease_in_out_sine"
+      },
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#FCF7EF",
+            "#F5E2D6",
+            "#E5ECE6"
+          ],
+          "direction": "diagonal",
+          "soft_glows": [
+            {
+              "x": 0.5,
+              "y": 0.38,
+              "radius": 0.38,
+              "color": "#FFF6E3",
+              "alpha": 0.52,
+              "drift_x": 0.02,
+              "drift_y": -0.02
+            },
+            {
+              "x": 0.22,
+              "y": 0.7,
+              "radius": 0.38,
+              "color": "#D9E7DC",
+              "alpha": 0.38,
+              "drift_x": 0.03,
+              "drift_y": 0.0
+            }
+          ],
+          "vignette_color": "#E2D2C2",
+          "vignette_strength": 0.2
+        },
+        {
+          "type": "svg",
+          "src": "svg/stable_bow_emblem.svg",
+          "box": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "reveal": "none",
+          "scale_start": 0.97,
+          "scale_end": 1.02
+        },
+        {
+          "type": "kinetic_captions",
+          "font_family": "serif",
+          "bold": true,
+          "size": 31,
+          "ink_color": "#3C3028",
+          "dim_color": "#9B8E82",
+          "accent": "#A65A38",
+          "bg_color": "#FCF8F2",
+          "bg_alpha": 0.78,
+          "bg_outline": "#DFD1BF",
+          "bg_radius": 18.0,
+          "stroke_color": "none",
+          "stroke_width": 0.0,
+          "active_stroke_width": 0.0,
+          "pop_scale": 0.035,
+          "line_height": 1.32,
+          "max_width_frac": 0.84,
+          "y_anchor": 0.855
+        }
+      ],
+      "sfx_events": [
+        {
+          "t_sec": 0.5,
+          "sfx": "soft_chime",
+          "intensity": 0.24
+        }
+      ]
+    },
+    {
+      "scene_id": "10_epilogue",
+      "archetype": "mixed",
+      "duration_sec": 4.2,
+      "silent_beat": true,
+      "fade_in_sec": 0.0,
+      "fade_out_sec": 1.8,
+      "fade_color": "#FAF5EC",
+      "transition": "dissolve",
+      "transition_sec": 1.0,
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.02,
+        "pan_x": 0.5,
+        "pan_y": 0.5,
+        "easing": "ease_in_out_sine"
+      },
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#FCF8F1",
+            "#F5E9DD",
+            "#ECEFE9"
+          ],
+          "direction": "radial",
+          "soft_glows": [
+            {
+              "x": 0.5,
+              "y": 0.46,
+              "radius": 0.44,
+              "color": "#FFF6E6",
+              "alpha": 0.48
+            }
+          ],
+          "vignette_color": "#E4D7C8",
+          "vignette_strength": 0.2
+        },
+        {
+          "type": "svg",
+          "src": "svg/epilogue_olive.svg",
+          "box": [
+            0,
+            0,
+            1280,
+            720
+          ],
+          "reveal": "none"
+        },
+        {
+          "type": "quote_card",
+          "box": [
+            260,
+            295,
+            1020,
+            470
+          ],
+          "quote": "Kahlil Gibran",
+          "attribution": "The Prophet, 1923",
+          "attribution_prefix": "",
+          "align": "center",
+          "show_quote_mark": false,
+          "fill": "none",
+          "outline": "none",
+          "ink_color": "#3C3028",
+          "dim_color": "#807063",
+          "font_family": "serif",
+          "attribution_family": "serif_italic",
+          "bold": false,
+          "size": 56,
+          "attribution_size": 28,
+          "reveal_start": 0.05,
+          "reveal_end": 0.45,
+          "slide_px": 12.0
+        }
+      ],
+      "sfx_events": [
+        {
+          "t_sec": 0.3,
+          "sfx": "soft_chime",
+          "intensity": 0.26
+        }
+      ]
+    }
+  ],
+  "audio": {
+    "pad": true,
+    "pad_style": "pastel_harp",
+    "pad_level": 0.145,
+    "duck_depth": 0.62,
+    "sample_rate": 48000
+  }
+}

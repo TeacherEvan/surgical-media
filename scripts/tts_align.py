@@ -166,12 +166,19 @@ def estimate_duration(text: str, wpm: float) -> float:
 
 
 async def _edge_tts_capture(
-    text: str, voice: str, out_path: Path
+    text: str,
+    voice: str,
+    out_path: Path,
+    *,
+    rate: str = "+0%",
+    pitch: str = "+0Hz",
 ) -> list[tuple[str, int, int]]:
     """Write the mp3 and return WordBoundary events (100 ns ticks)."""
     import edge_tts  # optional dependency
 
-    communicate = edge_tts.Communicate(text, voice, boundary="WordBoundary")
+    communicate = edge_tts.Communicate(
+        text, voice, rate=rate, pitch=pitch, boundary="WordBoundary"
+    )
     events: list[tuple[str, int, int]] = []
     with out_path.open("wb") as fh:
         async for chunk in communicate.stream():
@@ -179,18 +186,33 @@ async def _edge_tts_capture(
             if kind == "audio":
                 fh.write(chunk["data"])
             elif kind == "WordBoundary":
-                events.append((chunk["text"], chunk["offset"], chunk["duration"]))
+                events.append(
+                    (
+                        str(chunk["text"]),
+                        int(chunk["offset"]),
+                        int(chunk["duration"]),
+                    )
+                )
     return events
 
 
 def synthesize_voice(
-    text: str, voice: str, media_dir: Path, scene_id: str, trim_silence: bool
+    text: str,
+    voice: str,
+    media_dir: Path,
+    scene_id: str,
+    trim_silence: bool,
+    *,
+    rate: str = "+0%",
+    pitch: str = "+0Hz",
 ) -> tuple[Path | None, float | None, list[dict[str, Any]] | None]:
     """Returns (wav_path, duration_sec, words_or_None)."""
     raw_mp3 = media_dir / f"{scene_id}.mp3"
     wav_out = media_dir / f"{scene_id}.wav"
     try:
-        events = asyncio.run(_edge_tts_capture(text, voice, raw_mp3))
+        events = asyncio.run(
+            _edge_tts_capture(text, voice, raw_mp3, rate=rate, pitch=pitch)
+        )
     except Exception as exc:  # noqa: BLE001 — network down, voice missing, package absent: all fall back
         print(
             f"tts_align: edge-tts unavailable for {scene_id!r} ({exc.__class__.__name__}); "
@@ -248,6 +270,28 @@ def synthesize_voice(
     return wav_out, duration, words
 
 
+RATE_RE = re.compile(r"^[+-]\d+%$")
+PITCH_RE = re.compile(r"^[+-]\d+Hz$")
+
+
+def validate_rate(value: str) -> str:
+    """argparse type for --rate: edge-tts speaking-rate adjustment strings."""
+    if not RATE_RE.match(value):
+        raise argparse.ArgumentTypeError(
+            f"--rate must look like '+12%' or '-12%' (got {value!r})"
+        )
+    return value
+
+
+def validate_pitch(value: str) -> str:
+    """argparse type for --pitch: edge-tts pitch-adjustment strings."""
+    if not PITCH_RE.match(value):
+        raise argparse.ArgumentTypeError(
+            f"--pitch must look like '+2Hz' or '-2Hz' (got {value!r})"
+        )
+    return value
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Generate a timing-locked storyboard from a beat script."
@@ -263,6 +307,24 @@ def main() -> int:
     )
     parser.add_argument(
         "--voice", default=None, help="edge-tts voice (overrides script voice)"
+    )
+    parser.add_argument(
+        "--rate",
+        default="+0%",
+        type=validate_rate,
+        help="edge-tts speaking rate adjustment (e.g. '-12%%' for calm poetry)",
+    )
+    parser.add_argument(
+        "--pitch",
+        default="+0Hz",
+        type=validate_pitch,
+        help="edge-tts pitch adjustment (e.g. '-2Hz' for warmer tone)",
+    )
+    parser.add_argument(
+        "--pad-tail",
+        type=float,
+        default=0.0,
+        help="Extra breathing silence in seconds appended to each scene duration",
     )
     parser.add_argument("--aspect", choices=sorted(ASPECTS), default="16:9")
     parser.add_argument("--fps", type=int, choices=[24, 25, 30, 50, 60], default=30)
@@ -316,13 +378,20 @@ def main() -> int:
         boundary_words = None
         if not args.offline:
             wav_path, duration, boundary_words = synthesize_voice(
-                narration, voice, media_dir, scene_id, args.trim_silence
+                narration,
+                voice,
+                media_dir,
+                scene_id,
+                args.trim_silence,
+                rate=args.rate,
+                pitch=args.pitch,
             )
             if wav_path is not None:
                 vo_rel = str(wav_path)
         if duration is None:
             duration = estimate_duration(narration, wpm)
-        duration = round(max(0.5, duration), 3)
+        spoken_dur = max(0.5, duration)
+        duration = round(spoken_dur + max(0.0, float(args.pad_tail)), 3)
 
         element_template = json.loads(
             json.dumps(DEFAULT_ELEMENTS.get(archetype, DEFAULT_ELEMENTS["mixed"]))

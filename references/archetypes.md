@@ -1,6 +1,6 @@
 # Archetype Field Guide
 
-Pick per scene (`archetype`). Blend across scenes freely; the renderer doesn't care. Palettes are canonical — deviate only with a reason.
+Pick per scene (`archetype`). Blend across scenes freely; the renderer doesn't care. Palettes are the *default set* — every archetype has a canonical look, and a second "persona" palette exists per archetype so videos don't all look the same. See [Persona Overlays](#creative-personas--per-archetype-personality) and the [Visual Grammar](storyboard-guide.md#visual-grammar--how-scenes-come-alive) for motion rules.
 
 | | `geometry_rig` | `doc_essay` | `code_report` |
 | :--- | :--- | :--- | :--- |
@@ -37,6 +37,28 @@ The figure is drawn by `rig.py`: a 2-bone analytical IK limb solves shoulder→e
 ## Blending
 
 Reserve `mixed` for legally-needed transitions (2–4 frames of hard cut is fine between archetypes — no crossfades except through motion). A strong default grammar: open on `code_report` tension, resolve on `doc_essay` scale, close on `geometry_rig` inevitability. Never run two archetype hero elements in the same scene.
+
+## Creative Personas — per-archetype personality
+
+Each archetype has a canonical look; **a second palette set per archetype** (2 options) lets videos differ visibly without breaking grammar. Pick 1–2 persona overlays per video; blend per scene.
+
+### `geometry_rig` — personality ideas
+
+- **Palette swaps:** warm cream+copper (`#FFD2A1` accents, `#F3F0EA` ink, void `#050508`) — like a warm-fired ink sketch; neon-emerald on void (terminal vibe: `#00FFA3` accents).
+- **Motion beats:** swap the slow ease zoom for a "pop reveal" — figure teleports to a target on a beat; add `orb_pulse` planet + `dot_field` sky behind; `equalizer` pulses during SFX beats.
+- **Hook/close:** open with `dot_field` drifting, figure lands on first beat; close with the figure walking off the frame (set `pan_x/pan_y` in `camera` while keeping `mode: "zoom"` — `pan` floats the frame without orbit).
+
+### `doc_essay` — personality ideas
+
+- **Palette swaps:** warm film (`#F5E6D0` ink on `#1A2333` panel) — cream-on-deep; "après café" — deep browns + amber/mustard `#C4956A` accents on near-black.
+- **Motion beats:** alternate `typewriter_text` (teaser lines) with `scaling_chart`; `orb_pulse` as a slow heartbeat under the essay; close the opening clause with a `whoosh`-locked pop when the heading lands.
+- **Hook/close:** open on a typist with the first quote line typing out; close with `scaling_chart` at full value + whoosh.
+
+### `code_report` — personality ideas
+
+- **Palette swaps:** terminal mode (JetBrains Mono dominant, green-on-black, cursor blink, golden terminal-green `#7EE787` for add rows) — the "actual IDE" feel; neon-dawn (`#BD93F9`+`#8BE9FD` accents).
+- **Motion beats:** swap packet telemetry for a full `orbit_ring`; keyboard glow: `typewriter_text` racing the failure headline + `orb_pulse` on the 503 flash; `equalizer` vibrating during the cascade.
+- **Hook/close:** open with typing beats racing before the report; close with the 503 flash + `trauma`.
 
 ## Caption Discipline
 
