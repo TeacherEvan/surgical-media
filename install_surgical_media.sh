@@ -8,9 +8,10 @@
 #   AGENTS.md
 #   scripts/ (all runtime CLIs + engine library)
 #   assets/fonts/ (bundled OFL Inter — captions/HUD face)
+#   assets/styles/ (style presets: soft_clay, punchy_pop, newsroom_clean, noir_restraint, risograph, tech_blueprint)
 #   references/ (archetypes, storyboard guide, ffmpeg encoding)
-#   schemas/ (investigation_brief, script, storyboard)
-#   examples/ (tri-archetype + hybrid-3D showcase boards)
+#   schemas/ (investigation_brief, script, storyboard, style)
+#   examples/ (tri-archetype, hybrid-3D, Three.js-3D showcases + style/platform reference boards ref_*)
 #   docs/adr/ (decision records) + docs/index.md + docs/project-plan.md
 #
 # Usage:
@@ -22,7 +23,7 @@ set -euo pipefail
 HERMES_SKILL_DIR="${1:-${HOME}/.hermes/skills/creative/surgical-media}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "[install_surgical_media] Installing Surgical Media (v1.5.0) to:"
+echo "[install_surgical_media] Installing Surgical Media (v2.0.0) to:"
 echo "  ${HERMES_SKILL_DIR}"
 echo
 
@@ -30,6 +31,7 @@ mkdir -p \
   "${HERMES_SKILL_DIR}/scripts" \
   "${HERMES_SKILL_DIR}/scripts/threejs" \
   "${HERMES_SKILL_DIR}/assets/fonts" \
+  "${HERMES_SKILL_DIR}/assets/styles" \
   "${HERMES_SKILL_DIR}/references" \
   "${HERMES_SKILL_DIR}/schemas" \
   "${HERMES_SKILL_DIR}/examples" \
@@ -51,6 +53,7 @@ cp "${SCRIPT_DIR}/scripts/threejs/package.json" \
 cp "${SCRIPT_DIR}/references/"*.md "${HERMES_SKILL_DIR}/references/"
 cp "${SCRIPT_DIR}/schemas/"*.json "${HERMES_SKILL_DIR}/schemas/"
 cp "${SCRIPT_DIR}/assets/fonts/"*.ttf "${SCRIPT_DIR}/assets/fonts/"*.txt "${SCRIPT_DIR}/assets/fonts/README.md" "${HERMES_SKILL_DIR}/assets/fonts/"
+cp -r "${SCRIPT_DIR}/assets/styles/"* "${HERMES_SKILL_DIR}/assets/styles/"
 cp "${SCRIPT_DIR}/examples/"*.json "${HERMES_SKILL_DIR}/examples/"
 cp "${SCRIPT_DIR}/docs/adr/"*.md "${HERMES_SKILL_DIR}/docs/adr/"
 cp "${SCRIPT_DIR}/docs/index.md" "${SCRIPT_DIR}/docs/project-plan.md" "${HERMES_SKILL_DIR}/docs/"
