@@ -24,6 +24,16 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 - Version 2.2.0 → 2.3.0 (pyproject, SKILL, README, project-plan).
 - `ci_gates.sh` gate labels corrected (`x/9` → `x/11`); `jobs/` gitignored.
 
+## [v2.3.1] — 2026-11-21
+
+### Added
+- **Claim-ID research contract (Wave 2 foundation):** `scripts/investigation_brief.py` — runtime validator mirroring `schemas/investigation_brief.schema.json` with `claim_id`, `claim_type`, `contradictions` cross-references, and full validation for `visual_anchors`, `visual_assets`, `target_format`. `tests/test_investigation_brief.py` — 35 tests including schema/runtime parity for all fields.
+- Breaking schema change: `schema_version` = 1.0.0 is now required; `claim_id` (pattern `^claim-[0-9a-f]{8}$`), `claim_type` (enum: factual/statistical/anecdotal/opinion/satire), and `contradictions` (array of claim_ids) are required on every fact. Older briefs will not validate.
+
+### Fixed
+- Validator now matches schema on `visual_anchors`, `visual_assets`, `target_format` (previously only validated `facts`; parity test now covers all fields).
+- `opencode.json` — reverted accidental Kilo schema URL addition.
+
 ## [v2.2.0]
 
 ### Added

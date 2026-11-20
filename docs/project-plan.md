@@ -1,6 +1,6 @@
 # Surgical Media — Project Plan & Task Status
 
-**Version:** 2.3.0 · **Updated:** 2026-11-21 · **Owner:** Evan (TeacherEvan), agent-assisted
+**Version:** 2.3.1 · **Updated:** 2026-11-21 · **Owner:** Evan (TeacherEvan), agent-assisted
 **Contract:** code + `tests/` are the contract; this plan is the living map. Verification is local-first — `bash scripts/ci_gates.sh` green *is* the quality bar ([ADR 0002](adr/0002-local-first-verification.md)).
 
 Docs entrypoint: [`docs/index.md`](index.md) · Human manual: [`README.md`](../README.md) · Agent manifest: [`SKILL.md`](../SKILL.md) · Agent rules: [`AGENTS.md`](../AGENTS.md) · Release history: [`CHANGELOG.md`](../CHANGELOG.md)
@@ -69,7 +69,7 @@ Examples: [`examples/tri_archetype_storyboard.json`](../examples/tri_archetype_s
 | P-01 | GitLab mirror **configured, never executed** | Import repo (Repository by URL), run one pipeline, record result here + ADR 0002 | Evan |
 | P-02 | v1.3.0 tagged locally, not pushed | Push `main` (fast-forward only) + `git push origin v1.3.0` when ready — main is protected: linear history only | Evan |
 | P-03 | 3 schema categories unimplemented: `rigid_body_physics_3d`, `mathematical_manifold_3d`, `external_asset_3d` (`network_topology_3d` implemented in v1.4.0 across Software 3D, Three.js, and Blender) | By design raise loud `NotImplementedError`; implement only with a tested use case (claims = code) | future |
-| P-04 | `manim_math` backend accepted-with-warning, renders as `canvas_2d` | Manim deliberately excluded (ADR 0001/0003); no action unless policy changes | — |
+| P-04 | `manim_math` backend accepted-with-warning, renders as `canvas_2d` | Manim deliberately excluded (ADR 0001/ADR 0003); no action unless policy changes | — |
 | P-05 | ~~mypy advisory only~~ — **resolved 2026-11-19**: strict-enforced as gate 4/9, `scripts/` annotated (249 → 0), verified 9/9 green | Keep it green; the gate now fails on any regression | — |
 | P-06 | markdownlint fails on pre-existing house docs (MD022/MD031/MD034/MD060) | Fix `references/` + `docs/adr/` formatting before ever adding it as a gate | future |
 | P-07 | Blender-path verification is host-dependent | Blender 5.3 present on this host; capability probes in `blender_runner.py` must keep passing on 4.2–4.5/5.x hosts. Measured 2026-11-19 (CPU-only N150): EEVEE bake ≈ 6–10 s/frame — a 45-frame scene takes ~5–8 min, the 3 s hybrid board ~16 min with Blender vs ~2 min software-only. The per-scene bake timeout is 600 s (`render_engine._prerender_blender_plates`); slower scenes fall back to software by design — keep hero scenes short. | agents |
@@ -98,6 +98,16 @@ Source proposal: [`plans/Surgical_Media_3.0_Master_Implementation_Plan.md`](plan
 | SM30-010/012/013/014 | Job model, persistence, validation, CLI, idempotency/recovery | Done | `scripts/job_model.py`, `job_store.py`, `job_cli.py`, `tests/test_job_layer.py` |
 | SM30-011/015 | Production Director + topic→storyboard→render flow | Done (agent step is file hand-off) | `scripts/job_director.py` |
 | SM30-020…055 | Research/claims, Audio/Visual Directors, providers, visual QA, originality, editorial, publishing adapters, analytics | **Deferred** (Waves 2–5) | master plan §9 |
+
+## 3d. Task status — Wave 2 (2026-11-21)
+
+| ID | Item | Status | Evidence |
+| :-- | :-- | :-- | :-- |
+| SM30-020/021 | Claim-ID research contract (`investigation_brief.py` validator + schema) | Done | `scripts/investigation_brief.py`, `schemas/investigation_brief.schema.json`, `tests/test_investigation_brief.py` (35 tests, parity) |
+| SM30-022/023 | `visual_anchors`, `visual_assets`, `target_format` validation parity | Done (was missing; now matches schema) | validator + parity test |
+| | Breaking schema change (`schema_version`=1.0.0, required `claim_id`/`claim_type`/`contradictions`) | Done — documented in CHANGELOG | `CHANGELOG.md` [v2.3.1] |
+| | Wire validator into `job_cli` plan step | **Next** | — |
+| SM30-024 | Horse Tenny comedy pilot as regression test fixture | **Next** (needs design sign-off) | — |
 
 ## 4. Invariants (do not regress)
 

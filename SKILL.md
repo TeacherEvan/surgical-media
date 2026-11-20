@@ -1,7 +1,7 @@
 ---
 name: surgical-media
 description: "Use when creating, planning, or rendering social video from a topic prompt."
-version: 2.3.0
+version: 2.3.1
 author: "TeacherEvan, Hermes Agent"
 license: MIT
 platforms: [linux, macos]
@@ -13,9 +13,9 @@ metadata:
     related_skills: [video-production-pipeline, surgical-orchestration, surgical-audit]
 ---
 
-# Surgical Media (v2.3.0)
+# Surgical Media (v2.3.1)
 
-Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow + SVG 2.0 rendering (plus optional Three.js WebGL Studio / Blender 3D passes) → ffmpeg H.264/AAC master → ffprobe QC gate. Art direction comes in two optional top-level blocks: `style` (palette/type/material/light/grade/motion — `scripts/style.py`, presets in `assets/styles/`) and `platform` (caption style, safe zones, hook/beat budgets — `scripts/platform_presets.py`). Comedy time uses `ui_mockups` painters (dating cards, chats, social posts); news/ops titles use `maps` (world clusters, callouts, route arrows). Monetization gates ship built-in (`monetization_gate.py`, `thumbnail_gen.py` — see Verification). Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 476 tests including rendered-MP4, Three.js IBL/bloom/SVG-3D/custom-script, Chromium SVG 2.0, style/platform/grade, monetization, monetization-gate/thumbnail/voice-cast, and mockup/map passes).
+Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow + SVG 2.0 rendering (plus optional Three.js WebGL Studio / Blender 3D passes) → ffmpeg H.264/AAC master → ffprobe QC gate. Art direction comes in two optional top-level blocks: `style` (palette/type/material/light/grade/motion — `scripts/style.py`, presets in `assets/styles/`) and `platform` (caption style, safe zones, hook/beat budgets — `scripts/platform_presets.py`). Comedy time uses `ui_mockups` painters (dating cards, chats, social posts); news/ops titles use `maps` (world clusters, callouts, route arrows). Monetization gates ship built-in (`monetization_gate.py`, `thumbnail_gen.py` — see Verification). Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 551 tests including rendered-MP4, Three.js IBL/bloom/SVG-3D/custom-script, Chromium SVG 2.0, style/platform/grade, monetization, monetization-gate/thumbnail/voice-cast, mockup/map passes, and claim-ID research contract).
 
 ## When to Use
 

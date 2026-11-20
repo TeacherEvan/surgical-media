@@ -48,6 +48,9 @@ def _brief(**over: Any) -> dict[str, Any]:
         "visual_anchors": [
             {"claim_index": 0, "primitive": "horse silhouette", "archetype": "mixed"}
         ],
+        "visual_assets": [
+            {"file": "horse.png", "license": "CC0", "attribution": "Public domain"}
+        ],
         "target_format": {"aspect": "9:16", "width": 1080, "height": 1920, "fps": 30},
     }
     base.update(over)
@@ -118,6 +121,192 @@ def test_contradictions_must_reference_known_ids() -> None:
     assert validate_request(bad)
 
 
+# -- visual_anchors --------------------------------------------------------
+
+
+def test_visual_anchors_required() -> None:
+    bad = _brief()
+    bad.pop("visual_anchors")
+    assert validate_request(bad)
+
+
+def test_visual_anchors_min_max_items() -> None:
+    bad = _brief()
+    bad["visual_anchors"] = []
+    assert validate_request(bad)
+    bad = _brief()
+    bad["visual_anchors"] = [{"claim_index": 0, "primitive": "x"}] * 13
+    assert validate_request(bad)
+
+
+def test_visual_anchor_required_fields() -> None:
+    bad = _brief()
+    bad["visual_anchors"][0].pop("claim_index")
+    assert validate_request(bad)
+    bad = _brief()
+    bad["visual_anchors"][0].pop("primitive")
+    assert validate_request(bad)
+
+
+def test_visual_anchor_claim_index_bounds() -> None:
+    bad = _brief()
+    bad["visual_anchors"][0]["claim_index"] = -1
+    assert validate_request(bad)
+    # Note: schema does not constrain claim_index to facts array bounds
+    # (cross-field validation is a runtime concern, not in JSON Schema)
+
+
+def test_visual_anchor_primitive_bounds() -> None:
+    bad = _brief()
+    bad["visual_anchors"][0]["primitive"] = ""
+    assert validate_request(bad)
+    bad = _brief()
+    bad["visual_anchors"][0]["primitive"] = "x" * 201
+    assert validate_request(bad)
+
+
+def test_visual_anchor_archetype_enum() -> None:
+    bad = _brief()
+    bad["visual_anchors"][0]["archetype"] = "not-an-archetype"
+    assert validate_request(bad)
+
+
+def test_visual_anchor_unknown_field() -> None:
+    bad = _brief()
+    bad["visual_anchors"][0]["surprise"] = True
+    assert validate_request(bad)
+
+
+# -- visual_assets ---------------------------------------------------------
+
+
+def test_visual_assets_max_items() -> None:
+    bad = _brief()
+    bad["visual_assets"] = [{"file": "x", "license": "CC0", "attribution": "x"}] * 25
+    assert validate_request(bad)
+
+
+def test_visual_asset_required_fields() -> None:
+    bad = _brief()
+    bad["visual_assets"] = [{"file": "x", "license": "CC0"}]  # missing attribution
+    assert validate_request(bad)
+    bad = _brief()
+    bad["visual_assets"] = [{"file": "x", "attribution": "x"}]  # missing license
+    assert validate_request(bad)
+    bad = _brief()
+    bad["visual_assets"] = [{"license": "CC0", "attribution": "x"}]  # missing file
+    assert validate_request(bad)
+
+
+def test_visual_asset_field_bounds() -> None:
+    bad = _brief()
+    bad["visual_assets"] = [{"file": "", "license": "CC0", "attribution": "x"}]
+    assert validate_request(bad)
+    bad = _brief()
+    bad["visual_assets"] = [{"file": "x" * 501, "license": "CC0", "attribution": "x"}]
+    assert validate_request(bad)
+    bad = _brief()
+    bad["visual_assets"] = [{"file": "x", "license": "", "attribution": "x"}]
+    assert validate_request(bad)
+    bad = _brief()
+    bad["visual_assets"] = [{"file": "x", "license": "x" * 41, "attribution": "x"}]
+    assert validate_request(bad)
+    bad = _brief()
+    bad["visual_assets"] = [{"file": "x", "license": "CC0", "attribution": ""}]
+    assert validate_request(bad)
+    bad = _brief()
+    bad["visual_assets"] = [{"file": "x", "license": "CC0", "attribution": "x" * 501}]
+    assert validate_request(bad)
+
+
+def test_visual_asset_optional_fields() -> None:
+    bad = _brief()
+    bad["visual_assets"] = [
+        {"file": "x", "license": "CC0", "attribution": "x", "title": "x" * 301}
+    ]
+    assert validate_request(bad)
+    bad = _brief()
+    bad["visual_assets"] = [
+        {"file": "x", "license": "CC0", "attribution": "x", "creator": "x" * 301}
+    ]
+    assert validate_request(bad)
+    bad = _brief()
+    bad["visual_assets"] = [
+        {"file": "x", "license": "CC0", "attribution": "x", "license_url": "x" * 501}
+    ]
+    assert validate_request(bad)
+    bad = _brief()
+    bad["visual_assets"] = [
+        {"file": "x", "license": "CC0", "attribution": "x", "source_url": "x" * 501}
+    ]
+    assert validate_request(bad)
+
+
+def test_visual_asset_unknown_field() -> None:
+    bad = _brief()
+    bad["visual_assets"] = [
+        {"file": "x", "license": "CC0", "attribution": "x", "surprise": True}
+    ]
+    assert validate_request(bad)
+
+
+# -- target_format ---------------------------------------------------------
+
+
+def test_target_format_required() -> None:
+    bad = _brief()
+    bad.pop("target_format")
+    assert validate_request(bad)
+
+
+def test_target_format_aspect_enum() -> None:
+    bad = _brief()
+    bad["target_format"]["aspect"] = "4:3"
+    assert validate_request(bad)
+
+
+def test_target_format_width_height_bounds() -> None:
+    bad = _brief()
+    bad["target_format"]["width"] = 100
+    assert validate_request(bad)
+    bad = _brief()
+    bad["target_format"]["height"] = 100
+    assert validate_request(bad)
+    bad = _brief()
+    bad["target_format"]["width"] = "wide"
+    assert validate_request(bad)
+
+
+def test_target_format_fps_enum() -> None:
+    bad = _brief()
+    bad["target_format"]["fps"] = 15
+    assert validate_request(bad)
+
+
+def test_target_format_max_duration_bounds() -> None:
+    bad = _brief()
+    bad["target_format"]["max_duration_sec"] = 0
+    assert validate_request(bad)
+    bad = _brief()
+    bad["target_format"]["max_duration_sec"] = 3601
+    assert validate_request(bad)
+    bad = _brief()
+    bad["target_format"]["max_duration_sec"] = -5
+    assert validate_request(bad)
+
+
+def test_target_format_platform_bounds() -> None:
+    bad = _brief()
+    bad["target_format"]["platform"] = "x" * 41
+    assert validate_request(bad)
+
+
+def test_target_format_unknown_field() -> None:
+    bad = _brief()
+    bad["target_format"]["surprise"] = True
+    assert validate_request(bad)
+
+
 def test_schema_runtime_parity() -> None:
     jsonschema = pytest.importorskip("jsonschema")
     good = _brief()
@@ -126,6 +315,25 @@ def test_schema_runtime_parity() -> None:
         lambda r: r.__setitem__("facts", [dict(r["facts"][0], claim_id="bad-id")]),
         lambda r: r.__setitem__("facts", [dict(r["facts"][0], claim_type="rumor")]),
         lambda r: r.update(surprise=True),
+        lambda r: r.__setitem__(
+            "visual_anchors", [dict(r["visual_anchors"][0], archetype="nope")]
+        ),
+        lambda r: r.__setitem__(
+            "visual_anchors", [dict(r["visual_anchors"][0], surprise=True)]
+        ),
+        lambda r: r.__setitem__(
+            "visual_assets", [dict(r["visual_assets"][0], file="")]
+        ),
+        lambda r: r.__setitem__(
+            "visual_assets", [dict(r["visual_assets"][0], surprise=True)]
+        ),
+        lambda r: r.__setitem__(
+            "target_format", dict(r["target_format"], aspect="4:3")
+        ),
+        lambda r: r.__setitem__("target_format", dict(r["target_format"], width=100)),
+        lambda r: r.__setitem__(
+            "target_format", dict(r["target_format"], surprise=True)
+        ),
     ]:
         bad = copy.deepcopy(good)
         mutate(bad)
