@@ -34,3 +34,8 @@ contact_sheet.jpg
 
 # production-job workspaces (runtime state, never commit)
 /jobs/
+
+# operational scratch from pruning runs (not skill source)
+.prune/
+PRUNE_PLAN.md
+.vscode/
