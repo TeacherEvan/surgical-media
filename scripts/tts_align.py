@@ -292,7 +292,7 @@ def validate_pitch(value: str) -> str:
     return value
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Generate a timing-locked storyboard from a beat script."
     )
@@ -345,7 +345,7 @@ def main() -> int:
         default=None,
         help="Directory for voice stems (default: <output dir>/audio)",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     try:
         script = json.loads(args.input.read_text(encoding="utf-8"))
@@ -359,6 +359,9 @@ def main() -> int:
         return 2
 
     voice = args.voice or script.get("voice") or "en-US-ChristopherNeural"
+    voice_overrides = script.get("voices")
+    if not isinstance(voice_overrides, dict):
+        voice_overrides = {}
     wpm = float(script.get("wpm") or args.wpm)
     width, height = ASPECTS[args.aspect]
     media_dir = args.media_dir or (args.output.parent / "audio")
@@ -372,6 +375,7 @@ def main() -> int:
             print(f"tts_align: scene {scene_id!r} has empty narration", file=sys.stderr)
             return 2
         archetype = str(raw.get("archetype") or "doc_essay")
+        scene_voice = str(raw.get("voice") or voice_overrides.get(scene_id) or voice)
 
         vo_rel = None
         duration = None
@@ -379,7 +383,7 @@ def main() -> int:
         if not args.offline:
             wav_path, duration, boundary_words = synthesize_voice(
                 narration,
-                voice,
+                scene_voice,
                 media_dir,
                 scene_id,
                 args.trim_silence,

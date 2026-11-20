@@ -9,6 +9,11 @@
   "properties": {
     "title": { "type": "string", "maxLength": 200 },
     "voice": { "type": "string", "minLength": 3, "maxLength": 80, "default": "en-US-ChristopherNeural" },
+    "voices": {
+      "type": "object",
+      "description": "Optional per-scene voice map (scene_id → voice). tts_align: CLI --voice > script.voice > per-scene override > default",
+      "additionalProperties": { "type": "string", "minLength": 3, "maxLength": 80 }
+    },
     "wpm": { "type": "number", "minimum": 80, "maximum": 260, "default": 165 },
     "scenes": {
       "type": "array",
