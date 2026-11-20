@@ -23,6 +23,7 @@ from elements.dataviz import (
     paint_tesseract,
 )
 from elements.figures import paint_stick_rig
+from elements.maps import paint_map, paint_map_arrow, paint_map_callout
 from elements.media import paint_image
 from elements.scenes import paint_background, paint_grid
 from elements.svg import paint_svg
@@ -31,6 +32,13 @@ from elements.text import (
     paint_kinetic_captions,
     paint_quote_card,
     paint_source_tag,
+)
+from elements.ui_mockups import (
+    paint_app_toast,
+    paint_chat_bubble,
+    paint_phone_frame,
+    paint_social_post,
+    paint_swipe_card,
 )
 from elements.visual import (
     paint_dot_field,
@@ -51,7 +59,9 @@ __all__ = [
     "_reveal_box",
     "_smoothstep",
     "_wrap_text",
+    "paint_app_toast",
     "paint_background",
+    "paint_chat_bubble",
     "paint_code_terminal",
     "paint_dot_field",
     "paint_equalizer",
@@ -60,14 +70,20 @@ __all__ = [
     "paint_image",
     "paint_kinetic_captions",
     "paint_leader_arrow",
+    "paint_map",
+    "paint_map_arrow",
+    "paint_map_callout",
     "paint_orb_pulse",
     "paint_orbit_ring",
     "paint_phi_divider",
+    "paint_phone_frame",
     "paint_quote_card",
     "paint_scaling_chart",
+    "paint_social_post",
     "paint_source_tag",
     "paint_stick_rig",
     "paint_svg",
+    "paint_swipe_card",
     "paint_system_architecture",
     "paint_tesseract",
     "paint_typewriter_text",
@@ -110,4 +126,14 @@ RENDERERS = {
     "equalizer": paint_equalizer,
     "typewriter_text": paint_typewriter_text,
     "leader_arrow": paint_leader_arrow,
+    # comedy mockups (ui_mockups.py)
+    "phone_frame": paint_phone_frame,
+    "swipe_card": paint_swipe_card,
+    "social_post": paint_social_post,
+    "chat_bubble": paint_chat_bubble,
+    "app_toast": paint_app_toast,
+    # political maps (maps.py)
+    "map": paint_map,
+    "map_arrow": paint_map_arrow,
+    "map_callout": paint_map_callout,
 }

@@ -56,6 +56,16 @@ KNOWN_ELEMENTS = {
     "image",
     "svg",
     "source_tag",
+    # comedy mockups (scripts/elements/ui_mockups.py)
+    "phone_frame",
+    "swipe_card",
+    "social_post",
+    "chat_bubble",
+    "app_toast",
+    # political maps (scripts/elements/maps.py)
+    "map",
+    "map_arrow",
+    "map_callout",
     # personality painters (scripts/elements/visual.py)
     "orb_pulse",
     "dot_field",
