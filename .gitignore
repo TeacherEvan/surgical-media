@@ -19,3 +19,14 @@ demo_showcase.mp4
 *.mp4
 *_work/
 audio/
+
+# scratch projects & probe artifacts (never commit)
+snakes_friend_project/
+projects/*/assets*/
+projects/*/thumbs/
+projects/*/audio/
+check_*.png
+*_probe.json
+render_final.log
+thumbs_contact.jpg
+contact_sheet.jpg

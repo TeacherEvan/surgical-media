@@ -9,6 +9,18 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 (`bash scripts/ci_gates.sh`) are the enforced standard; the GitLab mirror
 (`.gitlab-ci.yml`) is configured, not verified.
 
+## [v2.0.1]
+
+### Added
+- **Monetization & retention gates.** `scripts/monetization_gate.py` — blocking pre-export checks wired into `verify_output.py` (`--manifest`/`--script`): commercial-license firewall (allowlist `cc0`/`pd`/`by`/`by-sa`; hard-block `by-nc*`/`by-nd*`/unknown/missing), asset file existence, adversarial-safe phrasing lint on script text (fabricated quotes, defamation, medical/election misinformation), retention pacing (static holds >3s @9:16 / >6s @16:9 without camera motion or state change) — ERROR fails the export, WARN doesn't. `scripts/thumbnail_gen.py` — high-CTR thumbnail picker from scene thumbnails (≥4.5:1 subject/background contrast, ≥110 px cap height, downscale-legible at 168×94, JPEG < 2 MB). `scripts/tool_probe.py` — environment probe (local GPU/Blender/Three.js/Chromium, local STT/TTS modules, API-key presence) emitting `capabilities.json` so hosts auto-select the "use all available tools" adapter tier. Multi-voice casting: `voices` map in `schemas/script.schema.json` + `tts_align.py` per-scene voice override.
+
+### Changed
+- **Packaging hygiene.** Pruned the 113 MB `snakes_friend_project/` scratch from `git`; `.gitignore` blocks the usual scratch (`check_*.png`, `*_probe.json`, `render_final.log`, `thumbs_contact.jpg`, `snakes_friend_project/`). Deleted `Concept/surgical-media-concecpt.txt` (typo) and `docs/plans/Conversation with Gemini.txt` (raw chat transcripts); the roadmap stays in `docs/project-plan.md`.
+- **Docs.** `SKILL.md` + `references/storyboard-guide.md` document the probe (Stage 3), new genre painters (`ui_mockups`, `maps`), monetization gates, and voice casting.
+
+### Removed
+- Raw chat transcripts, duplicate stock assets (`snakes_friend_project/`), generated render artifacts (26 MB `thumbs/`, 22 MB `assets2/` duplicate, 22 MB `assets/`); `Concept/surgical-media-concecpt.txt`
+
 ## [v2.0.0]
 
 ### Added
