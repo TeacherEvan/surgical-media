@@ -26,6 +26,8 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
+from monetization_gate import check_board_monetization
+
 DRIFT_TOLERANCE_SEC = 0.150
 MAX_SILENCE_FRACTION = (
     0.75  # pipeline always mixes a pad + VO — >75% silent means broken audio
@@ -96,6 +98,7 @@ def verify_mp4(
     expected_duration: float | None = None,
     storyboard: str | Path | None = None,
     max_silence_fraction: float = MAX_SILENCE_FRACTION,
+    monetization: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     path = Path(path)
     report: dict[str, Any] = {"input": str(path), "checks": [], "ok": True}
@@ -104,6 +107,15 @@ def verify_mp4(
         report["checks"].append({"check": name, "ok": bool(passed), "detail": detail})
         if not passed:
             report["ok"] = False
+
+    if monetization is not None:
+        for issue in monetization["issues"]:
+            scene = f" (scene: {issue['scene']})" if issue.get("scene") else ""
+            check(
+                issue["rule"],
+                issue["severity"] != "ERROR",
+                f"[{issue['severity']}] {issue['detail']}{scene}",
+            )
 
     if storyboard is not None:
         try:
@@ -250,6 +262,18 @@ def main() -> int:
         help="Fail if more than this fraction of the track is silent (default 0.75)",
     )
     parser.add_argument(
+        "--manifest",
+        type=Path,
+        default=None,
+        help="assets/manifest.json — run monetization gates",
+    )
+    parser.add_argument(
+        "--script",
+        type=Path,
+        default=None,
+        help="script.json — adversarial-phrasing scan",
+    )
+    parser.add_argument(
         "--json", type=Path, default=None, help="Also write the report JSON here"
     )
     args = parser.parse_args()
@@ -257,6 +281,20 @@ def main() -> int:
     if shutil.which("ffprobe") is None:
         print("verify_output: ffprobe not found on PATH", file=sys.stderr)
         return 2
+
+    monetization: dict[str, Any] | None = None
+    if args.manifest or args.script:
+        board = (
+            json.loads(args.storyboard.read_text(encoding="utf-8"))
+            if args.storyboard
+            else {}
+        )
+        monetization = check_board_monetization(
+            board,
+            board_path=args.storyboard,
+            manifest_path=args.manifest,
+            script_path=args.script,
+        )
 
     report = verify_mp4(
         args.input,
@@ -266,6 +304,7 @@ def main() -> int:
         expected_duration=args.expect_duration,
         storyboard=args.storyboard,
         max_silence_fraction=args.max_silence_fraction,
+        monetization=monetization,
     )
     text = json.dumps(report, indent=2)
     print(text)
