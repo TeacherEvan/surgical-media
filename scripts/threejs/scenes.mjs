@@ -152,7 +152,45 @@ export function networkTopologyLayout() {
   return { nodes, edges };
 }
 
-function setupLighting(THREE, scene, preset, transparentBg) {
+function hexToInt(hex, fallback) {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(String(hex || ""));
+  return m ? parseInt(m[1], 16) : fallback;
+}
+
+// Style-bible lighting (spec.style_light, resolved by scripts/style.py): one
+// palette-derived key/fill/rim + ground colour so WebGL plates match the
+// Blender plates, SVG art and 2D grade of the same board.
+function setupStyledLighting(THREE, scene, styleLight, transparentBg) {
+  const bg = hexToInt(styleLight.bg_hex, 0x101216);
+  const key = hexToInt(styleLight.key_hex, 0xffffff);
+  const fill = hexToInt(styleLight.fill_hex, 0xbfd4ff);
+  const rim = hexToInt(styleLight.rim_hex, 0xffe2b8);
+  if (!transparentBg) {
+    scene.background = new THREE.Color(bg);
+    scene.fog = new THREE.FogExp2(bg, 0.012);
+  } else {
+    scene.background = null;
+  }
+  scene.add(new THREE.HemisphereLight(fill, bg, 0.9));
+  const keyLight = new THREE.DirectionalLight(key, 2.2);
+  keyLight.position.set(4.5, -5.0, 7.0);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.set(1024, 1024);
+  keyLight.shadow.radius = 2 + 8 * Number(styleLight.shadow_softness ?? 0.5);
+  scene.add(keyLight);
+  const fillLight = new THREE.DirectionalLight(fill, 0.9);
+  fillLight.position.set(-5.0, -2.0, 3.5);
+  scene.add(fillLight);
+  const rimLight = new THREE.DirectionalLight(rim, 1.1);
+  rimLight.position.set(0.0, 6.0, 4.0);
+  scene.add(rimLight);
+}
+
+function setupLighting(THREE, scene, preset, transparentBg, styleLight) {
+  if (styleLight && typeof styleLight === "object") {
+    setupStyledLighting(THREE, scene, styleLight, transparentBg);
+    return;
+  }
   const isClean = preset === "clean_product_softbox";
   const bgHex = isClean ? 0x0e1525 : 0x050811;
   if (!transparentBg) {
@@ -713,6 +751,7 @@ export async function createSceneController(THREE, spec, width, height, extras =
     scene,
     spec.lighting_preset || "cyber_studio_volumetric",
     Boolean(spec.transparent_bg),
+    spec.style_light,
   );
 
   const camCfg = spec.camera_3d || {};

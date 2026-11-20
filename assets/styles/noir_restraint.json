@@ -1,0 +1,36 @@
+{
+  "palette": {
+    "ground": "#0B0B0D",
+    "ink": "#E8E4DC",
+    "accent": "#C8A24A",
+    "accent2": "#6B7A8F",
+    "shadow": "#000000",
+    "highlight": "#F3EBD3"
+  },
+  "type": {
+    "display": "CormorantGaramond",
+    "body": "Inter",
+    "tracking": 0.02
+  },
+  "material": {
+    "family": "metal",
+    "roughness": 0.4
+  },
+  "light": {
+    "key_temp_k": 3400,
+    "fill_temp_k": 7500,
+    "shadow_softness": 0.3
+  },
+  "grade": {
+    "grain": 0.22,
+    "vignette": 0.35,
+    "halation": 0.2,
+    "warmth": 0.05
+  },
+  "motion": {
+    "feel": "calm",
+    "ease": "ease_out_expo",
+    "hold": 0.4,
+    "drift": 0.025
+  }
+}

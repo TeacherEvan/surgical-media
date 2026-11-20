@@ -362,3 +362,69 @@ def paint_kinetic_captions(
                 )
             finally:
                 cv.camera = saved_cam
+
+
+def paint_source_tag(
+    cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext
+) -> None:
+    """Lower-third provenance tag: ``LABEL · text`` (e.g. SOURCE / OPINION / FACT).
+
+    Newsroom-style explainers put one on every factual claim; ``style_lint``
+    treats a ``source_tag`` (or a ``quote_card`` ``attribution``) as the claim's
+    citation. Fades/slides in over ``reveal_sec`` after ``start`` (scene-local).
+    """
+    text = str(el.get("text", "")).strip()
+    if not text:
+        return
+    start = float(el.get("start", 0.0))
+    reveal = ease_out_expo(
+        _smoothstep(start, start + float(el.get("reveal_sec", 0.45)), ctx.local_time)
+    )
+    if reveal <= 0.01:
+        return
+    label = str(el.get("label", "SOURCE")).upper()
+    ink = str(el.get("ink_color", INK))
+    accent = str(el.get("accent", GOLD))
+    fill = str(el.get("fill", "#0B1220"))
+    sx0, sy0, sx1, sy1 = ctx.zones["safe"]
+    size = int(el.get("size") or max(13, int(ctx.height * 0.021)))
+    family = el.get("font_family")
+    label_font = get_font(size, family=family, bold=True)
+    body_font = get_font(size, family=family, bold=False)
+    gap = size * 0.6
+    pad_x, pad_y = size * 0.7, size * 0.45
+    w = label_font.getlength(label) + gap + body_font.getlength(text) + 2 * pad_x
+    w = min(w, (sx1 - sx0) * 0.96)
+    h = size + 2 * pad_y
+    corner = str(el.get("corner", "bl"))
+    x0 = sx1 - w if corner.endswith("r") else sx0
+    y0 = (sy0 if corner.startswith("t") else sy1 - h) + (1.0 - reveal) * size * 1.2
+    box = (x0, y0, x0 + w, y0 + h)
+    _paste_soft_pill(
+        cv,
+        box,
+        fill,
+        float(el.get("alpha", 0.88)) * reveal,
+        h * 0.28,
+        outline=str(el.get("outline", accent)),
+        outline_width=1.2,
+    )
+    cy = y0 + h / 2
+    cv.text(
+        (x0 + pad_x, cy),
+        label,
+        accent,
+        size=size,
+        anchor="lm",
+        family=family,
+        bold=True,
+    )
+    cv.text(
+        (x0 + pad_x + label_font.getlength(label) + gap, cy),
+        text,
+        ink,
+        size=size,
+        anchor="lm",
+        family=family,
+        bold=False,
+    )

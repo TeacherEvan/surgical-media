@@ -321,7 +321,9 @@ def configure_render_pipeline(
 
 
 def setup_lighting_and_world(
-    scene: Any, preset: str = "cyber_studio_volumetric"
+    scene: Any,
+    preset: str = "cyber_studio_volumetric",
+    style_light: dict[str, Any] | None = None,
 ) -> None:
     """World background + three area lights (linear-space colors)."""
     world = scene.world
@@ -333,14 +335,20 @@ def setup_lighting_and_world(
     background = next((n for n in nodes if n.type == "BACKGROUND"), None)
     if background is None:
         background = nodes.new("ShaderNodeBackground")
-    background.inputs["Color"].default_value = hex_to_linear_rgba("#050811")
+    sl = style_light or {}
+    background.inputs["Color"].default_value = hex_to_linear_rgba(
+        str(sl.get("bg_hex", "#050811"))
+    )
     background.inputs["Strength"].default_value = 0.65
 
     key_hex = "#E0F2FE" if preset == "cyber_studio_volumetric" else "#FFFBEB"
+    key_hex = str(sl.get("key_hex", key_hex))
+    rim_hex = str(sl.get("rim_hex", "#38BDF8"))
+    fill_hex = str(sl.get("fill_hex", "#818CF8"))
     light_specs = [
         ("KeyLight", 1400.0, 4.5, (5.0, -4.5, 5.5), key_hex, (42, 0, 42)),
-        ("RimLight", 2200.0, 3.5, (-5.5, 5.0, 4.0), "#38BDF8", (58, 0, -135)),
-        ("FillLight", 600.0, 6.0, (-4.0, -5.0, 2.5), "#818CF8", (65, 0, -40)),
+        ("RimLight", 2200.0, 3.5, (-5.5, 5.0, 4.0), rim_hex, (58, 0, -135)),
+        ("FillLight", 600.0, 6.0, (-4.0, -5.0, 2.5), fill_hex, (65, 0, -40)),
     ]
     for name, energy, size, location, hex_color, rot_deg in light_specs:
         light_data = bpy.data.lights.new(name, type="AREA")
@@ -1060,7 +1068,9 @@ def run_blender_scene(
         transparent_bg=bool(spec.get("transparent_bg", False)),
     )
     setup_lighting_and_world(
-        scene, preset=spec.get("lighting_preset", "cyber_studio_volumetric")
+        scene,
+        preset=spec.get("lighting_preset", "cyber_studio_volumetric"),
+        style_light=spec.get("style_light"),
     )
     cam_spec = spec.get("camera") or {}
     cam_obj = setup_camera_rig(scene, cam_spec, total_frames)

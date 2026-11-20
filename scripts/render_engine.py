@@ -41,6 +41,7 @@ from camera import WorldCamera2D
 from canvas import SupersampledCanvas, classify_aspect, layout_zones, rgb
 from easings import ease_in_out_cubic
 from elements import ElementContext, render_element
+from grade import grader_for_board
 from scene_router import CAMERA_3D_DEFAULTS
 from storyboard import assign_start_times, total_duration, validate_storyboard
 
@@ -198,7 +199,7 @@ def _blender_adapter_spec(spec: dict[str, Any]) -> dict[str, Any]:
     adapted spec is written to the work dir — the board itself is never mutated.
     """
     cam = spec.get("camera_3d") or {}
-    return {
+    adapted: dict[str, Any] = {
         "category": spec.get("category"),
         "engine_pref": spec.get("blender_engine", "AUTO_EEVEE"),
         "transparent_bg": bool(spec.get("transparent_bg", False)),
@@ -225,6 +226,9 @@ def _blender_adapter_spec(spec: dict[str, Any]) -> dict[str, Any]:
             ),
         },
     }
+    if isinstance(spec.get("style_light"), dict):
+        adapted["style_light"] = dict(spec["style_light"])
+    return adapted
 
 
 def _load_blender_tracks(
@@ -454,6 +458,7 @@ def render_thumbnails(board_path: Path, out_dir: Path, scale: int = 2) -> list[P
     width, height, fps = int(fmt["width"]), int(fmt["height"]), int(fmt["fps"])
     seed = int(board.get("meta", {}).get("seed", 20261118))
     base_dir = str(board_path.resolve().parent)
+    grader = grader_for_board(board, width, height, seed)
     out_dir.mkdir(parents=True, exist_ok=True)
     written = []
     for scene in board["scenes"]:
@@ -511,7 +516,7 @@ def render_thumbnails(board_path: Path, out_dir: Path, scale: int = 2) -> list[P
                 scene, width, height, scale, seed, idx, fps, base_dir=base_dir
             )
         out = out_dir / f"{scene['scene_id']}.png"
-        frame.save(out)
+        grader(frame, idx).save(out)
         written.append(out)
     return written
 
@@ -833,6 +838,7 @@ def render(args: argparse.Namespace) -> int:
     )
 
     frame_idx = 0
+    grader = grader_for_board(board, width, height, seed)
     per_scene_frames = frame_counts(board["scenes"], fps)
     total_frames = sum(per_scene_frames)
     plate_dirs = {
@@ -908,6 +914,7 @@ def render(args: argparse.Namespace) -> int:
                 if local_idx == n_frames - 1:
                     last_scene_frame = frame.copy()
 
+                frame = grader(frame, frame_idx)
                 assert proc.stdin is not None
                 proc.stdin.write(frame.tobytes())
                 frame_idx += 1

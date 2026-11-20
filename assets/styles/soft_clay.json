@@ -1,0 +1,36 @@
+{
+  "palette": {
+    "ground": "#F5E9DD",
+    "ink": "#3C3028",
+    "accent": "#A65A38",
+    "accent2": "#D4E3D6",
+    "shadow": "#7D6E62",
+    "highlight": "#FCE8CB"
+  },
+  "type": {
+    "display": "CormorantGaramond",
+    "body": "CormorantGaramond",
+    "tracking": 0.0
+  },
+  "material": {
+    "family": "clay",
+    "roughness": 0.85
+  },
+  "light": {
+    "key_temp_k": 4800,
+    "fill_temp_k": 6500,
+    "shadow_softness": 0.9
+  },
+  "grade": {
+    "grain": 0.18,
+    "vignette": 0.18,
+    "halation": 0.25,
+    "warmth": 0.12
+  },
+  "motion": {
+    "feel": "calm",
+    "ease": "ease_in_out_cubic",
+    "hold": 0.35,
+    "drift": 0.03
+  }
+}

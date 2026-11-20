@@ -40,4 +40,7 @@ echo "== gate 9/9: draft render + QC =="
 python3 scripts/render_engine.py --demo --output /tmp/sm_ci_gate.mp4 --quality draft
 python3 scripts/verify_output.py --input /tmp/sm_ci_gate.mp4 --storyboard examples/tri_archetype_storyboard.json
 
+echo "== gate 10/10: style_lint on examples (advisory, report mode) =="
+python3 scripts/style_lint.py examples/*.json
+
 echo "ci_gates: all gates green"

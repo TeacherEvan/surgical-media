@@ -1,0 +1,258 @@
+{
+  "meta": {
+    "title": "Ref — Tech Explainer (9:16)",
+    "author": "surgical-media",
+    "description": "Companion reference: tech_blueprint, shorts — system architecture cascade, flow, pulse, verified totals."
+  },
+  "format": {
+    "width": 870,
+    "height": 1536,
+    "fps": 30
+  },
+  "style": {
+    "preset": "tech_blueprint"
+  },
+  "platform": {
+    "preset": "shorts_tiktok_reels"
+  },
+  "scenes": [
+    {
+      "scene_id": "hook_network_overview",
+      "archetype": "mixed",
+      "duration_sec": 3.4,
+      "start_sec": 0.0,
+      "words": [
+        {
+          "word": "The network. Explained. Verified counts.",
+          "start": 0.4,
+          "end": 2.2
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "color": "@shadow"
+        },
+        {
+          "type": "system_architecture",
+          "cascade_start": 0.8,
+          "cascade_step": 0.4,
+          "nodes": [
+            {
+              "id": "lb",
+              "label": "L7 LOAD BALANCER",
+              "x": 435,
+              "y": 300,
+              "role": "source"
+            },
+            {
+              "id": "ex1",
+              "label": "EXCHANGE-EU-1",
+              "x": 600,
+              "y": 200,
+              "role": "exchange"
+            },
+            {
+              "id": "ex2",
+              "label": "EXCHANGE-EU-2",
+              "x": 600,
+              "y": 460,
+              "role": "exchange"
+            }
+          ]
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.04,
+        "easing": "ease_out_expo"
+      }
+    },
+    {
+      "scene_id": "architecture_cascade",
+      "archetype": "code_report",
+      "duration_sec": 6.0,
+      "start_sec": 3.4,
+      "words": [
+        {
+          "word": "Requests fan out, scale, and pick their own lane.",
+          "start": 0.5,
+          "end": 3.0
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "color": "@shadow"
+        },
+        {
+          "type": "system_architecture",
+          "cascade_start": 1.0,
+          "cascade_step": 0.45,
+          "nodes": [
+            {
+              "id": "lb",
+              "label": "L7 LOAD BALANCER",
+              "x": 435,
+              "y": 260,
+              "role": "source"
+            },
+            {
+              "id": "ex1",
+              "label": "EXCHANGE-EU-1",
+              "x": 600,
+              "y": 130,
+              "role": "exchange"
+            },
+            {
+              "id": "ex2",
+              "label": "EXCHANGE-EU-2",
+              "x": 600,
+              "y": 330,
+              "role": "exchange"
+            },
+            {
+              "id": "ex3",
+              "label": "EXCHANGE-EU-3",
+              "x": 600,
+              "y": 540,
+              "role": "exchange"
+            }
+          ]
+        },
+        {
+          "type": "orb_pulse",
+          "cx": 1050,
+          "cy": 1150,
+          "radius": 40,
+          "color": "@accent"
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.03,
+        "easing": "ease_out_back"
+      }
+    },
+    {
+      "scene_id": "flow_nodes_roaming",
+      "archetype": "mixed",
+      "duration_sec": 4.2,
+      "start_sec": 9.4,
+      "elements": [
+        {
+          "type": "background",
+          "color": "@shadow"
+        },
+        {
+          "type": "leader_arrow",
+          "points": [
+            [
+              1020,
+              760
+            ],
+            [
+              420,
+              760
+            ]
+          ],
+          "speed": 2.8,
+          "radius": 8,
+          "color": "@accent",
+          "width": 5
+        },
+        {
+          "type": "typewriter_text",
+          "text": "Per-request fan-out across 3 exchanges.",
+          "size": 60,
+          "color": "@ink",
+          "accent": "@accent",
+          "x": 435,
+          "y": 700,
+          "speed": 20,
+          "start": 0.5,
+          "hold": 1.5
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.04,
+        "easing": "ease_in_out_cubic"
+      }
+    },
+    {
+      "scene_id": "compute_pulse",
+      "archetype": "code_report",
+      "duration_sec": 5.0,
+      "start_sec": 13.6,
+      "words": [
+        {
+          "word": "Every second, queues gain and drain.",
+          "start": 0.5,
+          "end": 2.5
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "color": "@shadow"
+        },
+        {
+          "type": "orb_pulse",
+          "cx": 435,
+          "cy": 930,
+          "radius": 90,
+          "color": "@accent"
+        },
+        {
+          "type": "equalizer",
+          "n": 12,
+          "peak": 120,
+          "bar_top": 1150,
+          "beat_hz": 1.2,
+          "color": "@accent"
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.02,
+        "easing": "linear"
+      }
+    },
+    {
+      "scene_id": "outro_verified",
+      "archetype": "mixed",
+      "duration_sec": 4.6,
+      "start_sec": 18.6,
+      "elements": [
+        {
+          "type": "background",
+          "color": "@shadow"
+        },
+        {
+          "type": "typewriter_text",
+          "text": "5,200 ops/sec. Verified in frame.",
+          "size": 58,
+          "color": "@ink",
+          "accent": "@accent",
+          "x": 435,
+          "y": 850,
+          "speed": 16,
+          "start": 0.4,
+          "hold": 1.4
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.02,
+        "zoom_end": 1.0,
+        "easing": "spring_pop"
+      }
+    }
+  ]
+}

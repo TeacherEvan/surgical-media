@@ -81,7 +81,7 @@ The full list lives in [`AGENTS.md`](../AGENTS.md) → "Hard-won invariants" and
 ## 5. Verification contract
 
 ```bash
-bash scripts/ci_gates.sh   # 9 gates: boards → ruff → format → mypy --strict → pytest → metaschema → example-vs-schema → thumbnails (2D + hybrid) → draft render + ffprobe QC
+bash scripts/ci_gates.sh   # 10 gates: boards → ruff → format → mypy --strict → pytest → metaschema → example-vs-schema → thumbnails (2D + hybrid) → draft render + ffprobe QC → style_lint on examples (report)
 ```
 
 Single gate detail and the local-first decision: [ADR 0002](adr/0002-local-first-verification.md). Test counts quoted in docs must match the current suite run (constant-sweep rule in the documentation-maintenance workflow).

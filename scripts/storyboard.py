@@ -16,6 +16,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from platform_presets import apply_platform, validate_platform
+from style import apply_style, find_board_unresolved_refs, validate_style
+
 VALID_ARCHETYPES = {"geometry_rig", "doc_essay", "code_report", "mixed"}
 VALID_FPS = {24, 25, 30, 50, 60}
 VALID_EASINGS = {
@@ -52,6 +55,7 @@ KNOWN_ELEMENTS = {
     "stick_rig",
     "image",
     "svg",
+    "source_tag",
     # personality painters (scripts/elements/visual.py)
     "orb_pulse",
     "dot_field",
@@ -424,6 +428,16 @@ def validate_storyboard(data: Any) -> list[str]:
     if not isinstance(data, dict):
         return ["top level must be a JSON object"]
 
+    validate_platform(data.get("platform"), errors)
+    style_errors: list[str] = []
+    validate_style(data.get("style"), style_errors)
+    errors.extend(style_errors)
+    if not style_errors:
+        unresolved = find_board_unresolved_refs(data)
+        errors.extend(unresolved)
+        if not unresolved:
+            data = apply_style(data)  # '@role' colour refs → hex before field checks
+
     _validate_meta(data.get("meta"), errors)
     _validate_format(data.get("format"), errors)
 
@@ -446,7 +460,7 @@ def validate_storyboard(data: Any) -> list[str]:
 
 def assign_start_times(data: dict[str, Any]) -> dict[str, Any]:
     """Fill missing start_sec by accumulating scene durations. Mutates a copy."""
-    out: dict[str, Any] = json.loads(json.dumps(data))
+    out: dict[str, Any] = apply_platform(apply_style(json.loads(json.dumps(data))))
     cursor = 0.0
     for scene in out.get("scenes", []):
         if scene.get("start_sec") is None:

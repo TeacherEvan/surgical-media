@@ -1,0 +1,236 @@
+{
+  "meta": {
+    "title": "Ref — Horse Tender (punchy short)",
+    "author": "surgical-media",
+    "description": "Comedy short-form reference: hook text on frame 0, sticker captions with pop, swipe lead-in, loop-able ending."
+  },
+  "format": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30
+  },
+  "style": {
+    "preset": "punchy_pop"
+  },
+  "platform": {
+    "preset": "shorts_tiktok_reels"
+  },
+  "scenes": [
+    {
+      "scene_id": "hook_stallion_card",
+      "duration_sec": 2.2,
+      "start_sec": 0.0,
+      "words": [
+        {
+          "word": "Stallion. 7/10. Owns a garden.",
+          "start": 0.5,
+          "end": 1.8
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#FFF4D6",
+            "#E8C8A8"
+          ]
+        },
+        {
+          "type": "svg",
+          "box": [
+            120,
+            420,
+            960,
+            1020
+          ],
+          "reveal": "pop",
+          "glow": true,
+          "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 720 960\"><rect x=\"40\" y=\"80\" width=\"640\" height=\"820\" rx=\"28\" fill=\"#FFF4D6\" stroke=\"#1B1B1F\" stroke-width=\"6\"/><circle cx=\"360\" cy=\"520\" r=\"180\" fill=\"#F2B4A6\"/><ellipse cx=\"320\" cy=\"470\" rx=\"110\" ry=\"40\" fill=\"#F2B4A6\"/><ellipse cx=\"400\" cy=\"470\" rx=\"110\" ry=\"40\" fill=\"#F2B4A6\"/><path d=\"M330 590 C340 610 360 610 370 590\" fill=\"none\" stroke=\"#1B1B1F\" stroke-width=\"8\"/><ellipse cx=\"330\" cy=\"560\" rx=\"14\" ry=\"20\" fill=\"#1B1B1F\"/><ellipse cx=\"390\" cy=\"560\" rx=\"14\" ry=\"20\" fill=\"#1B1B1F\"/><text x=\"360\" y=\"790\" text-anchor=\"middle\" font-family=\"Inter\" font-size=\"56\" fill=\"#1B1B1F\">STEDLE &amp; FLAVY</text><text x=\"360\" y=\"845\" text-anchor=\"middle\" font-family=\"Inter\" font-size=\"36\" fill=\"#FF4D6D\">4.2 STARS &middot; 81% MATCH</text></svg>"
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "archetype": "mixed",
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.06,
+        "easing": "ease_in_out_cubic"
+      }
+    },
+    {
+      "scene_id": "typewriter_hook_puncher",
+      "duration_sec": 3.4,
+      "start_sec": 2.2,
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#FFF4D6",
+            "#E8C8A8"
+          ]
+        },
+        {
+          "type": "typewriter_text",
+          "text": "Garden keeper who ruined everything.",
+          "size": 72,
+          "color": "@ink",
+          "accent": "@accent",
+          "x": 540,
+          "y": 780,
+          "speed": 24,
+          "start": 0.4,
+          "hold": 1.1
+        },
+        {
+          "type": "leader_arrow",
+          "points": [
+            [
+              540,
+              860
+            ],
+            [
+              660,
+              860
+            ]
+          ],
+          "speed": 2.6,
+          "radius": 10,
+          "color": "@accent",
+          "width": 6
+        }
+      ],
+      "archetype": "mixed",
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.04,
+        "easing": "ease_out_back"
+      }
+    },
+    {
+      "scene_id": "swipe_right_puncher",
+      "duration_sec": 4.0,
+      "start_sec": 5.6,
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#FFF4D6",
+            "#E8C8A8"
+          ]
+        },
+        {
+          "type": "typewriter_text",
+          "text": "Swipe right — garden optional.",
+          "size": 72,
+          "color": "@ink",
+          "accent": "@accent",
+          "x": 540,
+          "y": 700,
+          "speed": 22,
+          "start": 0.5,
+          "hold": 1.4
+        },
+        {
+          "type": "leader_arrow",
+          "points": [
+            [
+              700,
+              780
+            ],
+            [
+              60,
+              780
+            ],
+            [
+              60,
+              1040
+            ]
+          ],
+          "speed": 3.0,
+          "radius": 10,
+          "color": "@accent2",
+          "width": 6,
+          "wrap": true
+        }
+      ],
+      "archetype": "mixed",
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.08,
+        "easing": "linear"
+      }
+    },
+    {
+      "scene_id": "sticker_caption_pop",
+      "duration_sec": 4.2,
+      "start_sec": 9.6,
+      "words": [
+        {
+          "word": "Universal. Predictable. Magnetic.",
+          "start": 0.6,
+          "end": 3.6
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#FFF4D6",
+            "#E8C8A8"
+          ]
+        },
+        {
+          "type": "kinetic_captions"
+        },
+        {
+          "type": "dot_field",
+          "cx": 540,
+          "cy": 1400,
+          "radius": 8,
+          "n": 10,
+          "speed": 0.6,
+          "bob_amp": 60
+        }
+      ],
+      "archetype": "mixed",
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.02,
+        "easing": "spring_pop"
+      }
+    },
+    {
+      "scene_id": "loop_ending_hook",
+      "duration_sec": 2.6,
+      "start_sec": 13.8,
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#FFF4D6",
+            "#E8C8A8"
+          ]
+        },
+        {
+          "type": "typewriter_text",
+          "text": "And the garden asks…",
+          "size": 64,
+          "color": "@ink",
+          "accent": "@accent",
+          "x": 540,
+          "y": 840,
+          "speed": 20,
+          "start": 0.3,
+          "hold": 0.8
+        }
+      ],
+      "archetype": "mixed",
+      "camera": {
+        "zoom_start": 1.02,
+        "zoom_end": 1.0,
+        "easing": "ease_in_out_sine"
+      }
+    }
+  ]
+}

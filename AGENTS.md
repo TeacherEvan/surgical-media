@@ -26,7 +26,7 @@ python3 scripts/storyboard.py examples/hybrid_3d_storyboard.json      # 3D/HUD s
 python3 scripts/storyboard.py examples/threejs_3d_storyboard.json     # Three.js WebGL 3D showcase must validate too
 ruff check --no-cache scripts/ tests/
 ruff format --check --no-cache scripts/ tests/
-python3 -m pytest tests/ -q                                            # 395 tests, all green
+python3 -m pytest tests/ -q                                            # 439 tests, all green
 check-jsonschema --check-metaschema schemas/*.schema.json
 python3 scripts/render_engine.py --demo --thumbnails /tmp/sm_thumbs     # seconds — visual smoke, no ffmpeg needed
 python3 scripts/render_engine.py --storyboard examples/hybrid_3d_storyboard.json --thumbnails /tmp/sm_hybrid_thumbs   # software 3D + HUD smoke
@@ -35,7 +35,7 @@ python3 scripts/render_engine.py --demo --output /tmp/sm_gate.mp4       # only w
 ```
 
 - Single test: `python3 -m pytest "tests/test_visual_smoke.py::test_box_downsample_keeps_thin_lines" -q`
-- Verification is **local-first**: `scripts/ci_gates.sh` is the single gate (storyboard → ruff → format → mypy --strict → 395 tests → schema metaschema → all example-vs-schema → thumbnails for 2D + hybrid 3D + Three.js 3D → draft render → ffprobe QC; 9 gates). The gate venv is `requirements-dev.txt` (mirrors `[project.optional-dependencies].dev` in `pyproject.toml`).
+- Verification is **local-first**: `scripts/ci_gates.sh` is the single gate (storyboard → ruff → format → mypy --strict → 439 tests → schema metaschema → all example-vs-schema → thumbnails for 2D + hybrid 3D + Three.js 3D → draft render → ffprobe QC → style_lint on examples (report); 10 gates). The gate venv is `requirements-dev.txt` (mirrors `[project.optional-dependencies].dev` in `pyproject.toml`).
 - **mypy strict is enforced** as gate 4/9: `pyproject.toml` sets `strict = true` and `mypy scripts/` must report zero issues.
 - **markdownlint** fails on pre-existing house docs (`references/`, `docs/adr/`) — it is not a gate.
 - Before spending a full render: `--estimate` (frame count / audio cost) and `--thumbnails DIR` (one PNG per scene). `final` = crf 18, demo/draft = crf 26.

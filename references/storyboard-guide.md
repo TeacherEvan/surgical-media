@@ -197,3 +197,41 @@ HUD cards (`blender_hybrid` / `threejs_hybrid`) are placed by `scripts/layout_so
 ## Validation & failure modes
 
 `scripts/storyboard.py board.json` prints one line per violation with the owning scene — fix and re-run; `render_engine.py` refuses to start on any violation. Most common: `sfx_events[].t_sec` beyond `duration_sec` (trim the event or extend the beat), and `zoom_*` outside `[1.0, 10.0]`.
+
+## Art direction and platform practice
+
+Boards may carry two optional top-level blocks: `style` (art direction) and `platform` (creator practice). Both are validated by `scripts/storyboard.py` and resolved by `scripts/style.py` / `scripts/platform_presets.py`; the same blocks existed in the validators since v1.5.0 and are now described by `schemas/storyboard.schema.json` + the new `schemas/style.schema.json`.
+
+### Style bible (`style` block) + presets
+
+`scripts/style.py`: `{"style": {"preset": "soft_clay", "palette": {"accent": "#A65A38"}}}` — preset file from `assets/styles/<name>.json`; inline keys override the preset (palette merges per-role, other sections per-key). Six presets ship: `soft_clay`, `punchy_pop`, `newsroom_clean`, `noir_restraint`, `risograph`, `tech_blueprint` — e.g. `soft_clay` = clay material, Kamo palette, calm drift. Everywhere a colour string appears in the board, `"@role"` (e.g. `"@accent"`) is replaced by the resolved palette hex (`apply_style` — deterministic, so painters, SVG, quote cards and the 3D bridge all see plain hex; 3D scenes also get `style_light` in their `scene_spec`).
+
+### Platform layer (`platform` block)
+
+`scripts/platform_presets.py` presets: `shorts_tiktok_reels` (9:16, sticker captions, hook 3s, beat 3s, loop), `youtube_long` (16:9, editorial captions, hook/beat 8s), `square` (1:1). `apply_platform` fills `kinetic_captions` defaults — sticker (big, heavy-stroked, no pill, word pop) or editorial (serif, soft translucent card, fade) — on top of the caption zone (`canvas.layout_zones["captions"]`), so burns sit in the safe-zone band, not on platform chrome.
+
+### Motion feels + composition
+
+`style.motion.feel` = `punchy` | `calm`: punchy = faster zooms, heavier easing, spring pops; calm = slow drift, exponential ease-out. Composition: `scripts/composition.py` (thirds + negative-space anchors); `style_lint.py` flags repeated centred heroes.
+
+### Grade
+
+`style.grade` (grain / vignette / halation / warmth) → `scripts/grade.py` post-pass per board (deterministic, seeded grain tiles, half-res cache).
+
+### Lint + review tools
+
+`style_lint.py` (advisory, report mode by default; `--strict` exits 1): `off_palette` (>3 saturated hues away from the style palette), `hue_sprawl`, `glow_overuse`, `centered_hero` (3+ dead-centre scenes), `default_font` (no `style.type`/`font_family`), `flat_motion`, `single_easing`, `no_hook` (platform preset: no text/captions/words on frame 0), `long_hold`, `aspect_mismatch`, `unsourced_claim` (`newsroom_clean`: quote/scaling_chart without `source_tag`/attribution; image without `attribution`). Score out of 100. `contact_sheet.py` builds one labelled tile per scene (`thumbs/` from `render_engine.py --storyboard … --thumbnails DIR`) for fast human review. `publish_kit.py board.json -o publish_kit.md --manifest assets/manifest.json --thumbnails DIR` drafts the long-form output (title/description, chapters, credits from the manifest, AI-disclosure lines, thumbnail pick by luminance contrast).
+
+### Topic → preset → board table
+
+| Topic | Style preset | Platform preset | Reference board |
+| :--- | :--- | :--- | :--- |
+| Comedy / lifestyle / memes | `punchy_pop` | `shorts_tiktok_reels` | `examples/ref_horse_tinder.json` |
+| True story / documentary | `noir_restraint` | `shorts_tiktok_reels` | `examples/ref_true_story_noir.json` |
+| Essay / wellness / poetry | `soft_clay` | `youtube_long` | `examples/ref_soft_clay_poem.json` |
+| Tech / code / science | `tech_blueprint` | `shorts_tiktok_reels` | `examples/ref_tech_explainer.json` |
+| Politics / explainers | `newsroom_clean` | `youtube_long` | `examples/ref_geopolitics_explainer.json` |
+
+Policy links (current wordings — verify before publishing): the publish_kit.md embeds them (`https://support.google.com/youtube/…`, TikTok AI-content labels).
+
+**Scope note:** political and sensitive subjects must be neutral, sourced explainers; the pipeline will not generate persuasive or deceptive political content (fake quotes, fabricated footage). Boards are hand-auditable — `style_lint.py` scores them, you judge the look with contact sheets.

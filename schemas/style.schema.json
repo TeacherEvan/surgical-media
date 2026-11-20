@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skills.surgery-ai.dev/surgical-media/style.schema.json",
+  "title": "Surgical Media Style Preset",
+  "description": "One palette/type/material/light/grade/motion source for a style preset (scripts/style.py). Presets ship in assets/styles/*.json; '@role' colour refs elsewhere in a board resolve to the palette via apply_style.",
+  "type": "object",
+  "unevaluatedProperties": false,
+  "required": ["palette"],
+  "properties": {
+    "preset": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "Naming convention note: presets live in assets/styles/<name>.json; a preset name here refers to that file."
+    },
+    "palette": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "ground": { "$ref": "#/$defs/hexColor" },
+        "ink": { "$ref": "#/$defs/hexColor" },
+        "accent": { "$ref": "#/$defs/hexColor" },
+        "accent2": { "$ref": "#/$defs/hexColor" },
+        "shadow": { "$ref": "#/$defs/hexColor" },
+        "highlight": { "$ref": "#/$defs/hexColor" }
+      }
+    },
+    "type": {
+      "type": "object",
+      "properties": {
+        "display": { "type": "string" },
+        "body": { "type": "string" },
+        "tracking": { "type": "number" }
+      }
+    },
+    "material": {
+      "type": "object",
+      "properties": {
+        "family": { "enum": ["clay", "paper", "glass", "metal", "flat", "neon"] },
+        "roughness": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "light": {
+      "type": "object",
+      "properties": {
+        "key_temp_k": { "type": "number", "minimum": 1500, "maximum": 12000 },
+        "fill_temp_k": { "type": "number", "minimum": 1500, "maximum": 12000 },
+        "shadow_softness": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "grade": {
+      "type": "object",
+      "properties": {
+        "grain": { "type": "number", "minimum": 0, "maximum": 1 },
+        "vignette": { "type": "number", "minimum": 0, "maximum": 1 },
+        "halation": { "type": "number", "minimum": 0, "maximum": 1 },
+        "warmth": { "type": "number", "minimum": -1, "maximum": 1 }
+      }
+    },
+    "motion": {
+      "type": "object",
+      "properties": {
+        "feel": { "enum": ["calm", "punchy"] },
+        "ease": { "type": "string" },
+        "hold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "drift": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "hexColor": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$" }
+  }
+}

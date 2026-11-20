@@ -30,9 +30,9 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-from canvas import SupersampledCanvas, parse_color
+from canvas import SupersampledCanvas, parse_color, rgb
 from easings import ease_in_out_cubic, ease_out_expo, spring_pop
-from PIL import Image
+from PIL import Image, ImageFilter
 
 from elements._shared import ElementContext, _smoothstep
 
@@ -764,6 +764,37 @@ def _load_svg_text(el: dict[str, Any], ctx: ElementContext) -> str | None:
     return text
 
 
+def _paste_contact_shadow(
+    cv: SupersampledCanvas,
+    plate: Image.Image,
+    paste_xy: tuple[int, int],
+    el: dict[str, Any],
+) -> None:
+    """Soft offset shadow under a rasterised SVG (``style_match: true``).
+
+    Grounds flat vector art on a photographic/3D plate so it reads as sitting in
+    the scene instead of pasted on it. ``shadow_color`` (default near-black),
+    ``shadow_opacity`` (0-1, default 0.35) and ``shadow_blur`` (fraction of the
+    plate's longest side, default 0.02) tune it.
+    """
+    opacity = max(0.0, min(1.0, float(el.get("shadow_opacity", 0.35))))
+    if opacity <= 0.0:
+        return
+    blur = max(1.0, float(el.get("shadow_blur", 0.02)) * max(plate.size))
+    color = rgb(str(el.get("shadow_color", "#000000")))
+    alpha = plate.getchannel("A")
+    pad = round(blur * 3)
+    canvas = Image.new("L", (plate.width + 2 * pad, plate.height + 2 * pad), 0)
+    canvas.paste(alpha, (pad, pad))
+    soft = canvas.filter(ImageFilter.GaussianBlur(blur)).point(
+        lambda px: int(px * opacity)
+    )
+    layer = Image.new("RGBA", canvas.size, (*color, 0))
+    layer.putalpha(soft)
+    dy = round(blur * 0.8)
+    cv.image.paste(layer, (paste_xy[0] - pad, paste_xy[1] - pad + dy), layer)
+
+
 def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -> None:
     """Paint an inline or file-backed SVG into ``box`` with optional animation and glow."""
     svg_text = _load_svg_text(el, ctx)
@@ -841,6 +872,8 @@ def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -
             cx_px = round((x0 + box_w * 0.5) * cv.scale)
             cy_px = round((y0 + box_h * 0.5) * cv.scale)
             paste_xy = (cx_px - plate.width // 2, cy_px - plate.height // 2)
+            if el.get("style_match"):
+                _paste_contact_shadow(cv, plate, paste_xy, el)
             cv.image.paste(plate, paste_xy, plate)
             if glow:
                 cv.bloom_image.paste(plate.convert("RGB"), paste_xy, plate)

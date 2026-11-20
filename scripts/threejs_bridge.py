@@ -36,7 +36,7 @@ def threejs_adapter_spec(spec: dict[str, Any]) -> dict[str, Any]:
     ``blender_runner.py`` identically. Never mutates ``spec``.
     """
     cam = spec.get("camera_3d") or {}
-    return {
+    adapted: dict[str, Any] = {
         "category": spec.get("category"),
         "transparent_bg": bool(spec.get("transparent_bg", False)),
         "lighting_preset": spec.get("lighting_preset", "cyber_studio_volumetric"),
@@ -63,6 +63,9 @@ def threejs_adapter_spec(spec: dict[str, Any]) -> dict[str, Any]:
             ),
         },
     }
+    if isinstance(spec.get("style_light"), dict):
+        adapted["style_light"] = dict(spec["style_light"])
+    return adapted
 
 
 def prerender_threejs_scene(

@@ -6,6 +6,9 @@
   "type": "object",
   "unevaluatedProperties": false,
   "required": ["meta", "format", "scenes"],
+  "$defs": {
+    "hexColor": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$" }
+  },
   "properties": {
     "meta": {
       "type": "object",
@@ -14,6 +17,7 @@
       "properties": {
         "title": { "type": "string", "minLength": 1, "maxLength": 200 },
         "author": { "type": "string", "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 400 },
         "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295 }
       }
     },
@@ -109,7 +113,7 @@
                        "maxItems": 3,
                        "items": { "type": "number" }
                      },
-                     "accent_hex": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "default": "#38BDF8" }
+                     "accent_hex": { "type": "string", "pattern": "^(#[0-9A-Fa-f]{6}|@[a-z0-9_]+)$", "default": "#38BDF8" }
                    }
                  }
                },
@@ -184,6 +188,78 @@
             }
           }
         }
+      }
+    },
+    "style": {
+      "type": "object",
+      "description": "Optional style bible (scripts/style.py). '@role' colour refs elsewhere resolve to the palette.",
+      "unevaluatedProperties": false,
+      "properties": {
+        "preset": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+        "palette": {
+          "type": "object",
+          "unevaluatedProperties": false,
+          "properties": {
+            "ground": { "$ref": "#/$defs/hexColor" },
+            "ink": { "$ref": "#/$defs/hexColor" },
+            "accent": { "$ref": "#/$defs/hexColor" },
+            "accent2": { "$ref": "#/$defs/hexColor" },
+            "shadow": { "$ref": "#/$defs/hexColor" },
+            "highlight": { "$ref": "#/$defs/hexColor" }
+          }
+        },
+        "type": {
+          "type": "object",
+          "properties": {
+            "display": { "type": "string" },
+            "body": { "type": "string" },
+            "tracking": { "type": "number" }
+          }
+        },
+        "material": {
+          "type": "object",
+          "properties": {
+            "family": { "enum": ["clay", "paper", "glass", "metal", "flat", "neon"] },
+            "roughness": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "light": {
+          "type": "object",
+          "properties": {
+            "key_temp_k": { "type": "number", "minimum": 1500, "maximum": 12000 },
+            "fill_temp_k": { "type": "number", "minimum": 1500, "maximum": 12000 },
+            "shadow_softness": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "grade": {
+          "type": "object",
+          "properties": {
+            "grain": { "type": "number", "minimum": 0, "maximum": 1 },
+            "vignette": { "type": "number", "minimum": 0, "maximum": 1 },
+            "halation": { "type": "number", "minimum": 0, "maximum": 1 },
+            "warmth": { "type": "number", "minimum": -1, "maximum": 1 }
+          }
+        },
+        "motion": {
+          "type": "object",
+          "properties": {
+            "feel": { "enum": ["calm", "punchy"] },
+            "ease": { "type": "string" },
+            "hold": { "type": "number", "minimum": 0, "maximum": 1 },
+            "drift": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        }
+      }
+    },
+    "platform": {
+      "type": "object",
+      "description": "Optional platform preset (scripts/platform_presets.py): caption defaults + retention budgets.",
+      "unevaluatedProperties": false,
+      "properties": {
+        "preset": { "enum": ["shorts_tiktok_reels", "youtube_long", "square"] },
+        "caption_style": { "enum": ["sticker", "editorial", "none"] },
+        "hook_max_sec": { "type": "number", "minimum": 0.5, "maximum": 600 },
+        "beat_max_sec": { "type": "number", "minimum": 0.5, "maximum": 600 }
       }
     },
     "audio": {

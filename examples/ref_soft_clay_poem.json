@@ -1,0 +1,228 @@
+{
+  "meta": {
+    "title": "Ref — Soft Clay Poem (calm)",
+    "author": "surgical-media",
+    "description": "Gentle essay reference: soft_clay palette, typewriter poem, orbital rings, quiet equalizer."
+  },
+  "format": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "style": {
+    "preset": "soft_clay"
+  },
+  "platform": {
+    "preset": "youtube_long"
+  },
+  "scenes": [
+    {
+      "scene_id": "poem_intro_clay",
+      "duration_sec": 8.0,
+      "start_sec": 0.0,
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#F5E9DD",
+            "#EBD4C2"
+          ]
+        },
+        {
+          "type": "orb_pulse",
+          "cx": 1100,
+          "cy": 650,
+          "radius": 95,
+          "color": "#A65A38"
+        },
+        {
+          "type": "typewriter_text",
+          "text": "Moon over the village. Bread and then rain.",
+          "size": 62,
+          "color": "@ink",
+          "accent": "@highlight",
+          "x": 960,
+          "y": 560,
+          "speed": 16,
+          "start": 0.8,
+          "hold": 0.9
+        }
+      ],
+      "archetype": "doc_essay",
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.03,
+        "easing": "ease_in_out_sine"
+      }
+    },
+    {
+      "scene_id": "poem_lines_rings",
+      "duration_sec": 10.0,
+      "start_sec": 8.0,
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#F5E9DD",
+            "#EBD4C2"
+          ]
+        },
+        {
+          "type": "orbit_ring",
+          "cx": 400,
+          "cy": 500,
+          "radius": 220,
+          "n": 9,
+          "spin_hz": 0.4,
+          "color": "#7D6E62"
+        },
+        {
+          "type": "typewriter_text",
+          "text": "Your hands are warm again.",
+          "size": 62,
+          "color": "@ink",
+          "accent": "@accent",
+          "x": 960,
+          "y": 640,
+          "speed": 15,
+          "start": 1.0,
+          "hold": 2.5
+        },
+        {
+          "type": "dot_field",
+          "cx": 960,
+          "cy": 380,
+          "radius": 7,
+          "n": 16,
+          "speed": 0.7,
+          "bob_amp": 40,
+          "color": "#A65A38"
+        }
+      ],
+      "archetype": "doc_essay",
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.02,
+        "easing": "linear"
+      }
+    },
+    {
+      "scene_id": "poem_clay_line",
+      "duration_sec": 9.0,
+      "start_sec": 18.0,
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#F5E9DD",
+            "#EBD4C2"
+          ]
+        },
+        {
+          "type": "orb_pulse",
+          "cx": 700,
+          "cy": 380,
+          "radius": 80,
+          "color": "#D4E3D6"
+        },
+        {
+          "type": "typewriter_text",
+          "text": "When did you learn to hold silence like bread?",
+          "size": 58,
+          "color": "@ink",
+          "accent": "@highlight",
+          "x": 960,
+          "y": 620,
+          "speed": 14,
+          "start": 1.2,
+          "hold": 1.2
+        }
+      ],
+      "archetype": "doc_essay",
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.04,
+        "easing": "ease_out_expo"
+      }
+    },
+    {
+      "scene_id": "poem_wave_bow",
+      "duration_sec": 8.0,
+      "start_sec": 27.0,
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#F5E9DD",
+            "#EBD4C2"
+          ]
+        },
+        {
+          "type": "equalizer",
+          "n": 14,
+          "peak": 130,
+          "bar_top": 880,
+          "beat_hz": 1.1,
+          "color": "#A65A38"
+        },
+        {
+          "type": "typewriter_text",
+          "text": "Bowing. Bowing.",
+          "size": 60,
+          "color": "@ink",
+          "accent": "@accent2",
+          "x": 960,
+          "y": 420,
+          "speed": 12,
+          "start": 0.8,
+          "hold": 2.0
+        }
+      ],
+      "archetype": "doc_essay",
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.0,
+        "easing": "ease_in_out_cubic"
+      }
+    },
+    {
+      "scene_id": "poem_close",
+      "duration_sec": 4.0,
+      "start_sec": 35.0,
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#F5E9DD",
+            "#EBD4C2"
+          ]
+        },
+        {
+          "type": "orb_pulse",
+          "cx": 540,
+          "cy": 420,
+          "radius": 70,
+          "color": "#FCE8CB"
+        },
+        {
+          "type": "typewriter_text",
+          "text": "Wind through the open window.",
+          "size": 58,
+          "color": "@ink",
+          "accent": "@highlight",
+          "x": 960,
+          "y": 600,
+          "speed": 15,
+          "start": 0.8,
+          "hold": 1.0
+        }
+      ],
+      "archetype": "doc_essay",
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.01,
+        "easing": "spring_pop"
+      }
+    }
+  ]
+}

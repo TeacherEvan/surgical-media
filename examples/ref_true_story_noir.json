@@ -1,0 +1,184 @@
+{
+  "meta": {
+    "title": "Ref — True Story Noir (9:16)",
+    "author": "surgical-media",
+    "description": "Documentary reference: noir_restraint palette, shorts. Two short narratives with lower-tier narrative accents."
+  },
+  "format": {
+    "width": 870,
+    "height": 1536,
+    "fps": 30
+  },
+  "style": {
+    "preset": "noir_restraint"
+  },
+  "platform": {
+    "preset": "shorts_tiktok_reels"
+  },
+  "scenes": [
+    {
+      "scene_id": "hook_city_one",
+      "archetype": "mixed",
+      "duration_sec": 3.2,
+      "start_sec": 0.0,
+      "words": [
+        {
+          "word": "It was city one. Ten thousand lines. No context.",
+          "start": 0.4,
+          "end": 2.2
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "color": "@ground"
+        },
+        {
+          "type": "typewriter_text",
+          "text": "It was city one. Ten thousand lines. No context.",
+          "size": 62,
+          "color": "@ink",
+          "accent": "@accent",
+          "x": 435,
+          "y": 900,
+          "speed": 18,
+          "start": 0.3,
+          "hold": 0.9
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.04,
+        "easing": "ease_out_expo"
+      }
+    },
+    {
+      "scene_id": "city_two_days",
+      "archetype": "doc_essay",
+      "duration_sec": 3.6,
+      "start_sec": 3.2,
+      "words": [
+        {
+          "word": "Two days later. One line disappears. One appears.",
+          "start": 0.5,
+          "end": 2.5
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "color": "@ground"
+        },
+        {
+          "type": "typewriter_text",
+          "text": "Two days later. One line disappears. One appears.",
+          "size": 60,
+          "color": "@ink",
+          "accent": "@accent",
+          "x": 435,
+          "y": 940,
+          "speed": 19,
+          "start": 0.4,
+          "hold": 1.2
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.02,
+        "easing": "ease_in_out_sine"
+      }
+    },
+    {
+      "scene_id": "city_three_figure",
+      "archetype": "mixed",
+      "duration_sec": 5.4,
+      "start_sec": 6.8,
+      "words": [
+        {
+          "word": "A third city. Three figures on the border.",
+          "start": 0.5,
+          "end": 3.0
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "color": "@ground"
+        },
+        {
+          "type": "typewriter_text",
+          "text": "A third city. Three figures on the border.",
+          "size": 64,
+          "color": "@ink",
+          "accent": "@accent",
+          "x": 435,
+          "y": 850,
+          "speed": 22,
+          "start": 0.5,
+          "hold": 1.5
+        },
+        {
+          "type": "leader_arrow",
+          "points": [
+            [
+              700,
+              820
+            ],
+            [
+              150,
+              820
+            ]
+          ],
+          "speed": 3.0,
+          "radius": 10,
+          "color": "@accent",
+          "width": 6,
+          "wrap": true
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.04,
+        "easing": "linear"
+      }
+    },
+    {
+      "scene_id": "outro_three_cities",
+      "archetype": "mixed",
+      "duration_sec": 3.0,
+      "start_sec": 12.2,
+      "elements": [
+        {
+          "type": "background",
+          "color": "@ground"
+        },
+        {
+          "type": "typewriter_text",
+          "text": "Three cities.",
+          "size": 62,
+          "color": "@highlight",
+          "accent": "@accent",
+          "x": 435,
+          "y": 930,
+          "speed": 18,
+          "start": 0.3,
+          "hold": 1.0
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.02,
+        "zoom_end": 1.0,
+        "easing": "ease_in_out_cubic"
+      }
+    }
+  ]
+}

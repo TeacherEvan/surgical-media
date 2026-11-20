@@ -26,7 +26,12 @@ from elements.figures import paint_stick_rig
 from elements.media import paint_image
 from elements.scenes import paint_background, paint_grid
 from elements.svg import paint_svg
-from elements.text import paint_hud_badge, paint_kinetic_captions, paint_quote_card
+from elements.text import (
+    paint_hud_badge,
+    paint_kinetic_captions,
+    paint_quote_card,
+    paint_source_tag,
+)
 from elements.visual import (
     paint_dot_field,
     paint_equalizer,
@@ -60,6 +65,7 @@ __all__ = [
     "paint_phi_divider",
     "paint_quote_card",
     "paint_scaling_chart",
+    "paint_source_tag",
     "paint_stick_rig",
     "paint_svg",
     "paint_system_architecture",
@@ -96,6 +102,7 @@ RENDERERS = {
     "stick_rig": paint_stick_rig,
     "image": paint_image,
     "svg": paint_svg,
+    "source_tag": paint_source_tag,
     # personality painters (visual.py) — motion by local_time, fully deterministic
     "orb_pulse": paint_orb_pulse,
     "dot_field": paint_dot_field,

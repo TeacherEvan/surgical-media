@@ -280,3 +280,32 @@ def test_quote_card_translucent_card_text_is_camera_independent():
     assert all(abs(a - b) <= 2 for a, b in zip(b_id, b_zoom)), (
         f"translucent card text drifted under camera: identity={b_id}, zoom={b_zoom}"
     )
+
+
+def test_source_tag_paints_and_fades_in():
+    from canvas import SupersampledCanvas, layout_zones
+    from elements import ElementContext, render_element
+
+    def frame(local_time):
+        cv = SupersampledCanvas(640, 360, scale=1, background="#000000")
+        ctx = ElementContext(
+            width=640,
+            height=360,
+            t=0.5,
+            scene_time=local_time,
+            local_time=local_time,
+            words=[],
+            seed=1,
+            trauma=0.0,
+            zones=layout_zones(640, 360),
+            base_dir=None,
+        )
+        render_element(
+            cv,
+            {"type": "source_tag", "label": "Source", "text": "UN report, 2024"},
+            ctx,
+        )
+        return cv.image
+
+    assert frame(0.0).getbbox() is None  # not revealed yet
+    assert frame(1.0).getbbox() is not None  # tag drawn

@@ -1,0 +1,36 @@
+{
+  "palette": {
+    "ground": "#0A1A33",
+    "ink": "#DCEBFF",
+    "accent": "#4FD1FF",
+    "accent2": "#FFB84D",
+    "shadow": "#040B18",
+    "highlight": "#FFFFFF"
+  },
+  "type": {
+    "display": "Inter",
+    "body": "JetBrainsMono",
+    "tracking": 0.01
+  },
+  "material": {
+    "family": "glass",
+    "roughness": 0.2
+  },
+  "light": {
+    "key_temp_k": 6800,
+    "fill_temp_k": 8000,
+    "shadow_softness": 0.4
+  },
+  "grade": {
+    "grain": 0.08,
+    "vignette": 0.15,
+    "halation": 0.15,
+    "warmth": -0.05
+  },
+  "motion": {
+    "feel": "punchy",
+    "ease": "ease_out_expo",
+    "hold": 0.15,
+    "drift": 0.015
+  }
+}

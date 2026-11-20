@@ -1,0 +1,36 @@
+{
+  "palette": {
+    "ground": "#F2EBDD",
+    "ink": "#1F2A44",
+    "accent": "#FF5A4E",
+    "accent2": "#2F6FED",
+    "shadow": "#1F2A44",
+    "highlight": "#FFD1A8"
+  },
+  "type": {
+    "display": "Inter",
+    "body": "CormorantGaramond",
+    "tracking": 0.0
+  },
+  "material": {
+    "family": "paper",
+    "roughness": 0.95
+  },
+  "light": {
+    "key_temp_k": 5200,
+    "fill_temp_k": 6000,
+    "shadow_softness": 0.4
+  },
+  "grade": {
+    "grain": 0.3,
+    "vignette": 0.08,
+    "halation": 0.0,
+    "warmth": 0.06
+  },
+  "motion": {
+    "feel": "punchy",
+    "ease": "ease_in_out_sine",
+    "hold": 0.2,
+    "drift": 0.02
+  }
+}

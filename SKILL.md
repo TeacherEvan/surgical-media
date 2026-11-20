@@ -1,7 +1,7 @@
 ---
 name: surgical-media
 description: "Use when creating, planning, or rendering social video from a topic prompt."
-version: 1.5.0
+version: 2.0.0
 author: "TeacherEvan, Hermes Agent"
 license: MIT
 platforms: [linux, macos]
@@ -13,9 +13,9 @@ metadata:
     related_skills: [video-production-pipeline, surgical-orchestration, surgical-audit]
 ---
 
-# Surgical Media (v1.5.0)
+# Surgical Media (v2.0.0)
 
-Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow + SVG 2.0 rendering (plus optional Three.js WebGL Studio / Blender 3D passes) → ffmpeg H.264/AAC master → ffprobe QC gate. Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 395 tests including rendered-MP4, Three.js IBL/bloom/SVG-3D/custom-script, and Chromium SVG 2.0 passes).
+Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow + SVG 2.0 rendering (plus optional Three.js WebGL Studio / Blender 3D passes) → ffmpeg H.264/AAC master → ffprobe QC gate. Art direction comes in two optional top-level blocks: `style` (palette/type/material/light/grade/motion — `scripts/style.py`, presets in `assets/styles/`) and `platform` (caption style, safe zones, hook/beat budgets — `scripts/platform_presets.py`). Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 439 tests including rendered-MP4, Three.js IBL/bloom/SVG-3D/custom-script, Chromium SVG 2.0, and style/platform/grade passes).
 
 ## When to Use
 
@@ -26,8 +26,7 @@ Deterministic, verified pipeline for producing high-retention explainer and soci
 
 ## When Not to Use
 
-- Live-action capture, human editing suites, or production 3D characters/environments — parametric 3D scenes here are limited to the built-in procedural categories (exploded hardware, stellarator/orbital torus, organic serpent, 3D network topology), 2D overlays stay supersampled Pillow.
-- Video *analysis* of existing files (transcription, summarisation) — use a media-analysis skill. Cinemagraphs/loops under 3 s — a GIF pipeline is simpler.
+- Live-action capture, human editing suites, or production 3D characters/environments — parametric 3D scenes here are limited to the built-in procedural categories (exploded hardware, stellarator/orbital torus, organic serpent, 3D network topology), 2D overlays stay supersampled Pillow. Video *analysis* of existing files (transcription, summarisation) — use a media-analysis skill. Cinemagraphs/loops under 3 s — a GIF pipeline is simpler.
 
 ## Style Archetypes
 
@@ -39,9 +38,11 @@ Blend per scene via the `archetype` field; see `references/archetypes.md` for th
 | `doc_essay` | Matt Madigan — AI Is Bigger Than Aliens | `#0A0E17` slate + grid | exponential scaling curve, spring-pop milestone badges, glass quote cards, odometer telemetry | 150–165 WPM |
 | `code_report` | Fireship — tech code reports | `#0D1117` IDE dark | 200 OK → 503 DAG cascade, cubic-bezier packet routing, macOS-style diff terminal, trauma shake | 175–195 WPM, tight beats |
 
+### Art direction + platform practice — see `references/storyboard-guide.md`
+Two optional blocks: `style` + `platform` (palettes, captions, safe zones, hook/beat budgets).
 ## Procedure
 
-### Stage 1 — Investigate & Extract Visual Anchors (and Fetch Subject Imagery)
+### Stage 1 — Investigate & Extract Visual Anchors
 
 Research the subject **as a producer would**: facts **and** footage. Emit a brief conforming to `schemas/investigation_brief.schema.json` with ≥3 verifiable facts (with sources), each mapped to a concrete visual primitive — never a static text slide — and fetch licensed subject imagery before writing any script:
 
@@ -99,17 +100,15 @@ A scene may replace `elements[]` with a `scene_spec` object routing it to a para
 ## Verification
 
 ```bash
-python3 -m pytest tests/ -q                                   # 395 tests
-python3 -m mypy scripts/                                      # strict — must be clean (gate 4/9)
-python3 scripts/threejs_bridge.py --check                     # optional Three.js runtime probe
+python3 -m pytest tests/ -q                                   # 439 tests
+python3 -m mypy scripts/                                      # strict — must be clean (gate 4/10)
 python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + QC
 ```
 
 ## Gotchas
 
-- `edge-tts` needs network; Airplane mode ⇒ `--offline` (WPM-estimated; online carries measured edge-tts WordBoundary timestamps). 60 fps doubles render cost — use 30 for Shorts unless motion demands otherwise.
-- `ImageDraw` has no alpha blend — scene fades are RGB `Image.blend`s; translucent panels use pre-blended slate tones, not RGBA overlays.
-- Raster subject imagery ships via the `image` element (`fit` cover|contain, `kb_zoom`, `attribution` for license/AI disclosure). Raw pipe expects `rgb24` — changing `-pix_fmt` without changing `frame.tobytes()` corrupts every frame. `verify_output.py` drifting >150 ms means `duration_sec` vs VO mismatch — re-run `tts_align.py`, don't hand-tweak.
+- `edge-tts` needs network; Airplane mode ⇒ `--offline` (WPM-estimated; online carries measured edge-tts WordBoundary timestamps).
+- `ImageDraw` has no alpha blend — scene fades are RGB `Image.blend`s; translucent panels use pre-blended slate tones, not RGBA overlays. Raster subject imagery ships via the `image` element (`fit` cover|contain, `kb_zoom`, `attribution` for license/AI disclosure); `verify_output.py` >150 ms A/V drift means `duration_sec` vs VO mismatch — re-run `tts_align.py`, don't hand-tweak.
 
 ## Auxiliary Resources
 
@@ -117,4 +116,4 @@ python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + Q
 - `scripts/fetch_assets.py` — licensed imagery (Openverse + Commons + iNaturalist; `by`/`by-sa`/`cc0`/`pdm` only), PIL-verified, writes `assets/manifest.json`; `scripts/blender_plate.py` — optional Blender Workbench plates (`earth`/`iceberg`/`ringed`) for the `image` element, exits 2 cleanly when absent
 - `scripts/{scene_router,software_3d_projection,hybrid_compositor,layout_solver,blender_runner,threejs_bridge}.py` + `scripts/threejs/` — scene backends: routing + stdlib 4×4-perspective tracker, SAT-solved HUD cards, headless Three.js WebGL & Blender bakes; `assets/fonts/` — bundled OFL Inter + JetBrains Mono
 - `schemas/{storyboard,script,investigation_brief}.schema.json` — Draft 2020-12 contracts; ADRs 0001 (stdlib+Pillow), 0003 (3D backends), 0004 (Three.js WebGL)
-- `scripts/` — `tts_align.py`, `storyboard.py`, `render_engine.py`, `verify_output.py`, `audio_dsp.py`, `camera.py`, `canvas.py`, `elements/`, `rig.py`, `easings.py`, `build_demo.py`
+- `scripts/` — `tts_align.py`, `storyboard.py`, `render_engine.py`, `verify_output.py`, `camera.py`, `canvas.py`, `elements/`, `rig.py`, `easings.py`, `style.py`, `platform_presets.py`, `grade.py`, `composition.py`, `style_lint.py`, `contact_sheet.py`, `publish_kit.py`

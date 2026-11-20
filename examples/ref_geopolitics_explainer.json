@@ -1,0 +1,287 @@
+{
+  "meta": {
+    "title": "Ref — Geopolitics Explainer (neutral, 16:9)",
+    "author": "surgical-media",
+    "description": "Companion reference: newsroom_clean, safe lower-thirds with source cards, schematic world map, sourced data chart, neutral facts."
+  },
+  "format": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "style": {
+    "preset": "newsroom_clean"
+  },
+  "platform": {
+    "preset": "youtube_long"
+  },
+  "scenes": [
+    {
+      "scene_id": "map_world_intro",
+      "archetype": "mixed",
+      "duration_sec": 10.0,
+      "start_sec": 0.0,
+      "words": [
+        {
+          "word": "Today: a map. Six facts. One source each.",
+          "start": 0.5,
+          "end": 4.0
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#0F1720",
+            "#0C1318"
+          ]
+        },
+        {
+          "type": "svg",
+          "box": [
+            130,
+            130,
+            1190,
+            740
+          ],
+          "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1280 720\"><rect x=\"60\" y=\"120\" width=\"500\" height=\"360\" rx=\"10\" fill=\"#5AA9E6\" fill-opacity=\"0.12\" stroke=\"#5AA9E6\" stroke-width=\"2\"/><text x=\"320\" y=\"180\" text-anchor=\"middle\" font-family=\"Inter\" font-size=\"20\" fill=\"#EEF2F6\">EUROPE</text><rect x=\"660\" y=\"120\" width=\"560\" height=\"360\" rx=\"10\" fill=\"#E5484D\" fill-opacity=\"0.10\" stroke=\"#E5484D\" stroke-width=\"2\"/><text x=\"940\" y=\"180\" text-anchor=\"middle\" font-family=\"Inter\" font-size=\"20\" fill=\"#EEF2F6\">ASIA</text><rect x=\"60\" y=\"500\" width=\"700\" height=\"140\" rx=\"10\" fill=\"#2A3A46\" stroke=\"#5AA9E6\" stroke-width=\"2\"/><text x=\"100\" y=\"545\" font-family=\"Inter\" font-size=\"18\" fill=\"#EEF2F6\">AFRICA</text><line x1=\"620\" y1=\"420\" x2=\"780\" y2=\"180\" stroke=\"#E5484D\" stroke-width=\"2\" stroke-dasharray=\"8,6\"/><text x=\"690\" y=\"345\" text-anchor=\"middle\" font-family=\"Inter\" font-size=\"16\" fill=\"#EEF2F6\">ROUTE</text></svg>",
+          "camera": {
+            "zoom_start": 1.0,
+            "zoom_end": 1.02,
+            "easing": "ease_out_expo"
+          }
+        },
+        {
+          "type": "source_tag",
+          "label": "SOURCE",
+          "text": "SCHEDULED ROUTES — IAN ROZELLI 2024",
+          "start": 4.5
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.02,
+        "easing": "ease_out_expo"
+      }
+    },
+    {
+      "scene_id": "war_data_odometer",
+      "archetype": "doc_essay",
+      "duration_sec": 10.0,
+      "start_sec": 10.0,
+      "words": [
+        {
+          "word": "Incident counts climb. Routes redraw.",
+          "start": 0.5,
+          "end": 4.5
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#0F1720",
+            "#0C1318"
+          ]
+        },
+        {
+          "type": "scaling_chart",
+          "box": [
+            640,
+            130,
+            1190,
+            470
+          ],
+          "exponent": 3.2,
+          "odometer_from": 1.0,
+          "odometer_to": 1200.0,
+          "accent": "@accent2",
+          "label": "WARCASES THIS YEAR"
+        },
+        {
+          "type": "source_tag",
+          "label": "DATA",
+          "text": "GLOBAL INCIDENT DATABASE — VERIFIED COUNTS, 2024",
+          "start": 0.3
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.02,
+        "easing": "ease_out_back"
+      }
+    },
+    {
+      "scene_id": "map_cities_roaming",
+      "archetype": "mixed",
+      "duration_sec": 8.0,
+      "start_sec": 20.0,
+      "words": [
+        {
+          "word": "Troop movements follow borders that blur daily.",
+          "start": 0.5,
+          "end": 4.0
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#0F1720",
+            "#0C1318"
+          ]
+        },
+        {
+          "type": "svg",
+          "box": [
+            130,
+            130,
+            1190,
+            740
+          ],
+          "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1280 720\"><rect x=\"560\" y=\"260\" width=\"320\" height=\"200\" rx=\"8\" fill=\"#5AA9E6\" fill-opacity=\"0.15\" stroke=\"#5AA9E6\" stroke-width=\"2\"/><text x=\"720\" y=\"330\" text-anchor=\"middle\" font-family=\"Inter\" font-size=\"16\" fill=\"#EEF2F6\">EUROPEAN PENINSULA</text><rect x=\"200\" y=\"420\" width=\"400\" height=\"240\" rx=\"8\" fill=\"#5AA9E6\" fill-opacity=\"0.12\" stroke=\"#5AA9E6\" stroke-width=\"2\"/><text x=\"400\" y=\"520\" text-anchor=\"middle\" font-family=\"Inter\" font-size=\"16\" fill=\"#EEF2F6\">AFRICAN HIGHLAND</text><line x1=\"1040\" y1=\"330\" x2=\"1150\" y2=\"420\" stroke=\"#E5484D\" stroke-width=\"3\"/></svg>",
+          "camera": {
+            "zoom_start": 1.0,
+            "zoom_end": 1.03,
+            "easing": "ease_in_out_sine"
+          }
+        },
+        {
+          "type": "source_tag",
+          "label": "OBSERVATION",
+          "text": "RETRIEVED 2026-11 — NETWORK MAPS, PLAIN TEXT",
+          "start": 3.5
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.03,
+        "easing": "ease_in_out_sine"
+      }
+    },
+    {
+      "scene_id": "facts_lower_thirds",
+      "archetype": "doc_essay",
+      "duration_sec": 9.0,
+      "start_sec": 28.0,
+      "words": [
+        {
+          "word": "Four claims. Four sources on screen.",
+          "start": 0.5,
+          "end": 3.0
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#0F1720",
+            "#0C1318"
+          ]
+        },
+        {
+          "type": "source_tag",
+          "label": "SOURCE",
+          "text": "ATLAS OF POLICIES 2026",
+          "start": 0.2
+        },
+        {
+          "type": "quote_card",
+          "quote": "One border. One casualty line. One displaced village.",
+          "attribution": "atlas of policies, 2026 — three separate incidents, each with its own source card"
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.02,
+        "easing": "ease_in_out_cubic"
+      }
+    },
+    {
+      "scene_id": "opinion_labelled_narrative",
+      "archetype": "mixed",
+      "duration_sec": 10.0,
+      "start_sec": 37.0,
+      "words": [
+        {
+          "word": "This is a view, not a fact.",
+          "start": 0.5,
+          "end": 3.0
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#0F1720",
+            "#0C1318"
+          ]
+        },
+        {
+          "type": "source_tag",
+          "label": "OPINION",
+          "text": "VIEW BY THE HISTORIAN, FOLLOWED BY VERIFIED LINES",
+          "start": 0.2
+        },
+        {
+          "type": "quote_card",
+          "quote": "No television cameras were in these valleys, as the pushed-through aid road could show.",
+          "attribution": "reconstructed — associated field reports have not yet been digitised"
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.0,
+        "easing": "linear"
+      }
+    },
+    {
+      "scene_id": "outro_one_map_one_story",
+      "archetype": "mixed",
+      "duration_sec": 8.0,
+      "start_sec": 47.0,
+      "words": [
+        {
+          "word": "One map. One story — facts are sourced in-frame.",
+          "start": 0.5,
+          "end": 3.0
+        }
+      ],
+      "elements": [
+        {
+          "type": "background",
+          "gradient": [
+            "#0F1720",
+            "#0C1318"
+          ]
+        },
+        {
+          "type": "source_tag",
+          "label": "SOURCE",
+          "text": "METHOD: NETWORK HOPS, SEPARATELY SOURCE-Tagged",
+          "start": 0.2
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "camera": {
+        "zoom_start": 1.02,
+        "zoom_end": 1.01,
+        "easing": "spring_pop"
+      }
+    }
+  ]
+}
