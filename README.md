@@ -1,6 +1,11 @@
-# Surgical Media (`v2.3.1`)
+# Surgical Media (`v3.0.0`)
 
-**Deterministic, QC-gated pipeline for turning a topic prompt into a social-ready MP4 — research brief, audio-first timing, storyboard, 2x-supersampled Pillow rendering, ffmpeg H.264/AAC master, ffprobe verification.**
+**The priority pipeline for surgical-media content generation.** A deterministic, QC-gated,
+research-backed workflow that turns a topic prompt into a social-ready MP4 — mandatory
+Time/Style/Platform intake, live spec refresh, authentic attributed imagery, audio-first timing,
+storyboard, 2x-supersampled Pillow rendering (plus optional Three.js/Blender), ffmpeg
+H.264/AAC master, and hard QC gates. The `social-media-studio-pro` update was merged into this
+skill rather than shipped as a second overlapping video skill.
 
 ## Quick Start
 
@@ -18,19 +23,35 @@ python3 scripts/render_engine.py --demo --output demo_showcase.mp4    # ~70s on 
 
 `demo_showcase.mp4` is a 14.4 s / 1280x720 / 30 fps three-scene showcase (`geometry_rig` → `doc_essay` → `code_report`). The render ends with an ffprobe QC pass; a failed gate exits 3.
 
-Voice an actual script offline or online:
+Produce an actual video through the v3.0.0 pipeline:
 
 ```bash
-python3 scripts/tts_align.py --input script.json --output storyboard.json --aspect 9:16
+python3 scripts/tts_normalizer.py --input script.json --output script.spoken.json --report normalization.json
+python3 scripts/tts_align.py --input script.spoken.json --output storyboard.json --aspect 9:16
 python3 scripts/storyboard.py storyboard.json
 python3 scripts/render_engine.py --storyboard storyboard.json --output final.mp4 --quality final
+python3 scripts/qc_gate.py --video final.mp4 --format 9:16 --preset strict --frames-dir qc_frames --credits CREDITS.md --json qc_report.json
 ```
+
+For named real people use `scripts/media_harvester.py` (authentic portraits, face-centered
+reframing, subtle safe-zone credit badges, `credits.json` + `CREDITS.md`). Before any render,
+read `references/specs-licensing-compliance.md` and re-check live platform rules; see
+`references/style-and-architecture.md` for the 7-style matrix and the originality gate.
 
 ## Repository Layout
 
 | Component | Purpose |
 | :--- | :--- |
-| [`SKILL.md`](SKILL.md) | Agent entrypoint: stages, invariants, quick start, gotchas |
+| [`SKILL.md`](SKILL.md) | **Priority pipeline** (v3.0.0): 7-step orchestration, invariants, gotchas (≤120 lines) |
+| [`references/specs-licensing-compliance.md`](references/specs-licensing-compliance.md) | Platform caps, dual 9:16 safe boxes, 2026 copyright/AI rules, commercial TTS + renderer licenses |
+| [`references/style-and-architecture.md`](references/style-and-architecture.md) | 7-style execution matrix, single locked timeline, originality gate |
+| [`references/pipeline-scripts.md`](references/pipeline-scripts.md) / [`references/render-templates.md`](references/render-templates.md) | CLI index for the merged utilities; pro templates mapped to shipped code |
+| [`scripts/spec_refresh.py`](scripts/spec_refresh.py) | Executable Step 2: verifies the baked platform/licensing baseline and (optionally) probes live sources; exit 3 on drift |
+| [`scripts/pipeline_preflight.py`](scripts/pipeline_preflight.py) | Executable intake/style mapping + structure gate: 7-style matrix, intro/outro contract, sourced-brief originality check |
+| [`scripts/style_apply.py`](scripts/style_apply.py) | Writes the 7-style matrix into a timed board (presets, archetypes, intro window, outro scaffolding); idempotent, reports all changes |
+| [`scripts/tts_normalizer.py`](scripts/tts_normalizer.py) | Dates/numbers/currency/hashtags → spoken words before local TTS, with reviewable change report |
+| [`scripts/media_harvester.py`](scripts/media_harvester.py) | Authentic real-person portraits, face-centered reframing, subtle safe-zone credit badges, `credits.json` + `CREDITS.md` |
+| [`scripts/qc_gate.py`](scripts/qc_gate.py) | Hard gate: ebur128, dead-air, dual safe-zone audit overlays, credits check; exit 3 on failure |
 | [`scripts/tts_align.py`](scripts/tts_align.py) | Beat script → timing-locked storyboard (edge-tts + ffprobe, or offline WPM estimate; syllable-weighted word allocation) |
 | [`scripts/storyboard.py`](scripts/storyboard.py) | Stdlib storyboard validator & timeline helpers |
 | [`scripts/render_engine.py`](scripts/render_engine.py) | Storyboard → MP4. Supersampled frames stream raw into ffmpeg; QC runs inline |
@@ -49,10 +70,10 @@ python3 scripts/render_engine.py --storyboard storyboard.json --output final.mp4
 | [`scripts/hybrid_compositor.py`](scripts/hybrid_compositor.py) | Motion-tracked HUD: reticles, 45° elbow leaders, glass telemetry cards placed by the SAT layout solver |
 | [`scripts/layout_solver.py`](scripts/layout_solver.py) | AABB min-axis collision solver with locked repulsors + 24 px canvas clamp (telemetry-card placement) |
 | [`scripts/blender_runner.py`](scripts/blender_runner.py) | Headless Blender (bpy) per-scene bake: EEVEE/Cycles detection, motion blur, `world_to_camera_view` anchor export; hardware, stellarator, snake, and network topology builders |
-| [`assets/fonts/`](assets/fonts/) | Bundled OFL Inter (Regular/SemiBold/Bold) + JetBrains Mono (Regular/Bold) — captions/HUD + code archetype faces, SHA-256 pinned, licenses included |
+| [`assets/fonts/`](assets/fonts/) | Bundled OFL Inter + JetBrains Mono + Cormorant Garamond — captions/HUD/code/poetic faces, SHA-256 pinned, licenses included |
 | [`scripts/build_demo.py`](scripts/build_demo.py) | Regenerates `examples/tri_archetype_storyboard.json` |
 | [`schemas/`](schemas/) | Draft 2020-12 contracts for the investigation brief, beat script, and storyboard |
-| [`references/`](references/) | Archetype field guide, storyboard element catalog, ffmpeg/loudness reference |
+| [`references/`](references/) | Priority pipeline specs/licensing, 7-style matrix, CLI/template indexes, archetype field guide, storyboard element catalog, ffmpeg/loudness reference |
 | [`tests/`](tests/) | `pytest` suite — unit + rendered-MP4 integration (requires ffmpeg) |
 | [`docs/adr/`](docs/adr/) | Architecture decision records |
 | [`docs/project-plan.md`](docs/project-plan.md) | Living plan + task status (done vs pending); [`docs/index.md`](docs/index.md) is the docs entrypoint |
@@ -64,13 +85,14 @@ python3 -m pytest tests/ -q       # all green, ffmpeg integration included
 ruff check --no-cache scripts/ tests/
 python3 scripts/storyboard.py examples/tri_archetype_storyboard.json
 check-jsonschema --check-metaschema schemas/*.schema.json
+python3 scripts/qc_gate.py --video final.mp4 --format 9:16 --preset strict --json qc_report.json
 ```
 
 Or everything, in one call: `bash scripts/ci_gates.sh`
 
 ### Verification (local-first)
 
-- **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → `mypy --strict` → 551 tests → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC (10 gates: the 9 above + advisory `style_lint` on examples). Run it before pushing; its green exit *is* this repo's quality bar. Install the toolchain with `requirements-dev.txt`.
+- **No hosted CI by choice.** GitHub Actions was billing-locked (jobs never started), so the workflow was removed 2026-11-18 rather than left as a permanent red check. `scripts/ci_gates.sh` is the enforced standard and runs on every change: storyboard validation → ruff → format → `mypy --strict` → full `pytest` suite → schema metaschema → example-vs-schema validation → thumbnail smoke gate → draft render + ffprobe QC → advisory `style_lint` → production-job examples → measured loudness/dead-air/safe-zone audit (12 gates). Run it before pushing; its green exit *is* this repo's quality bar. Install the toolchain with `requirements-dev.txt`.
 - `main` is protected on GitHub: required linear history, force-push and branch deletion blocked, enforced for admins too. Direct fast-forward pushes remain allowed (the current flow).
 - The decision is recorded in [ADR 0002](docs/adr/0002-local-first-verification.md). An optional GitLab mirror ([`.gitlab-ci.yml`](.gitlab-ci.yml)) executes the identical script once a project is imported: **New project → Import project → Repository by URL** → paste this repo's URL → create. Optionally enable *Settings → Repository → Mirroring* to auto-sync `main`. The mirror is **configured, not verified** — do not treat its presence as a green pipeline until one passes.
 

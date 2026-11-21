@@ -1,11 +1,15 @@
 """Unit tests for render_engine frame quantization — no rendering required."""
 
+import json
+import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import render_engine
 from render_engine import estimate, frame_counts, scene_frames
 
 EXAMPLE = (
@@ -55,3 +59,74 @@ def test_estimate_frame_total_matches_frame_counts():
     assert report["total_frames"] == sum(frame_counts(board["scenes"], fps))
     assert report["scenes"] == len(board["scenes"])
     assert report["fps"] == fps
+
+
+def _measured_json() -> str:
+    return json.dumps(
+        {
+            "measured_I": "-16.2",
+            "measured_TP": "-2.5",
+            "measured_LRA": "5.1",
+            "measured_thresh": "-26.4",
+            "offset": "+0.2",
+        }
+    )
+
+
+def test_two_pass_loudnorm_uses_measured_values(monkeypatch: Any, tmp_path: Path):
+    calls: list[list[str]] = []
+
+    def fake_run(argv: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        calls.append(argv)
+        return subprocess.CompletedProcess(
+            argv, 0, stdout="", stderr=f"noise\n{_measured_json()}\n"
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    filt = render_engine._loudnorm_filter(tmp_path / "master.wav")
+    assert "measured_I=-16.20" in filt
+    assert "linear=true" in filt
+    assert "alimiter=limit=0.891" in filt
+    assert calls and calls[0][0] == "ffmpeg"
+    assert "-c" not in calls[0]  # list argv, never shell=True
+
+
+def test_two_pass_loudnorm_accepts_legacy_json_keys(monkeypatch: Any, tmp_path: Path):
+    legacy = json.dumps(
+        {
+            "input_i": "-17.66",
+            "input_tp": "-1.00",
+            "input_lra": "2.60",
+            "input_thresh": "-27.66",
+            "target_offset": "1.61",
+        }
+    )
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda argv, **kwargs: subprocess.CompletedProcess(argv, 0, "", legacy),
+    )
+    filt = render_engine._loudnorm_filter(tmp_path / "master.wav")
+    assert "measured_I=-17.66" in filt
+    assert "offset=1.61" in filt
+    assert "acompressor" in filt
+
+
+def test_two_pass_loudnorm_falls_back_on_bad_measurement(
+    monkeypatch: Any, tmp_path: Path
+):
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda argv, **kwargs: subprocess.CompletedProcess(argv, 0, "", "no json here"),
+    )
+    filt = render_engine._loudnorm_filter(tmp_path / "master.wav")
+    assert "measured_I" not in filt
+    assert "loudnorm=I=-14:TP=-2:LRA=11" in filt
+
+
+def test_two_pass_loudnorm_falls_back_without_ffmpeg(monkeypatch: Any, tmp_path: Path):
+    monkeypatch.setattr(render_engine.shutil, "which", lambda name: None)
+    filt = render_engine._loudnorm_filter(tmp_path / "master.wav")
+    assert "measured_I" not in filt
+    assert "linear=true" not in filt
