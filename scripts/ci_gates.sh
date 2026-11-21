@@ -8,45 +8,51 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "== gate 1/11: example storyboards validate =="
+echo "== gate 1/12: example storyboards validate =="
 for board in examples/*.json; do
   python3 scripts/storyboard.py "$board"
 done
 
-echo "== gate 2/11: lint =="
+echo "== gate 2/12: lint =="
 ruff check --no-cache scripts/ tests/
 
-echo "== gate 3/11: format check =="
+echo "== gate 3/12: format check =="
 ruff format --check --no-cache scripts/ tests/
 
-echo "== gate 4/11: typecheck (mypy --strict, config in pyproject.toml) =="
+echo "== gate 4/12: typecheck (mypy --strict, config in pyproject.toml) =="
 python3 -m mypy scripts/
 
-echo "== gate 5/11: test suite =="
+echo "== gate 5/12: test suite =="
 python3 -m pytest tests/ -q
 
-echo "== gate 6/11: JSON Schemas are valid Draft 2020-12 =="
+echo "== gate 6/12: JSON Schemas are valid Draft 2020-12 =="
 check-jsonschema --check-metaschema schemas/*.schema.json
 
-echo "== gate 7/11: example storyboards validate against their JSON Schema =="
+echo "== gate 7/12: example storyboards validate against their JSON Schema =="
 check-jsonschema --schemafile schemas/storyboard.schema.json examples/*.json
 
-echo "== gate 8/11: thumbnail smoke gate (visual path, 2D + hybrid 3D + Three.js 3D) =="
+echo "== gate 8/12: thumbnail smoke gate (visual path, 2D + hybrid 3D + Three.js 3D) =="
 python3 scripts/render_engine.py --demo --thumbnails /tmp/sm_thumbs
 python3 scripts/render_engine.py --storyboard examples/hybrid_3d_storyboard.json --thumbnails /tmp/sm_hybrid_thumbs
 python3 scripts/render_engine.py --storyboard examples/threejs_3d_storyboard.json --thumbnails /tmp/sm_threejs_thumbs
 
-echo "== gate 9/11: draft render + QC =="
+echo "== gate 9/12: draft render + QC =="
 python3 scripts/render_engine.py --demo --output /tmp/sm_ci_gate.mp4 --quality draft
 python3 scripts/verify_output.py --input /tmp/sm_ci_gate.mp4 --storyboard examples/tri_archetype_storyboard.json
 
-echo "== gate 10/11: style_lint on examples (advisory, report mode) =="
+echo "== gate 10/12: style_lint on examples (advisory, report mode) =="
 python3 scripts/style_lint.py examples/*.json
 
-echo "== gate 11/11: production-job examples validate (schema + runtime) =="
+echo "== gate 11/12: production-job examples validate (schema + runtime) =="
 check-jsonschema --schemafile schemas/production_job.schema.json examples/jobs/*.json
 for job in examples/jobs/*.json; do
   python3 scripts/job_cli.py validate "$job"
 done
+
+echo "== gate 12/12: measured loudness, dead-air and safe-zone audit =="
+python3 scripts/qc_gate.py --video /tmp/sm_ci_gate.mp4 --format 16:9 \
+  --expect-width 1280 --expect-height 720 --preset strict \
+  --frames-dir /tmp/sm_ci_qc_frames --json /tmp/sm_ci_qc_report.json \
+  > /tmp/sm_ci_qc_stdout.json
 
 echo "ci_gates: all gates green"

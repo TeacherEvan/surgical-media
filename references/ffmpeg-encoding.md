@@ -12,7 +12,7 @@ Encode is a fixed contract. Deviating from it predictably breaks platform playba
 | Flags | `-movflags +faststart` | moov atom up front ⇒ instant first-frame on social platforms |
 | Raw input | `-f rawvideo -pix_fmt rgb24 -s WxH -r FPS -i -` | zero temp files; RGB because Pillow emits RGB (no alpha after `final()`) |
 | Audio codec | `aac`, `192k`, `48000` Hz stereo | platform sweet spot; 44.1 kHz adds nothing |
-| Loudness | `loudnorm=I=-14:TP=-1.5:LRA=11` on `-af` at mux time | −14 LUFS integrated / −1.5 dBTP is the YT/Spotify/IG consensus |
+| Loudness | two-pass measured `loudnorm` + `acompressor=threshold=-24dB:ratio=3` + `alimiter=limit=0.891` on `-af` | −14 ±1 LUFS integrated / ≤ −1 dBTP true peak; measured by `qc_gate.py` (gate 12) |
 | A/V length | `-shortest` | trims the tail pad past the last video frame |
 
 Changing `-pix_fmt` without changing `frame.tobytes()` corrupts every frame (byte-stride mismatch) — that is why `rgb24` and the RGB export path in `SupersampledCanvas.final()` are welded together in review.

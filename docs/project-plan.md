@@ -1,6 +1,6 @@
 # Surgical Media — Project Plan & Task Status
 
-**Version:** 2.3.1 · **Updated:** 2026-11-21 · **Owner:** Evan (TeacherEvan), agent-assisted
+**Version:** 3.0.0 · **Updated:** 2026-11-21 · **Owner:** Evan (TeacherEvan), agent-assisted
 **Contract:** code + `tests/` are the contract; this plan is the living map. Verification is local-first — `bash scripts/ci_gates.sh` green *is* the quality bar ([ADR 0002](adr/0002-local-first-verification.md)).
 
 Docs entrypoint: [`docs/index.md`](index.md) · Human manual: [`README.md`](../README.md) · Agent manifest: [`SKILL.md`](../SKILL.md) · Agent rules: [`AGENTS.md`](../AGENTS.md) · Release history: [`CHANGELOG.md`](../CHANGELOG.md)
@@ -23,17 +23,36 @@ motion-tracked HUD — Blender-optional, stdlib software renderer always availab
 
 | Layer | Files | Notes |
 | :--- | :--- | :--- |
-| Timing | `scripts/tts_align.py`, `scripts/audio_dsp.py` | Audio-first; measured edge-tts WordBoundary or offline syllable model; never re-split joined strings |
+| Timing | `scripts/tts_normalizer.py`, `scripts/tts_align.py`, `scripts/audio_dsp.py` | Spoken-text normalization before voicing; audio-first; measured edge-tts WordBoundary or offline syllable model; never re-split joined strings |
 | Contract | `schemas/*.schema.json`, `scripts/storyboard.py` | Draft 2020-12 + runtime validator, pinned to parity by `tests/test_schemas_contract.py` and `tests/test_scene_spec_integration.py` |
 | 2D render | `scripts/render_engine.py`, `scripts/canvas.py`, `scripts/camera.py`, `scripts/elements/`, `scripts/rig.py`, `scripts/easings.py` | RGB end-to-end, 2x SSAA floor, bloom pyramid, safe zones |
 | 3D backends | `scripts/scene_router.py`, `scripts/software_3d_projection.py`, `scripts/hybrid_compositor.py`, `scripts/layout_solver.py`, `scripts/blender_runner.py`, `scripts/threejs_bridge.py`, `scripts/threejs/` | Routing + capability probes; stdlib 4×4 look-at/Painter's sort; SAT-solved HUD cards; optional headless Three.js WebGL PBR bake (Node ≥22 CDP) and optional Blender bake, both with software fallback |
-| Imagery | `scripts/fetch_assets.py`, `scripts/blender_plate.py` | Open-licensed photos (allowlist `by`/`by-sa`/`cc0`/`pdm`), optional Workbench plates |
-| QC | `scripts/verify_output.py`, `scripts/ci_gates.sh` | yuv420p/H.264 high 4.2/+faststart, −14 LUFS, ≤150 ms A/V drift, silence detection; 9 local gates |
+| Imagery | `scripts/fetch_assets.py`, `scripts/media_harvester.py`, `scripts/blender_plate.py` | Open-licensed photos (allowlist `by`/`by-sa`/`cc0`/`pdm`), face-centered real-person portraits with safe-zone credit badges, optional Workbench plates |
+| QC | `scripts/qc_gate.py`, `scripts/verify_output.py`, `scripts/ci_gates.sh` | yuv420p/H.264 high 4.2/+faststart, measured ebur128 −14 LUFS / −1 dBTP, dead-air gate, dual safe-zone audit overlays, ≤150 ms A/V drift; 12 local gates |
 | Docs | `references/`, `docs/adr/`, this plan | Element catalog + 3D backend specs in [`references/storyboard-guide.md`](../references/storyboard-guide.md) |
 
 Examples: [`examples/tri_archetype_storyboard.json`](../examples/tri_archetype_storyboard.json) (generated — regenerate via `scripts/build_demo.py`, never hand-edit) · [`examples/hybrid_3d_storyboard.json`](../examples/hybrid_3d_storyboard.json) (hand-written 3D HUD showcase).
 
-## 3. Task status — v1.3.0 wave
+## 3. Priority pipeline (v3.0.0) — merged from the social-media-studio-pro update
+
+| Item | Evidence |
+| :--- | :--- |
+| 7-step orchestration (intake → live refresh → research/attribution → collaboration → audio-first → intro/outro → QC) | `SKILL.md` (≤120 lines), `references/specs-licensing-compliance.md`, `references/style-and-architecture.md` |
+| Executable live spec refresh + drift detection | `scripts/spec_refresh.py`, `tests/test_spec_refresh.py` |
+| Executable intake + 7-style mapping + intro/outro + originality gate | `scripts/pipeline_preflight.py`, `tests/test_pipeline_preflight.py` |
+| Generation-side style matrix application (idempotent) | `scripts/style_apply.py`, `tests/test_style_apply.py` |
+| Spoken-text normalization (dates/numbers/currency/hashtags/ordinals) | `scripts/tts_normalizer.py`, `tests/test_tts_normalizer.py` |
+| Authentic-person harvest, face-centered reframing, subtle safe-zone credit badges, manifests | `scripts/media_harvester.py`, `tests/test_media_harvester.py`, `scripts/elements/media.py` |
+| Measured loudness + dead-air + dual safe-zone audit overlays gate | `scripts/qc_gate.py`, `tests/test_qc_gate.py`, `scripts/verify_output.py` |
+| 7-style execution matrix, locked-timeline contract, originality gate | `references/style-and-architecture.md` |
+| License matrix (2026 Shorts Content ID change, originality, C2PA, TTS/renderers) | `references/specs-licensing-compliance.md` (live-refresh required before each run) |
+| Pro templates mapped to shipped code; Remotion/Manim stay optional/external | `references/render-templates.md` |
+
+The pipeline deliberately keeps all new work stdlib+Pillow-only: OpenCV is an optional
+face-detection accelerator, never a dependency, and no second timeline file is introduced —
+`storyboard.json` remains the single source of truth.
+
+## 3a. Task status — v1.3.0 wave
 
 ### Done (verified locally)
 
@@ -117,7 +136,7 @@ The full list lives in [`AGENTS.md`](../AGENTS.md) → "Hard-won invariants" and
 ## 5. Verification contract
 
 ```bash
-bash scripts/ci_gates.sh   # 10 gates: boards → ruff → format → mypy --strict → pytest → metaschema → example-vs-schema → thumbnails (2D + hybrid) → draft render + ffprobe QC → style_lint on examples (report)
+bash scripts/ci_gates.sh   # 12 gates: boards → ruff → format → mypy --strict → 713 tests → metaschema → example-vs-schema → thumbnails (2D + hybrid + Three.js) → draft render + ffprobe QC → style_lint (report) → production-job examples → qc_gate (ebur128/dead-air/safe-zone)
 ```
 
 Single gate detail and the local-first decision: [ADR 0002](adr/0002-local-first-verification.md). Test counts quoted in docs must match the current suite run (constant-sweep rule in the documentation-maintenance workflow).

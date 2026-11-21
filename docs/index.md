@@ -15,6 +15,7 @@ Entrypoint for surgical-media docs. The contract is code + `tests/`; these docum
 - [`adr/0004-optional-threejs-webgl-backend.md`](adr/0004-optional-threejs-webgl-backend.md) — optional headless Three.js WebGL backend (`threejs_hybrid`/`threejs_3d`, Node ≥ 22 native CDP, local `three`, Z-up camera parity, `network_topology_3d`)
 
 - [`adr/0005-production-job-layer.md`](adr/0005-production-job-layer.md) — 3.0 job layer (flat `scripts/job_*.py`, file-based agent contract, prepare-never-publish, human approval bound to video hash)
+- [`adr/0006-priority-social-video-pipeline.md`](adr/0006-priority-social-video-pipeline.md) — merge the social-media-studio-pro update into this skill; one priority pipeline, three cherry-picked scripts, dual safe-zone masks
 
 ## 3.0 wave
 
@@ -26,6 +27,14 @@ Entrypoint for surgical-media docs. The contract is code + `tests/`; these docum
 
 - [`plans/Conversation with Gemini.txt`](plans/Conversation%20with%20Gemini.txt) — multi-engine design conversation behind ADR 0003
 - `../Concept/` — original pipeline design transcript
+
+## Priority pipeline (v3.0.0)
+
+- [`../SKILL.md`](../SKILL.md) — the single entry point: 7-step orchestration from intake to QC
+- [`../references/specs-licensing-compliance.md`](../references/specs-licensing-compliance.md) — platform caps, dual 9:16 safe boxes, 2026 copyright/AI rules, model licenses
+- [`../references/style-and-architecture.md`](../references/style-and-architecture.md) — 7-style execution matrix, locked timeline, originality gate
+- [`../references/pipeline-scripts.md`](../references/pipeline-scripts.md) — CLI index for the three merged utilities
+- [`../references/render-templates.md`](../references/render-templates.md) — pro templates mapped to shipped Blender/Three.js/FFmpeg code
 
 ## Field guides & contracts
 

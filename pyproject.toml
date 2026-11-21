@@ -1,6 +1,6 @@
 [project]
 name = "surgical-media"
-version = "2.3.1"
+version = "3.0.0"
 description = "Deterministic, QC-gated video generation pipeline: storyboard to H.264/yuv420p MP4 via Pillow and FFmpeg."
 requires-python = ">=3.10"
 license = { text = "MIT" }

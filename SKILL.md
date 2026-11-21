@@ -1,120 +1,120 @@
 ---
 name: surgical-media
-description: "Use when creating, planning, or rendering social video from a topic prompt."
-version: 2.3.1
+description: "Use when creating, planning, researching, or rendering social video for YouTube, Facebook or TikTok — including Shorts, Reels, explainers, news, comedy and multi-style hybrids that need real attributed photos, programmatic 2D/3D rendering and hard QC."
+version: 3.0.0
 author: "TeacherEvan, Hermes Agent"
 license: MIT
 platforms: [linux, macos]
 metadata:
   hermes:
     category: creative
-    tags: [video, ffmpeg, pillow, threejs, webgl, svg, procedural-animation, storyboard, social-media, shorts, youtube, explainer, tts, edge-tts, supersampling, yuv420p, loudness, kinetic-typography, archetypes, deterministic]
-    requires_tools: [terminal, read_file, write_file, search_files]
-    related_skills: [video-production-pipeline, surgical-orchestration, surgical-audit]
+    tags: [video, social-media, shorts, reels, tiktok, youtube, research, attribution, ffmpeg, pillow, threejs, blender, tts, storyboard, safe-zones, licensing, qc]
+    requires_tools: [terminal, read_file, write_file, search_files, web_search]
+    related_skills: [video-production-pipeline, surgical-investigation, surgical-orchestration, surgical-audit]
 ---
 
-# Surgical Media (v2.3.1)
+# Surgical Media (v3.0.0) — Priority Social Video Pipeline
 
-Deterministic, verified pipeline for producing high-retention explainer and social videos from a topic prompt: research brief → audio-first timing → storyboard.json → 2x-supersampled Pillow + SVG 2.0 rendering (plus optional Three.js WebGL Studio / Blender 3D passes) → ffmpeg H.264/AAC master → ffprobe QC gate. Art direction comes in two optional top-level blocks: `style` (palette/type/material/light/grade/motion — `scripts/style.py`, presets in `assets/styles/`) and `platform` (caption style, safe zones, hook/beat budgets — `scripts/platform_presets.py`). Comedy time uses `ui_mockups` painters (dating cards, chats, social posts); news/ops titles use `maps` (world clusters, callouts, route arrows). Monetization gates ship built-in (`monetization_gate.py`, `thumbnail_gen.py` — see Verification). Unlike claim-heavy skill prose, **every capability listed here ships as tested code in this repository** (`tests/` — 551 tests including rendered-MP4, Three.js IBL/bloom/SVG-3D/custom-script, Chromium SVG 2.0, style/platform/grade, monetization, monetization-gate/thumbnail/voice-cast, mockup/map passes, and claim-ID research contract).
+Deterministic, monetization-safe, research-backed path from a topic prompt to a verified MP4.
+**This is the priority pipeline for all future surgical-media content.** Every capability below
+ships as tested code (`tests/`); prose never outruns implementation.
+## Step 1 — Mandatory intake
 
-## When to Use
+Before research or render, confirm three inputs; ask only for what is missing:
+- **Time**: target runtime (30 s, 60 s, 90 s, 3 min, 10 min).
+- **Style**: Comedic, Serious, Formal, Catchy, Poetic, Artistic, or all of the above (propose a tonal arc for hybrids).
+- **Platform**: YouTube Long 16:9 / Shorts 9:16, Facebook Feed 4:5 / Reels 9:16, TikTok 9:16, or master + adapted exports.
+Resolve into a locked contract: `python3 scripts/pipeline_preflight.py --time 60 --style comedic --platform tiktok --intake-out intake.json`
+## Step 2 — Live spec & technique refresh
 
-- The user wants a complete video, explainer, Short, Reel, or TikTok generated from a topic or URL.
-- The user wants procedural animations in the Alan Becker (geometry/stick-figure), Matt Madigan (documentary essay), or Fireship (code report) visual styles — or a parametric 3D scene (exploded package stack, stellarator torus) with HUD telemetry pinned to 3D anchors.
-- The user wants a repeatable script-to-MP4 pipeline with frame-accurate audio sync.
-- The user wants monetizable comedy ("Horse Tenny"-style) or geopolitical news shorts — or needs export guards (non-commercial stock, defamation triggers, static holds).
-- The user needs social-ready masters verified for yuv420p/faststart/-14 LUFS before upload.
+Verify the baked spec baseline, then web-search current caps, Content ID / originality /
+AI-disclosure rules and library releases:
+`python3 scripts/spec_refresh.py --check [--fetch] --out spec_report.json` (exit 3 = drift).
+Probe the host with `python3 scripts/tool_probe.py --out capabilities.json`. Update the
+reference's date when anything changed; never render against an unverified assumption.
+## Step 3 — Research, real people, subtle attribution
 
-## When Not to Use
+Emit a brief against `schemas/investigation_brief.schema.json` (≥3 sourced facts → visual
+anchors). Fetch licensed subject imagery **before** writing the script:
+`python3 scripts/fetch_assets.py --query "<subject>" --out-dir assets --count 3`.
+Named real people require authentic high-res photos (Wikimedia/Wikipedia/press rooms), never AI
+stand-ins without approval. For portraits with safe-zone credit badges use
+`python3 scripts/media_harvester.py --query "<person>" --people "<person>" --out-dir assets --aspect 9:16`.
+Log outlet, headline, date and URL for every claim; keep `credits.json` + `CREDITS.md` with
+AI-disclosure flags.
+## Step 4 — Collaboration & tooling pitch
 
-- Live-action capture, human editing suites, or production 3D characters/environments — parametric 3D scenes here are limited to the built-in procedural categories (exploded hardware, stellarator/orbital torus, organic serpent, 3D network topology), 2D overlays stay supersampled Pillow. Video *analysis* of existing files (transcription, summarisation) — use a media-analysis skill. Cinemagraphs/loops under 3 s — a GIF pipeline is simpler.
+After research, **pause and pitch**: flag ambiguity or sensitive claims, propose a sharper hook,
+visual metaphor, 3D hero shot or pacing change, and recommend an optional engine (Blender, Three.js,
+Revideo, Manim, WhisperX, Kokoro/Qwen3-TTS) with a payoff. Install only after confirmation;
+licensing: `references/specs-licensing-compliance.md`.
+## Step 5 — Audio-first multi-engine production
 
-## Style Archetypes
-
-Blend per scene via the `archetype` field; see `references/archetypes.md` for the full field guide.
-
-| Archetype | Reference feel | Canvas | Visuals | VO pace |
-| :--- | :--- | :--- | :--- | :--- |
-| `geometry_rig` | Alan Becker — Animation vs. Geometry | `#050508` void | 2-bone IK stick figure, recursive golden-ratio spiral, rotating 4D tesseract projection, φ lock pulses | non-verbal; SFX-locked |
-| `doc_essay` | Matt Madigan — AI Is Bigger Than Aliens | `#0A0E17` slate + grid | exponential scaling curve, spring-pop milestone badges, glass quote cards, odometer telemetry | 150–165 WPM |
-| `code_report` | Fireship — tech code reports | `#0D1117` IDE dark | 200 OK → 503 DAG cascade, cubic-bezier packet routing, macOS-style diff terminal, trauma shake | 175–195 WPM, tight beats |
-
-## Procedure
-
-### Stage 1 — Investigate & Extract Visual Anchors
-
-Research the subject **as a producer would**: facts **and** footage. Emit a brief conforming to `schemas/investigation_brief.schema.json` with ≥3 verifiable facts (with sources), each mapped to a concrete visual primitive — never a static text slide — and fetch licensed subject imagery before writing any script:
-
-```bash
-python3 scripts/fetch_assets.py --query "<subject>" --out-dir assets --count 3   # --source openverse|commons|inaturalist|all (default: all)
+Never lock frames before audio. Normalize spoken text, then time the board:
 ```
-
-`fetch_assets.py` searches Openverse (240k+ CC assets), rejects non-remixable licenses (`by-nc*`, `by-nd*`), verifies each file decodes, and writes `assets/manifest.json` with per-image attribution strings — paste those verbatim into storyboard `image` elements. **A subject video with no image of the subject is a failure**; fetch ≥1 photograph unless the format is deliberately typographic-only. Never hotlink images into a render — download and attribute. Pick the format: `1920x1080@30/60` (16:9), `1080x1920` (9:16), or `1080x1080` (1:1); defaults live in `references/ffmpeg-encoding.md`. Probe hosts first: `python3 scripts/tool_probe.py --out capabilities.json` (GPU/Blender/Three.js/Chromium/STT-TTS/API keys → JSON; Director Matrix uses it to pick adapter tiers).
-
-### Stage 2 — Audio-First Timing
-
-Never lock frame counts before audio exists.
-
-```bash
-python3 scripts/tts_align.py --input script.json --output storyboard.json \
-    --voice en-US-ChristopherNeural --aspect 9:16   # add --offline for no-network runs
+python3 scripts/tts_normalizer.py --input script.json --output script.spoken.json --report normalization.json
+python3 scripts/tts_align.py --input script.spoken.json --output storyboard.json --voice en-US-ChristopherNeural --aspect 9:16   # --offline if no network
+python3 scripts/style_apply.py --intake intake.json --board storyboard.json --out storyboard.styled.json --report style_changes.json
+python3 scripts/storyboard.py storyboard.styled.json
 ```
-
-This voices each beat (edge-tts when reachable, otherwise a WPM estimate), probes exact durations via ffprobe, and writes `storyboard.json` with per-word syllable-weighted timestamps for karaoke captions. Voice stems land in `audio/` next to the board. Multi-voice casting: set `voices: {scene_id: voice}` in script.json — per-scene override beats the script-global voice (CLI `--voice` > script.voice).
-
-### Stage 3 — Storyboard
-
-Edit `storyboard.json` (schema: `schemas/storyboard.schema.json`, checked by `scripts/storyboard.py`). Every scene requires `scene_id`, `archetype`, `duration_sec`, and `elements[]` — unless it carries a `scene_spec` (see "3D scene backends"). Elements render in array order: `background`, `grid`, `scaling_chart`, `phi_divider`, `tesseract`, `system_architecture`, `code_terminal`, `quote_card`, `hud_badge`, `stick_rig`, `kinetic_captions`, `image`, `svg`, and the personality painters `orb_pulse`, `dot_field`, `orbit_ring`, `equalizer`, `typewriter_text`, `leader_arrow` (catalog + visual grammar + recipe cards: `references/storyboard-guide.md`; persona overlays: `references/archetypes.md`). Keep visual beats ≤3.0 s — split longer clauses into sub-beats. Visual quality checklist (one hero per scene, no dead frames, payload on top): `references/storyboard-guide.md`.
-
-```bash
-python3 scripts/storyboard.py storyboard.json          # validate only
+`storyboard.styled.json` is the single locked timeline (fps, bt709, word spans, SFX); `style_apply.py`
+writes the 7-style matrix into it, `pipeline_preflight.py` verifies it. Engines: `references/style-and-architecture.md` §4 —
+Pillow/`elements/` for 2D, `blender_runner.py`/`threejs_bridge.py` for 3D (stdlib fallback), external Revideo/Manim only when justified. Then:
 ```
-
-### Stage 4 — Iterate, then Render & QC
-
-```bash
-python3 scripts/render_engine.py --storyboard storyboard.json --estimate      # frame count + audio cost, no render
-python3 scripts/render_engine.py --storyboard storyboard.json --thumbnails /tmp/thumbs   # one PNG per scene, seconds
-python3 scripts/render_engine.py --storyboard storyboard.json --output final.mp4 --quality final
-python3 scripts/render_engine.py --demo --output demo.mp4                      # bundled 3-archetype showcase (~70s on 4 cores)
+python3 scripts/render_engine.py --storyboard storyboard.styled.json --estimate
+python3 scripts/render_engine.py --storyboard storyboard.styled.json --thumbnails /tmp/thumbs
+python3 scripts/render_engine.py --storyboard storyboard.styled.json --output final.mp4 --quality final
 ```
+## Step 6 — Mandatory topic-matched intro & outro
 
-Inspect thumbnails before spending a full render; the bundled demo takes ~60–90 s (draft) on a 4-core CPU. Every frame is drawn at 2x target resolution (e.g. 2560x1440 → 1280x720) and BOX-averaged down (ideal SSAA kernel; ~3× cheaper than LANCZOS at integer scale); RGB-emissive primitives feed a dual-radius Gaussian bloom pyramid computed at half resolution; raw RGB frames pipe directly into ffmpeg (`libx264 -crf 18 -profile:v high -level 4.2 -pix_fmt yuv420p -movflags +faststart`); audio is synthesized offline (just-intonation pad ducked −12 dB under VO, SFX on a frame-accurate timeline, −1 dBFS ceiling) and loudnorm'd to −14 LUFS. After encoding, `verify_output.py` asserts streams, H.264/yuv420p, fps, resolution and ≤150 ms A/V drift — a failed gate exits 3. Run guards after render: `python3 scripts/monetization_gate.py --board storyboard.json --manifest assets/manifest.json --script script.json` — commercial-license firewall (`by-nc*`/`by-nd*`/`pd`/unknown/missing attribution in `assets/manifest.json`), adversarial narration scan (fabricated quotes, defamation, election/medical misinformation → ERROR), static-hold pacing (>3.0 s @9:16 / >6.0 s @16:9 without motion/SFX → ERROR).
+No generic bumper. Short-form: fuse the intro into a 0.5–3 s hook + kinetic topic stamp that
+reads with audio muted; close with a callback or loop back to Frame 1. Long-form: 3–10 s
+thematic cold-open; close with payoff, one CTA and a compact credit roll from `CREDITS.md`.
+## Step 7 — Hard QC gate
+```
+python3 scripts/pipeline_preflight.py --board storyboard.styled.json --intake intake.json --brief investigation.json
+python3 scripts/qc_gate.py --video final.mp4 --format 9:16 --preset strict --frames-dir qc_frames --credits CREDITS.md --json qc_report.json
+python3 scripts/monetization_gate.py --board storyboard.json --manifest assets/manifest.json --script script.spoken.json
+python3 scripts/thumbnail_gen.py --storyboard storyboard.json --out publish/thumbnail.jpg
+```
+`qc_gate.py` exit 3 = do not deliver. Inspect the red-overlay PNGs (Frame 1 / mid / outro) for
+faces, captions and credits inside the safe box, and confirm every asset is in `CREDITS.md`.
+## Style archetypes
 
-### 3D scene backends (optional, `scene_spec`)
+Blend per scene via `archetype`: `geometry_rig` (IK stick figure, spiral, tesseract; SFX-locked),
+`doc_essay` (charts + glass quote cards; 150–165 WPM), `code_report` (DAG cascade, diff terminal,
+trauma shake; 175–195 WPM), `mixed`. Field guide: `references/archetypes.md`; 7-style matrix and
+originality gate: `references/style-and-architecture.md`.
+## 3D backends (optional)
 
-A scene may replace `elements[]` with a `scene_spec` object routing it to a parametric 3D backend (`backend`: `auto` default, `threejs_hybrid`, `threejs_3d`, `blender_hybrid`, `blender_3d`, `canvas_2d`, `manim_math` → warns, renders as 2D canvas). Categories: `exploded_hardware_3d`, `orbital_or_field_3d`, `organic_serpent_3d`, `network_topology_3d` (others rejected at validation). Always renders via a stdlib 4×4-perspective Painter's-algorithm pass — neither Three.js nor Blender is required. With Node ≥22 + Chromium + local `three` (`cd scripts/threejs && npm install`, check via `scripts/threejs_bridge.py --check`), `threejs_*` scenes pre-bake fast PBR WebGL plates offline over native CDP; with Blender ≥3.6 on PATH, `blender_*` scenes pre-bake via bpy. In both hybrid modes, 3D→2D anchors pin frosted-glass telemetry cards placed collision-free by an AABB SAT solver. Examples: `examples/hybrid_3d_storyboard.json`, `examples/threejs_3d_storyboard.json` — see `references/storyboard-guide.md` + ADRs 0003/0004.
+`scene_spec` routes to `threejs_hybrid|threejs_3d|blender_hybrid|blender_3d|canvas_2d`
+(categories: exploded_hardware_3d, orbital_or_field_3d, organic_serpent_3d,
+network_topology_3d). Stdlib `software_3d_projection.py` always works; Three.js needs Node ≥22
++ Chromium, Blender ≥3.6 optional. New assets require all three generators + tests + docs.
+## Hard invariants
 
-**Creating a new 3D asset:** design history (`docs/plans/`) is a *pattern*, not an asset to reuse. Add a generator to `software_3d_projection.py`, `scripts/threejs/scenes.mjs`, AND `blender_runner.py`, register the category in `scene_router.py` + `storyboard.py` + `schemas/storyboard.schema.json`, and land tests + docs/counts in the same change. Copying the example torus is not building an asset.
-
-## Hard Invariants
-
-1. **yuv420p or nothing.** RGBA/yuv444p output fails on iOS/Safari/IG/TikTok. The encoder never overrides this.
-2. **Audio before frames.** Frame counts derive from measured VO or explicit beat durations — never guessed.
-3. **No linear motion.** Camera/UI motion goes through `easings.py` (`ease_out_expo`, `ease_in_out_cubic`, `spring_pop`…). `linear` exists for debugging only.
-4. **2x supersample floor.** `SupersampledCanvas(..., scale>=2)` — Pillow has no sub-pixel AA on diagonals/circles.
-5. **Safe zones are load-bearing.** 9:16 content lives inside `(84, 220) → (w-150, h-440)`; captions never collide with platform chrome (`canvas.layout_zones`).
-6. **Claims match code.** If a feature is not in this repo and green under `pytest`, it does not ship. Manim/moviepy are deliberately out of scope. Three.js and Blender are optional and never required.
-
+1. **yuv420p or nothing** — RGBA/yuv444p fails iOS/IG/TikTok.
+2. **Audio before frames** — counts from measured VO or explicit beats, never guessed.
+3. **No linear motion** — use `easings.py`; `linear` is debug-only.
+4. **2x supersample floor** — `SupersampledCanvas(scale>=2)`.
+5. **Safe zones are load-bearing** — organic `(84,220)→(w-150,h-440)`; strict ad-safe
+   `x=65..888, y=288..1248` on 1080x1920 (see `references/specs-licensing-compliance.md`).
+6. **Claims = code** — if it is not in `tests/` and green, it does not ship. No NumPy in
+   audio/geometry; Three.js/Blender optional.
 ## Verification
 
-```bash
-python3 -m pytest tests/ -q                                    # 476 tests
-python3 -m mypy scripts/                                       # strict — must be clean (gate 4/10)
-python3 scripts/render_engine.py --demo --output /tmp/demo.mp4 # full render + QC
-python3 scripts/monetization_gate.py --board storyboard.json --manifest assets/manifest.json --script script.json && python3 scripts/thumbnail_gen.py --storyboard storyboard.json --out publish/thumbnail.jpg   # monetization guards + CTR picker
-```
-
+`bash scripts/ci_gates.sh` — storyboard → ruff → format → mypy --strict → full `pytest` →
+schema metaschema → example validation → thumbnails → draft render + ffprobe QC → advisory
+style_lint. A failed gate exits 3.
 ## Gotchas
 
-- `edge-tts` needs network; Airplane mode ⇒ `--offline` (WPM-estimated; online carries measured edge-tts WordBoundary timestamps).
-- `ImageDraw` has no alpha blend — scene fades are RGB `Image.blend`s; translucent panels use pre-blended slate tones, not RGBA overlays. Raster subject imagery ships via the `image` element (`fit` cover|contain, `kb_zoom`, `attribution` for license/AI disclosure); `verify_output.py` >150 ms A/V drift means `duration_sec` vs VO mismatch — re-run `tts_align.py`, don't hand-tweak.
+- `edge-tts` needs network → `--offline` uses WPM estimates; measured WordBoundary beats win.
+- `ImageDraw` has no alpha blend: pre-blend panels; RGB `Image.blend` for fades. Subject photos
+  go through the `image` element (`fit` cover|contain|backdrop_blur, `kb_zoom`, `attribution_y`).
+- >150 ms A/V drift means `duration_sec` vs VO mismatch — re-run `tts_align.py`, never hand-tweak.
+- Shorts >60 s + commercial music still draws Content ID claims; prefer procedural audio and a
+  Private upload pre-check. WebGL must be virtual-clock captured, never screen-recorded.
+## References
 
-## Auxiliary Resources
-
-- `references/archetypes.md` + `references/storyboard-guide.md` + `references/ffmpeg-encoding.md` — field guide, element catalog/3D backends/safe zones, encoder reference
-- `scripts/fetch_assets.py` — licensed imagery (Openverse + Commons + iNaturalist; `by`/`by-sa`/`cc0`/`pdm` only), PIL-verified, writes `assets/manifest.json`; `scripts/blender_plate.py` — optional Blender Workbench plates (`earth`/`iceberg`/`ringed`) for the `image` element, exits 2 cleanly when absent
-- `scripts/{scene_router,software_3d_projection,hybrid_compositor,layout_solver,blender_runner,threejs_bridge}.py` + `scripts/threejs/` — scene backends: routing + stdlib 4×4-perspective tracker, SAT-solved HUD cards, headless Three.js WebGL & Blender bakes; `assets/fonts/` — bundled OFL Inter + JetBrains Mono
-- `schemas/{storyboard,script,investigation_brief}.schema.json` — Draft 2020-12 contracts; ADRs 0001 (stdlib+Pillow), 0003 (3D backends), 0004 (Three.js WebGL). `script.schema.json` accepts `voices` (per-scene cast)
-- `scripts/` — `tts_align.py`, `storyboard.py`, `render_engine.py`, `verify_output.py`, `camera.py`, `canvas.py`, `elements/`, `rig.py`, `easings.py`, `style.py`, `platform_presets.py`, `grade.py`, `composition.py`, `style_lint.py`, `contact_sheet.py`, `publish_kit.py`, `monetization_gate.py`, `thumbnail_gen.py`, `tool_probe.py`
-- Style/platform blocks + genre painters — `references/storyboard-guide.md` (style/platform blocks, six presets, genre painters `ui_mockups`/`maps`, composition anchors, grade pass, Advisor links; comedy=`punchy_pop`, documentary=`noir_restraint`, essay=`soft_clay`, tech=`tech_blueprint`, politics=`newsroom_clean`)
+`references/specs-licensing-compliance.md` (caps/safe zones/licenses) ·
+`{style-and-architecture,pipeline-scripts,render-templates,storyboard-guide,archetypes,ffmpeg-encoding,job-workflow}.md` (matrix, CLI, engine map, elements, personas, encoder, jobs).

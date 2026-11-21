@@ -13,10 +13,11 @@ Agent instructions for working inside the `surgical-media` skill repository. `RE
 
 - `main` is protected: required linear history, no force-push, no branch deletion, enforced for admins. Fast-forward pushes stay legal — never create merge commits.
 - `surgical-media` is a Hermes **skill** (deterministic video pipeline: storyboard → MP4), not a published package. This directory **is** the public repo `github.com/TeacherEvan/surgical-media` (branch `main`, repo-local identity `TeacherEvan <…noreply.github.com>`). Ask before rewriting or force-pushing history.
+- **v3.0.0 is the priority pipeline.** The `social-media-studio-pro` update was merged *into this skill* rather than shipped as a second overlapping video skill. `SKILL.md` is the 7-step orchestration; the new scripts/references below are part of the contract. Future surgical-media content starts here.
 - `docs/project-plan.md` is the living plan + task status; `docs/index.md` is the docs entrypoint.
 - Runtime deps: **Pillow ≥ 10.1 + ffmpeg/ffprobe on PATH** (`requirements.txt`). `edge-tts` is optional (`requirements-tts.txt`) and **tests never use it** (offline by design). Python audio/geometry stay stdlib-only — no NumPy (`docs/adr/0001-stdlib-first-verified-pipeline.md`).
-- `SKILL.md` stays ≤ 120 lines (compact agent manifest). Full element catalog and parameter specs live in `references/storyboard-guide.md`.
-- For factual/documentary subjects, `scripts/fetch_assets.py --query "<subject>" --out-dir assets --count 3` pulls licensed photos from Openverse + Wikimedia Commons + iNaturalist (`by`/`by-sa`/`cc0`/`pdm`, PIL-verified, https-only) and writes `assets/manifest.json` with ready-to-paste `attribution` strings. Download assets locally rather than hotlinking, and label sources clearly in-frame.
+- `SKILL.md` stays ≤ 120 lines (compact agent manifest). Full element catalog and parameter specs live in `references/storyboard-guide.md`. The merged pro guidance lives in `references/specs-licensing-compliance.md` (platform caps, dual 9:16 safe boxes, 2026 copyright/AI rules, license matrix), `references/style-and-architecture.md` (7-style matrix + single locked timeline), `references/pipeline-scripts.md`, and `references/render-templates.md`.
+- For factual/documentary subjects, `scripts/fetch_assets.py --query "<subject>" --out-dir assets --count 3` pulls licensed photos from Openverse + Wikimedia Commons + iNaturalist (`by`/`by-sa`/`cc0`/`pdm`, PIL-verified, https-only) and writes `assets/manifest.json` with ready-to-paste `attribution` strings. Download assets locally rather than hotlinking, and label sources clearly in-frame. For **named real people**, use `scripts/media_harvester.py` — authentic portraits, face-centered reframing (optional OpenCV), subtle safe-zone credit badges, `credits.json` + `CREDITS.md`. Run `scripts/tts_normalizer.py` before voicing local TTS and `scripts/qc_gate.py` before delivery.
 
 ## Commands (all run green locally — the gate *is* local)
 
@@ -26,7 +27,7 @@ python3 scripts/storyboard.py examples/hybrid_3d_storyboard.json      # 3D/HUD s
 python3 scripts/storyboard.py examples/threejs_3d_storyboard.json     # Three.js WebGL 3D showcase must validate too
 ruff check --no-cache scripts/ tests/
 ruff format --check --no-cache scripts/ tests/
-python3 -m pytest tests/ -q                                            # 476 tests, all green
+python3 -m pytest tests/ -q                                            # 713 tests, all green
 check-jsonschema --check-metaschema schemas/*.schema.json
 python3 scripts/render_engine.py --demo --thumbnails /tmp/sm_thumbs     # seconds — visual smoke, no ffmpeg needed
 python3 scripts/render_engine.py --storyboard examples/hybrid_3d_storyboard.json --thumbnails /tmp/sm_hybrid_thumbs   # software 3D + HUD smoke
@@ -35,8 +36,8 @@ python3 scripts/render_engine.py --demo --output /tmp/sm_gate.mp4       # only w
 ```
 
 - Single test: `python3 -m pytest "tests/test_visual_smoke.py::test_box_downsample_keeps_thin_lines" -q`
-- Verification is **local-first**: `scripts/ci_gates.sh` is the single gate (storyboard → ruff → format → mypy --strict → 476 tests → schema metaschema → all example-vs-schema → thumbnails for 2D + hybrid 3D + Three.js 3D → draft render → ffprobe QC → style_lint on examples (report); 10 gates). The gate venv is `requirements-dev.txt` (mirrors `[project.optional-dependencies].dev` in `pyproject.toml`).
-- **mypy strict is enforced** as gate 4/9: `pyproject.toml` sets `strict = true` and `mypy scripts/` must report zero issues.
+- Verification is **local-first**: `scripts/ci_gates.sh` is the single gate (storyboard → ruff → format → mypy --strict → 713 tests → schema metaschema → all example-vs-schema → thumbnails for 2D + hybrid 3D + Three.js 3D → draft render → ffprobe QC → style_lint on examples (report) → production-job examples → measured loudness/dead-air/safe-zone audit; 12 gates). The gate venv is `requirements-dev.txt` (mirrors `[project.optional-dependencies].dev` in `pyproject.toml`).
+- **mypy strict is enforced** as gate 4/12: `pyproject.toml` sets `strict = true` and `mypy scripts/` must report zero issues.
 - **markdownlint** fails on pre-existing house docs (`references/`, `docs/adr/`) — it is not a gate.
 - Before spending a full render: `--estimate` (frame count / audio cost) and `--thumbnails DIR` (one PNG per scene). `final` = crf 18, demo/draft = crf 26.
 - `*.mp4`, `*_work/`, `audio/`, `node_modules/`, `.venv/`, `__pycache__/`, `.pytest_cache/` are gitignored artifacts. Never commit rendered outputs.

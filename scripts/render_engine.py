@@ -7,8 +7,9 @@ no intermediate PNGs, no temp frame directories.
 
 Audio is synthesized offline by audio_dsp.build_master_wav (voiceover stems
 ducked under a just-intonation pad, SFX on a frame-accurate timeline,
--1 dBFS peak ceiling) and muxed with loudnorm to -14 LUFS TP -1.5
-(Spotify/YouTube normalization target).
+-1 dBFS peak ceiling) and muxed with loudnorm (-14 LUFS, TP -2) followed by a
+-1 dBFS alimiter so the encoded master meets the measured -14 +/-1 LUFS and
+<= -1 dBTP contract asserted by qc_gate.py.
 
 QC: after encoding, verify_output.verify_mp4() asserts streams,
 yuv420p, fps, resolution and A/V duration parity. A failed QC exits 3.
@@ -20,6 +21,7 @@ import argparse
 import ctypes
 import gc
 import json
+import math
 import shutil
 import subprocess
 import sys
@@ -714,6 +716,76 @@ def _prerender_threejs_plates(
     return plates
 
 
+def _loudnorm_filter(master_wav: Path) -> str:
+    """Two-pass loudnorm: measure the master, then apply the measured values.
+
+    Single-pass loudnorm drifts with short or quiet boards (a 12 s board landed
+    at -15.6 LUFS while the 14.4 s demo landed at -14.9). A gentle compressor
+    reduces the master's crest factor so -14 LUFS is reachable under the TP cap;
+    measuring first then makes the result duration-independent. Both ffmpeg JSON
+    dialects (measured_* and input_*/target_offset) are accepted. Any failure
+    falls back to the single-pass chain rather than blocking the render.
+    """
+    limiter = "alimiter=limit=0.891:level=false:attack=5:release=50"
+    compressor = "acompressor=threshold=-24dB:ratio=3:attack=20:release=250"
+    fallback = f"{compressor},loudnorm=I=-14:TP=-2:LRA=11,{limiter}"
+    if shutil.which("ffmpeg") is None:
+        return fallback
+    cmd = [
+        "ffmpeg",
+        "-hide_banner",
+        "-nostats",
+        "-i",
+        str(master_wav),
+        "-af",
+        "loudnorm=I=-14:TP=-2:LRA=11:print_format=json",
+        "-f",
+        "null",
+        "-",
+    ]
+    try:
+        proc = subprocess.run(
+            cmd,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return fallback
+    text = proc.stderr
+    start, end = text.rfind("{"), text.rfind("}")
+    if start < 0 or end <= start:
+        return fallback
+    try:
+        raw = json.loads(text[start : end + 1])
+        aliases = {
+            "measured_I": ("measured_I", "input_i"),
+            "measured_TP": ("measured_TP", "input_tp"),
+            "measured_LRA": ("measured_LRA", "input_lra"),
+            "measured_thresh": ("measured_thresh", "input_thresh"),
+            "offset": ("offset", "target_offset"),
+        }
+        values: dict[str, float] = {}
+        for target, candidates in aliases.items():
+            for name in candidates:
+                if name in raw:
+                    values[target] = float(raw[name])
+                    break
+            else:
+                return fallback
+        if not all(math.isfinite(v) for v in values.values()):
+            return fallback
+    except (ValueError, TypeError, KeyError):
+        return fallback
+    measured_part = ":".join(f"{key}={value:.2f}" for key, value in values.items())
+    return (
+        f"{compressor},loudnorm=I=-14:TP=-2:LRA=11:{measured_part}:linear=true,"
+        f"{limiter}"
+    )
+
+
 def render(args: argparse.Namespace) -> int:
     if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
         print("render_engine: ffmpeg and ffprobe are required on PATH", file=sys.stderr)
@@ -820,7 +892,10 @@ def render(args: argparse.Namespace) -> int:
         "-movflags",
         "+faststart",
         "-af",
-        "loudnorm=I=-14:TP=-1.5:LRA=11",
+        # Two-pass measured loudnorm (see _loudnorm_filter) plus a -1 dBFS
+        # sample limiter: lands near -14 LUFS / <= -1 dBTP regardless of board
+        # length, inside the contract asserted by qc_gate.py.
+        _loudnorm_filter(master_wav),
         "-c:a",
         "aac",
         "-b:a",

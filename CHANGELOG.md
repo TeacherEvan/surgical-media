@@ -9,6 +9,50 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 (`bash scripts/ci_gates.sh`) are the enforced standard; the GitLab mirror
 (`.gitlab-ci.yml`) is configured, not verified.
 
+## [v3.0.0] — 2026-11-21
+
+### Added
+- `scripts/spec_refresh.py` — executable Step 2 baseline/live spec refresh (16 baked facts,
+  advisory HTTPS probes, exit 3 on drift).
+- `scripts/style_apply.py` — writes the 7-style matrix into a timed board: presets, archetype
+  rotation for hybrids, intro clamp with rescaled word/SFX times, outro scaffolding; idempotent.
+- `scripts/pipeline_preflight.py` — executable intake/style mapping and structure gate:
+  validates the 7-style contract, topic-matched intro/outro, duration cap and the sourced
+  brief (originality). `scripts/media_harvester.py` now uses a pure-Pillow skin-tone centroid
+  instead of a blind crop anchor when OpenCV is absent.
+- **Priority social-video pipeline:** `SKILL.md` rewritten as a 7-step orchestration —
+  mandatory Time/Style/Platform intake, live spec refresh, authentic-person research and
+  attribution, proactive tooling pitch, audio-first multi-engine production, topic-matched
+  intro/outro, and a hard QC gate. `surgical-media` is now the single entry point for future
+  surgical-media content generation.
+- `scripts/tts_normalizer.py` — stdlib date/number/currency/hashtag/ordinal expansion before
+  local TTS; writes a reviewable change report.
+- `scripts/media_harvester.py` — real-person portrait fetch (Commons/Wikipedia/Openverse),
+  face-centered reframing (optional OpenCV, stdlib fallback), subtle safe-zone credit badges,
+  and `credits.json` / `CREDITS.md`.
+- `scripts/qc_gate.py` — ebur128 loudness, measured dead-air detection, and two-mask red/amber
+  safe-zone audit overlays on Frame 1 / mid / outro; exit 3 on failure.
+- References: `specs-licensing-compliance.md` (platform caps, dual 9:16 safe boxes, 2026
+  Content ID/originality/C2PA rules, commercial TTS + renderer license matrix),
+  `style-and-architecture.md` (7-style execution matrix, single locked timeline, originality
+  gate), `pipeline-scripts.md`, `render-templates.md`.
+
+### Changed
+- Version 2.3.1 → 3.0.0 (pyproject, SKILL, README, installer, plan). Suite 551 → 713 tests
+  (29 tts_normalizer + 37 media_harvester + 31 qc_gate + 14 preflight + 11 style_apply +
+  35 spec_refresh); 12/12 local
+  gates green.
+- `README.md`, `AGENTS.md`, `docs/index.md`, `docs/project-plan.md` synced to the new
+  pipeline and gate counts; ADR 0006 records the one-skill merge decision.
+- `install_surgical_media.sh` ships the new scripts/references and the referenced
+  `examples/jobs/` + `requirements*.txt`; banner refreshed to v3.0.0.
+- Fixed and gated the audio master: single-pass loudnorm overshot TP (+0.4 dBTP) and
+  drifted on short boards (-15.6 LUFS). `render_engine.py` now uses measured two-pass
+  loudnorm, a gentle crest-factor compressor and a -1 dBFS limiter; demo and short
+  showcase both pass gate 12 (`qc_gate.py`) at -14 ±1 LUFS / ≤ -1 dBTP.
+- `style_apply.py` recomputes `start_sec` after clamping scene durations — an end-to-end
+  showcase caught stale timeline offsets producing a 2.5 s A/V drift.
+
 ## [v2.3.0]
 
 ### Added
