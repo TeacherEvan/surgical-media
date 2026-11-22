@@ -30,21 +30,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, cast
 
-import fetch_assets
-from PIL import Image, ImageDraw, ImageFont
-
 # scripts/ is on sys.path when run as a script; keep the same convenience for
 # direct `python -m` style imports from a checkout root (mirrors other scripts).
 _SCRIPT_DIR = str(Path(__file__).resolve().parent)
 if _SCRIPT_DIR not in sys.path:
     sys.path.insert(0, _SCRIPT_DIR)
+
+import fetch_assets
+from PIL import Image, ImageDraw, ImageFont
 
 ASPECTS: dict[str, tuple[int, int]] = {
     "9:16": (9, 16),
@@ -590,7 +592,7 @@ def render_credits_md(credits: dict[str, Any]) -> str:
     if assets:
         for asset in assets:
             lines.append(
-                f"- {asset['attribution']} — {asset['source_url']} — {asset['license']}"
+                f"- `{asset['file']}` — {asset['attribution']} — {asset['source_url']} — {asset['license']}"
             )
     else:
         lines.append("_No images harvested._")
@@ -614,14 +616,48 @@ def render_credits_md(credits: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _atomic_write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        "w",
+        encoding="utf-8",
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        delete=False,
+    ) as fh:
+        tmp_path = Path(fh.name)
+        fh.write(text)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp_path, path)
+
+
 def write_credits(out_dir: Path, credits: dict[str, Any]) -> tuple[Path, Path]:
-    """Write credits.json and CREDITS.md; return their paths."""
+    """Write credits.json and CREDITS.md (merging prior runs); return their paths."""
     json_path = out_dir / "credits.json"
     md_path = out_dir / "CREDITS.md"
-    json_path.write_text(
-        json.dumps(credits, indent=2, ensure_ascii=False), encoding="utf-8"
+    merged = dict(credits)
+    if json_path.is_file():
+        try:
+            prior = json.loads(json_path.read_text(encoding="utf-8"))
+            cur_files = {a.get("file") for a in merged.get("assets", [])}
+            prior_assets = [
+                a
+                for a in prior.get("assets", [])
+                if isinstance(a, dict) and a.get("file") not in cur_files
+            ]
+            merged["assets"] = prior_assets + list(merged.get("assets", []))
+            merged["count"] = len(merged["assets"])
+        except (json.JSONDecodeError, OSError, TypeError) as exc:
+            print(
+                f"media_harvester: warning — ignoring corrupt {json_path}: {exc}",
+                file=sys.stderr,
+            )
+    _atomic_write_text(
+        json_path, json.dumps(merged, indent=2, ensure_ascii=False) + "\n"
     )
-    md_path.write_text(render_credits_md(credits), encoding="utf-8")
+    _atomic_write_text(md_path, render_credits_md(merged))
     return json_path, md_path
 
 
@@ -644,11 +680,12 @@ def merge_manifest(out_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
             manifest["sources"] = sorted(
                 {*prior.get("sources", []), *manifest["sources"]}
             )
-        except (json.JSONDecodeError, OSError, KeyError, TypeError):
-            pass
-    path.write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+        except (json.JSONDecodeError, OSError, KeyError, TypeError) as exc:
+            print(
+                f"media_harvester: warning — ignoring corrupt {path}: {exc}",
+                file=sys.stderr,
+            )
+    _atomic_write_text(path, json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
     return manifest
 
 
@@ -727,7 +764,7 @@ def harvest(
     seen: set[str] = set()
 
     for item in candidates:
-        if len(credit_assets) >= count:
+        if (len(planned) if dry_run else len(credit_assets)) >= count:
             break
         url = str(item.get("url", ""))
         if url in seen or not url.startswith("https://"):

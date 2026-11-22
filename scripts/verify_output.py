@@ -166,20 +166,35 @@ def verify_mp4(
             f"pix_fmt={video.get('pix_fmt')} (yuv420p required for iOS/Safari/IG/TikTok)",
         )
         if expected_width:
+            w_actual = int(video.get("width", 0))
+            w_ok = w_actual == expected_width
             check(
                 "width",
-                int(video.get("width", 0)) == expected_width,
-                f"{video.get('width')} != {expected_width}",
+                w_ok,
+                f"{w_actual} == {expected_width}"
+                if w_ok
+                else f"{video.get('width')} != {expected_width}",
             )
         if expected_height:
+            h_actual = int(video.get("height", 0))
+            h_ok = h_actual == expected_height
             check(
                 "height",
-                int(video.get("height", 0)) == expected_height,
-                f"{video.get('height')} != {expected_height}",
+                h_ok,
+                f"{h_actual} == {expected_height}"
+                if h_ok
+                else f"{video.get('height')} != {expected_height}",
             )
         if expected_fps:
             fps = _fps_of(video)
-            check("fps", abs(fps - expected_fps) < 0.01, f"{fps:.3f} != {expected_fps}")
+            fps_ok = abs(fps - expected_fps) < 0.01
+            check(
+                "fps",
+                fps_ok,
+                f"{fps:.3f} == {expected_fps}"
+                if fps_ok
+                else f"{fps:.3f} != {expected_fps}",
+            )
         if duration is None:
             try:
                 duration = float(video.get("duration"))
@@ -197,40 +212,48 @@ def verify_mp4(
         # Broken-audio net: the pipeline always mixes a pad + VO, so an
         # (almost) fully silent track means the master build failed silently.
         if duration and shutil.which("ffmpeg"):
-            proc = subprocess.run(
-                [
-                    "ffmpeg",
-                    "-v",
-                    "info",
-                    "-i",
-                    str(path),
-                    "-af",
-                    f"silencedetect=noise={SILENCE_NOISE_DB}dB:d={SILENCE_MIN_SEC}",
-                    "-f",
-                    "null",
-                    "-",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=180,
-                check=False,
-            )
-            intervals = _parse_silencedetect(proc.stderr, duration)
-            coverage = silence_coverage(intervals, duration)
-            check(
-                "audio_not_silent",
-                coverage <= max_silence_fraction,
-                f"{coverage * 100:.0f}% silent (max {max_silence_fraction * 100:.0f}%); "
-                f"{len(intervals)} interval(s)",
-            )
+            try:
+                proc = subprocess.run(
+                    [
+                        "ffmpeg",
+                        "-v",
+                        "info",
+                        "-i",
+                        str(path),
+                        "-af",
+                        f"silencedetect=noise={SILENCE_NOISE_DB}dB:d={SILENCE_MIN_SEC}",
+                        "-f",
+                        "null",
+                        "-",
+                    ],
+                    stdin=subprocess.DEVNULL,
+                    capture_output=True,
+                    text=True,
+                    timeout=180,
+                    check=False,
+                )
+            except (OSError, subprocess.SubprocessError) as exc:
+                check("audio_not_silent", False, f"silencedetect failed: {exc}")
+            else:
+                intervals = _parse_silencedetect(proc.stderr, duration)
+                coverage = silence_coverage(intervals, duration)
+                check(
+                    "audio_not_silent",
+                    coverage <= max_silence_fraction,
+                    f"{coverage * 100:.0f}% silent (max {max_silence_fraction * 100:.0f}%); "
+                    f"{len(intervals)} interval(s)",
+                )
 
-    if expected_duration is not None and duration is not None:
-        drift = abs(duration - expected_duration)
-        check(
-            "duration_drift_le_150ms",
-            drift <= DRIFT_TOLERANCE_SEC,
-            f"|{duration:.3f} - {expected_duration:.3f}| = {drift * 1000:.0f} ms",
-        )
+    if expected_duration is not None:
+        if duration is None:
+            check("duration_drift_le_150ms", False, "duration could not be measured")
+        else:
+            drift = abs(duration - expected_duration)
+            check(
+                "duration_drift_le_150ms",
+                drift <= DRIFT_TOLERANCE_SEC,
+                f"|{duration:.3f} - {expected_duration:.3f}| = {drift * 1000:.0f} ms",
+            )
 
     report["streams"] = {
         "video": {

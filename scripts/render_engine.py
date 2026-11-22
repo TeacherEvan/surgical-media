@@ -26,6 +26,7 @@ import shutil
 import subprocess
 import sys
 import time
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any, cast
 
@@ -153,6 +154,18 @@ def trauma_at(scene: dict[str, Any], local_time: float, fps: int) -> float:
 
 
 _MANIM_WARNED: set[str] = set()
+_TRACKS_CACHE: OrderedDict[tuple[str, int], list[dict[str, Any]]] = OrderedDict()
+
+
+def _safe_child_path(root: Path, name: str) -> Path:
+    """Resolve ``name`` under ``root``; reject path separators or traversal."""
+    if not name or "/" in name or "\\" in name or name in (".", ".."):
+        raise ValueError(f"invalid child path name: {name!r}")
+    root_res = root.resolve()
+    candidate = (root_res / name).resolve()
+    if not candidate.is_relative_to(root_res):
+        raise ValueError(f"path escapes {root_res}: {name!r}")
+    return candidate
 
 
 def _route_scene(scene: dict[str, Any]) -> str:
@@ -238,10 +251,22 @@ def _load_blender_tracks(
 ) -> list[dict[str, Any]] | None:
     """Read Blender's anchor_tracks.json and merge in label/metric/accent metadata."""
     try:
-        payload = json.loads(Path(tracks_path).read_text(encoding="utf-8"))
-        frames = payload.get("frames") or []
-        if not frames:
-            return None
+        resolved = Path(tracks_path).resolve()
+        mtime_ns = resolved.stat().st_mtime_ns
+        cache_key = (str(resolved), mtime_ns)
+        frames = _TRACKS_CACHE.get(cache_key)
+        if frames is None:
+            payload = json.loads(resolved.read_text(encoding="utf-8"))
+            raw_frames = payload.get("frames") or []
+            if not raw_frames:
+                return None
+            frames = list(raw_frames)
+            _TRACKS_CACHE[cache_key] = frames
+            _TRACKS_CACHE.move_to_end(cache_key)
+            while len(_TRACKS_CACHE) > 32:
+                _TRACKS_CACHE.popitem(last=False)
+        else:
+            _TRACKS_CACHE.move_to_end(cache_key)
         selection = frames[min(local_idx, len(frames) - 1)]
         entries = selection.get("anchors", []) if isinstance(selection, dict) else []
         meta = {
@@ -340,10 +365,11 @@ def _paint_scene_frame(
     blender_dir: Path | None = None,
     camera: WorldCamera2D | None = None,
     zones: dict[str, tuple[int, int, int, int]] | None = None,
+    n_frames: int | None = None,
 ) -> Image.Image:
     """Render one frame of a scene: 3D pass (if any), then elements on top, then fades."""
-    n_frames = scene_frames(scene, fps)
-    local_t = local_idx / max(1, n_frames - 1)
+    total = n_frames if n_frames is not None else scene_frames(scene, fps)
+    local_t = min(1.0, max(0.0, local_idx / max(1, total - 1)))
     local_time = local_idx / fps
     time_sec = float(scene.get("start_sec", 0.0)) + local_time
     spec = (
@@ -455,6 +481,9 @@ def paint_frame(
 def render_thumbnails(board_path: Path, out_dir: Path, scale: int = 2) -> list[Path]:
     """One representative PNG per scene — lets agents see work before a full render."""
     board = json.loads(board_path.read_text(encoding="utf-8"))
+    errors = validate_storyboard(board)
+    if errors:
+        raise ValueError(f"invalid storyboard {board_path}: {errors[0]}")
     board = assign_start_times(board)
     fmt = board["format"]
     width, height, fps = int(fmt["width"]), int(fmt["height"]), int(fmt["fps"])
@@ -464,60 +493,61 @@ def render_thumbnails(board_path: Path, out_dir: Path, scale: int = 2) -> list[P
     out_dir.mkdir(parents=True, exist_ok=True)
     written = []
     for scene in board["scenes"]:
+        sid = str(scene["scene_id"])
         n = scene_frames(scene, fps)
         idx = min(n - 1, max(0, round(0.55 * (n - 1))))
         thumb_plate_dir: Path | None = None
-        if _spec_route(scene) in ("threejs_hybrid", "threejs_3d"):
-            probe = scene_router.probe_threejs_environment()
-            if probe.get("available"):
-                sid = str(scene["scene_id"])
-                t_norm = idx / max(1, n - 1)
-                cand_dir = out_dir / f".threejs_thumb_{sid}"
-                cand_spec = out_dir / f".threejs_thumb_{sid}_spec.json"
-                rendered = threejs_bridge.prerender_threejs_scene(
-                    sid,
-                    scene["scene_spec"],
-                    cand_dir,
-                    cand_spec,
+        cand_dir = _safe_child_path(out_dir, f".threejs_thumb_{sid}")
+        cand_spec = _safe_child_path(out_dir, f".threejs_thumb_{sid}_spec.json")
+        try:
+            if _spec_route(scene) in ("threejs_hybrid", "threejs_3d"):
+                probe = scene_router.probe_threejs_environment()
+                if probe.get("available"):
+                    t_norm = idx / max(1, n - 1)
+                    rendered = threejs_bridge.prerender_threejs_scene(
+                        sid,
+                        scene["scene_spec"],
+                        cand_dir,
+                        cand_spec,
+                        width,
+                        height,
+                        fps,
+                        1,
+                        probe,
+                        base_dir=base_dir,
+                        frame_t=t_norm,
+                    )
+                    if rendered is not None:
+                        f1 = rendered / "frame_0001.png"
+                        target_f = rendered / f"frame_{idx + 1:04d}.png"
+                        if f1.is_file() and f1 != target_f:
+                            shutil.copyfile(f1, target_f)
+                        thumb_plate_dir = rendered
+            if thumb_plate_dir is not None:
+                trauma = trauma_at(scene, idx / fps, fps)
+                frame = _paint_scene_frame(
+                    scene,
                     width,
                     height,
+                    scale,
+                    seed,
+                    idx,
                     fps,
-                    1,
-                    probe,
+                    trauma,
                     base_dir=base_dir,
-                    frame_t=t_norm,
+                    blender_dir=thumb_plate_dir,
+                    camera=build_camera(scene, width, height, seed),
+                    zones=layout_zones(width, height),
                 )
-                if rendered is not None:
-                    f1 = rendered / "frame_0001.png"
-                    target_f = rendered / f"frame_{idx + 1:04d}.png"
-                    if f1.is_file() and f1 != target_f:
-                        shutil.copyfile(f1, target_f)
-                    thumb_plate_dir = rendered
-        if thumb_plate_dir is not None:
-            trauma = trauma_at(scene, idx / fps, fps)
-            frame = _paint_scene_frame(
-                scene,
-                width,
-                height,
-                scale,
-                seed,
-                idx,
-                fps,
-                trauma,
-                base_dir=base_dir,
-                blender_dir=thumb_plate_dir,
-                camera=build_camera(scene, width, height, seed),
-                zones=layout_zones(width, height),
-            )
-            shutil.rmtree(thumb_plate_dir, ignore_errors=True)
-            (out_dir / f".threejs_thumb_{scene['scene_id']}_spec.json").unlink(
-                missing_ok=True
-            )
-        else:
-            frame = paint_frame(
-                scene, width, height, scale, seed, idx, fps, base_dir=base_dir
-            )
-        out = out_dir / f"{scene['scene_id']}.png"
+            else:
+                frame = paint_frame(
+                    scene, width, height, scale, seed, idx, fps, base_dir=base_dir
+                )
+        finally:
+            if thumb_plate_dir is not None:
+                shutil.rmtree(thumb_plate_dir, ignore_errors=True)
+            cand_spec.unlink(missing_ok=True)
+        out = _safe_child_path(out_dir, f"{sid}.png")
         grader(frame, idx).save(out)
         written.append(out)
     return written
@@ -593,8 +623,8 @@ def _prerender_blender_plates(
     plates: dict[str, Path] = {}
     for scene, n_frames in wanted:
         sid = str(scene["scene_id"])
-        plate_dir = work_dir / f"blender_{sid}"
-        spec_path = work_dir / f"blender_{sid}_spec.json"
+        plate_dir = _safe_child_path(work_dir, f"blender_{sid}")
+        spec_path = _safe_child_path(work_dir, f"blender_{sid}_spec.json")
         try:
             spec_path.write_text(
                 json.dumps(_blender_adapter_spec(scene["scene_spec"])),
@@ -682,8 +712,8 @@ def _prerender_threejs_plates(
     plates: dict[str, Path] = {}
     for scene, n_frames in wanted:
         sid = str(scene["scene_id"])
-        plate_dir = work_dir / f"threejs_{sid}"
-        spec_path = work_dir / f"threejs_{sid}_spec.json"
+        plate_dir = _safe_child_path(work_dir, f"threejs_{sid}")
+        spec_path = _safe_child_path(work_dir, f"threejs_{sid}_spec.json")
         if (
             reuse_plates
             and (plate_dir / "anchor_tracks.json").is_file()
@@ -738,7 +768,7 @@ def _loudnorm_filter(master_wav: Path) -> str:
         "-i",
         str(master_wav),
         "-af",
-        "loudnorm=I=-14:TP=-2:LRA=11:print_format=json",
+        f"{compressor},loudnorm=I=-14:TP=-2:LRA=11:print_format=json",
         "-f",
         "null",
         "-",
@@ -859,6 +889,25 @@ def render(args: argparse.Namespace) -> int:
     )
     t_audio = time.time() - t0
 
+    grader = grader_for_board(board, width, height, seed)
+    per_scene_frames = frame_counts(board["scenes"], fps)
+    total_frames = sum(per_scene_frames)
+    plate_dirs = {
+        **_prerender_blender_plates(
+            board, work_dir, width, height, fps, per_scene_frames
+        ),
+        **_prerender_threejs_plates(
+            board,
+            work_dir,
+            width,
+            height,
+            fps,
+            per_scene_frames,
+            base_dir=board_path.parent,
+            reuse_plates=bool(getattr(args, "reuse_plates", False)),
+        ),
+    }
+
     # ---- ffmpeg video pipe ---------------------------------------------------
     ffmpeg_cmd = [
         "ffmpeg",
@@ -905,34 +954,27 @@ def render(args: argparse.Namespace) -> int:
         "-shortest",
         str(out_path),
     ]
+    ffmpeg_log = work_dir / "ffmpeg_stderr.log"
+    stderr_fh = ffmpeg_log.open("wb")
     proc = subprocess.Popen(
         ffmpeg_cmd,
         stdin=subprocess.PIPE,
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
+        stderr=stderr_fh,
     )
 
     frame_idx = 0
-    grader = grader_for_board(board, width, height, seed)
-    per_scene_frames = frame_counts(board["scenes"], fps)
-    total_frames = sum(per_scene_frames)
-    plate_dirs = {
-        **_prerender_blender_plates(
-            board, work_dir, width, height, fps, per_scene_frames
-        ),
-        **_prerender_threejs_plates(
-            board,
-            work_dir,
-            width,
-            height,
-            fps,
-            per_scene_frames,
-            base_dir=board_path.parent,
-            reuse_plates=bool(getattr(args, "reuse_plates", False)),
-        ),
-    }
     t0 = time.time()
     prev_scene_tail: Image.Image | None = None
+    finished_ok = False
+    wait_timeout = max(120, int(duration * 4))
+
+    def _read_ffmpeg_tail() -> str:
+        stderr_fh.flush()
+        if not ffmpeg_log.is_file():
+            return ""
+        return ffmpeg_log.read_bytes()[-2000:].decode(errors="replace")
+
     try:
         for scene, n_frames in zip(board["scenes"], per_scene_frames):
             trauma = 0.0
@@ -974,6 +1016,7 @@ def render(args: argparse.Namespace) -> int:
                     blender_dir=plate_dirs.get(str(scene.get("scene_id"))),
                     camera=scene_camera,
                     zones=scene_zones,
+                    n_frames=n_frames,
                 )
 
                 if (
@@ -1009,30 +1052,52 @@ def render(args: argparse.Namespace) -> int:
                         flush=True,
                     )
             prev_scene_tail = last_scene_frame
-    except BrokenPipeError:
-        proc.wait()
-        stderr_tail = (
-            (proc.stderr.read() or b"").decode(errors="replace")[-2000:]
-            if proc.stderr
-            else ""
-        )
-        print(f"render_engine: ffmpeg died mid-render:\n{stderr_tail}", file=sys.stderr)
-        return 4
 
-    assert proc.stdin is not None
-    proc.stdin.close()
-    proc.wait()
-    if proc.returncode != 0:
-        stderr_tail = (
-            (proc.stderr.read() or b"").decode(errors="replace")[-2000:]
-            if proc.stderr
-            else ""
-        )
+        assert proc.stdin is not None
+        proc.stdin.close()
+        proc.wait(timeout=wait_timeout)
+        if proc.returncode != 0:
+            print(
+                f"render_engine: ffmpeg exited {proc.returncode}:\n{_read_ffmpeg_tail()}",
+                file=sys.stderr,
+            )
+            return 4
+        finished_ok = True
+    except BrokenPipeError:
+        try:
+            proc.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=10)
         print(
-            f"render_engine: ffmpeg exited {proc.returncode}:\n{stderr_tail}",
+            f"render_engine: ffmpeg died mid-render:\n{_read_ffmpeg_tail()}",
             file=sys.stderr,
         )
         return 4
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait(timeout=10)
+        print(
+            f"render_engine: ffmpeg timed out after {wait_timeout}s:\n{_read_ffmpeg_tail()}",
+            file=sys.stderr,
+        )
+        return 4
+    finally:
+        if proc.stdin is not None and not proc.stdin.closed:
+            try:
+                proc.stdin.close()
+            except OSError:
+                pass
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=10)
+        stderr_fh.close()
+        if not finished_ok:
+            out_path.unlink(missing_ok=True)
 
     t_render = time.time() - t0
     print(

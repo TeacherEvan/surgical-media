@@ -23,6 +23,7 @@ CLI::
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import re
 import sys
@@ -127,7 +128,7 @@ _TOKEN_RE: re.Pattern[str] = re.compile(
     r"(?P<url>https?://\S+)"
     r"|(?P<iso_date>\b\d{4}-\d{2}-\d{2}\b)"
     r"|(?P<us_date>\b\d{1,2}/\d{1,2}/\d{4}\b)"
-    r"|(?P<currency>[$R]\d[\d,]*(?:\.\d+)?[BMKbmk]?)"
+    r"|(?P<currency>(?:\$|\bR)\d[\d,]*(?:\.\d+)?[BMKbmk]?(?![A-Za-z0-9]))"
     r"|(?P<percent>\b\d[\d,]*(?:\.\d+)?%)"
     r"|(?P<ordinal>\b\d+(?:st|nd|rd|th)\b)"
     r"|(?P<hashtag>#[A-Za-z][A-Za-z0-9]*)"
@@ -249,7 +250,9 @@ def _split_camel(name: str) -> str:
 
 def _format_date(month: int, day: int, year: int, original: str) -> str:
     """Render a date as 'Month day-ordinal, year', or keep an invalid token."""
-    if not (1 <= month <= 12 and 1 <= day <= 31):
+    try:
+        datetime.date(year, month, day)
+    except ValueError:
         return original
     return f"{_MONTHS[month]} {ordinal_to_words(day)}, {year_to_words(year)}"
 

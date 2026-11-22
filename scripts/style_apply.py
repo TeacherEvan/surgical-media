@@ -19,6 +19,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
+
 import platform_presets
 from pipeline_preflight import CTA_RE
 

@@ -30,8 +30,10 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import os
 import re
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -74,6 +76,13 @@ def license_key(license_code: str | None) -> str | None:
     return base if base in ALLOWED_LICENSES else None
 
 
+def _safe_int(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 def filter_results(
     results: list[dict[str, Any]], min_width: int = 800
 ) -> list[dict[str, Any]]:
@@ -86,15 +95,12 @@ def filter_results(
         url = str(r.get("url", ""))
         if not url.startswith(("http://", "https://")) or url in seen:
             continue
-        try:
-            width = int(r.get("width") or 0)
-        except (TypeError, ValueError):
-            width = 0
+        width = _safe_int(r.get("width"))
         if 0 < width < min_width:  # known-but-too-small is rejected; unknown (0) passes
             continue
         seen.add(url)
         kept.append(r)
-    kept.sort(key=lambda r: int(r.get("width") or 0), reverse=True)
+    kept.sort(key=lambda r: _safe_int(r.get("width")), reverse=True)
     return kept
 
 
@@ -165,12 +171,38 @@ class FetchError(OSError):
     """
 
 
+class _HttpsOnlyRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Reject non-https redirect targets before opening the redirected socket."""
+
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: Any,
+        code: int,
+        msg: str,
+        headers: Any,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        if urllib.parse.urlsplit(newurl).scheme != "https":
+            raise FetchError(f"refusing redirect to non-https URL: {newurl!r}")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_DEFAULT_URLOPEN = urllib.request.urlopen
+_HTTPS_OPENER = urllib.request.build_opener(_HttpsOnlyRedirectHandler)
+
+
 def _http_get(url: str, timeout: float) -> bytes:
     parsed = urllib.parse.urlsplit(url)
     if parsed.scheme != "https":
         raise FetchError(f"refusing non-https URL: {url!r}")
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    ctx_mgr = (
+        _HTTPS_OPENER.open(req, timeout=timeout)
+        if urllib.request.urlopen is _DEFAULT_URLOPEN
+        else urllib.request.urlopen(req, timeout=timeout)
+    )
+    with ctx_mgr as resp:
         final = urllib.parse.urlsplit(resp.geturl())
         if final.scheme != "https":
             raise FetchError(f"refusing redirect to non-https URL: {resp.geturl()!r}")
@@ -205,7 +237,7 @@ def parse_commons_license(text: str | None) -> tuple[str | None, str]:
     raw = str(text or "").strip()
     if not raw:
         return None, ""
-    upper = raw.upper().replace(" ", " ")
+    upper = re.sub(r"[\s_]+", " ", raw.upper()).replace("CC-BY", "CC BY")
     if upper.startswith(("PUBLIC DOMAIN", "PD ")):
         m = re.search(r"(\d[\d.]*)\s*$", raw)
         return "pdm", (m.group(1) if m else "")
@@ -420,6 +452,10 @@ def download_assets(
         name = f"{len(saved) + 1:02d}_{title_slug or 'asset'}{ext}"
         item = dict(item)
         item["_saved_as"] = name
+        if not _safe_int(item.get("width")):
+            item["width"] = img.size[0]
+        if not _safe_int(item.get("height")):
+            item["height"] = img.size[1]
         if dry_run:
             print(
                 f"fetch_assets: [dry-run] would save {name} "
@@ -427,6 +463,12 @@ def download_assets(
             )
             saved.append(item)
             continue
+        if (out_dir / name).exists():
+            idx = len(saved) + 1
+            while (out_dir / name).exists():
+                idx += 1
+                name = f"{idx:02d}_{title_slug or 'asset'}{ext}"
+            item["_saved_as"] = name
         (out_dir / name).write_bytes(data)
         saved.append(item)
         print(
@@ -453,12 +495,26 @@ def download_assets(
             manifest["queries"] = sorted({*prior_queries, query})
             prior_sources = prior.get("sources") or []
             manifest["sources"] = sorted({*prior_sources, *manifest["sources"]})
-        except (json.JSONDecodeError, OSError):
-            pass
+        except (json.JSONDecodeError, OSError) as exc:
+            print(
+                f"fetch_assets: warning — ignoring corrupt {manifest_path}: {exc}",
+                file=sys.stderr,
+            )
     if not dry_run:
-        manifest_path.write_text(
-            json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        payload_text = json.dumps(manifest, indent=2, ensure_ascii=False)
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=out_dir,
+            prefix=".manifest.",
+            suffix=".tmp",
+            delete=False,
+        ) as fh:
+            tmp_path = Path(fh.name)
+            fh.write(payload_text)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp_path, manifest_path)
         print(f"fetch_assets: wrote {manifest_path} ({manifest['count']} assets)")
     else:
         print(json.dumps(manifest, indent=2, ensure_ascii=False))

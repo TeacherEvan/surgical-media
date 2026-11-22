@@ -503,9 +503,25 @@ def run_gate(
 
     report["ok"] = all(check["ok"] for check in report["checks"])
     if json_path is not None:
-        Path(json_path).write_text(
-            json.dumps(report, indent=2) + "\n", encoding="utf-8"
-        )
+        import os
+        import tempfile
+
+        out_json = Path(json_path)
+        out_json.parent.mkdir(parents=True, exist_ok=True)
+        payload = json.dumps(report, indent=2) + "\n"
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=out_json.parent,
+            prefix=f".{out_json.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as fh:
+            tmp_json = Path(fh.name)
+            fh.write(payload)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp_json, out_json)
     return report
 
 

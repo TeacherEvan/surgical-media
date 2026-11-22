@@ -105,6 +105,7 @@ def probe_cuda_gpu() -> dict[str, Any]:
                     "--query-gpu=name,driver_version",
                     "--format=csv,noheader",
                 ],
+                stdin=subprocess.DEVNULL,
                 capture_output=True,
                 text=True,
                 timeout=10,

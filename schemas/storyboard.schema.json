@@ -118,7 +118,18 @@
                  }
                },
                "params": { "type": "object", "default": {} },
-               "transparent_bg": { "type": "boolean" }
+               "transparent_bg": { "type": "boolean" },
+               "style_light": {
+                 "type": "object",
+                 "unevaluatedProperties": false,
+                 "properties": {
+                   "key_hex": { "$ref": "#/$defs/hexColor" },
+                   "fill_hex": { "$ref": "#/$defs/hexColor" },
+                   "rim_hex": { "$ref": "#/$defs/hexColor" },
+                   "bg_hex": { "$ref": "#/$defs/hexColor" },
+                   "shadow_softness": { "type": "number", "minimum": 0, "maximum": 1 }
+                 }
+               }
              }
            },
           "start_sec": { "type": "number", "minimum": 0 },
@@ -126,6 +137,9 @@
           "vo_wav": { "type": "string", "maxLength": 512 },
           "fade_in_sec": { "type": "number", "minimum": 0, "maximum": 2 },
           "fade_out_sec": { "type": "number", "minimum": 0, "maximum": 2 },
+          "fade_color": { "type": "string", "pattern": "^(#[0-9A-Fa-f]{6}|@[a-z0-9_]+)$" },
+          "transition": { "type": "string", "enum": ["cut", "dissolve"] },
+          "transition_sec": { "type": "number", "minimum": 0, "maximum": 3 },
           "silent_beat": { "type": "boolean", "default": false },
           "camera": {
             "type": "object",
@@ -146,7 +160,9 @@
               "elevation_deg": { "type": "number", "minimum": -90.0, "maximum": 90.0, "description": "orbit mode only; vertical offset of the orbit above the pivot" },
               "easing": { "type": "string", "enum": ["linear", "ease_out_expo", "ease_in_out_cubic", "ease_in_out_sine", "ease_out_back", "spring_pop"] },
               "shake_amplitude_px": { "type": "number", "minimum": 0.0, "maximum": 80.0 }
-            }
+            },
+            "if": { "properties": { "mode": { "const": "orbit" } }, "required": ["mode"] },
+            "then": { "required": ["orbit_radius_start"] }
           },
           "elements": {
             "type": "array",
@@ -182,7 +198,7 @@
               "required": ["t_sec", "sfx"],
               "properties": {
                 "t_sec": { "type": "number", "minimum": 0 },
-                "sfx": { "type": "string", "enum": ["pop", "whoosh", "chime", "type_click", "error_buzz", "confirm", "trauma"] },
+                "sfx": { "type": "string", "enum": ["pop", "whoosh", "chime", "type_click", "error_buzz", "confirm", "trauma", "soft_chime"] },
                 "intensity": { "type": "number", "minimum": 0.1, "maximum": 1.0 }
               }
             }
@@ -210,6 +226,7 @@
         },
         "type": {
           "type": "object",
+          "unevaluatedProperties": false,
           "properties": {
             "display": { "type": "string" },
             "body": { "type": "string" },
@@ -218,6 +235,7 @@
         },
         "material": {
           "type": "object",
+          "unevaluatedProperties": false,
           "properties": {
             "family": { "enum": ["clay", "paper", "glass", "metal", "flat", "neon"] },
             "roughness": { "type": "number", "minimum": 0, "maximum": 1 }
@@ -225,6 +243,7 @@
         },
         "light": {
           "type": "object",
+          "unevaluatedProperties": false,
           "properties": {
             "key_temp_k": { "type": "number", "minimum": 1500, "maximum": 12000 },
             "fill_temp_k": { "type": "number", "minimum": 1500, "maximum": 12000 },
@@ -233,6 +252,7 @@
         },
         "grade": {
           "type": "object",
+          "unevaluatedProperties": false,
           "properties": {
             "grain": { "type": "number", "minimum": 0, "maximum": 1 },
             "vignette": { "type": "number", "minimum": 0, "maximum": 1 },
@@ -242,6 +262,7 @@
         },
         "motion": {
           "type": "object",
+          "unevaluatedProperties": false,
           "properties": {
             "feel": { "enum": ["calm", "punchy"] },
             "ease": { "type": "string" },
@@ -269,6 +290,7 @@
         "pad": { "type": "boolean", "default": true },
         "pad_level": { "type": "number", "minimum": 0.0, "maximum": 0.5 },
         "duck_depth": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "pad_style": { "type": "string", "enum": ["drone", "pastel_harp"] },
         "sample_rate": { "type": "integer", "enum": [44100, 48000] }
       }
     }

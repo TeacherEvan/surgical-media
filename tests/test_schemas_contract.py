@@ -42,6 +42,26 @@ def test_example_passes_json_schema():
     assert errors == []
 
 
+@pytest.mark.parametrize(
+    "board_path",
+    sorted((REPO / "examples").glob("*.json"))
+    + sorted((REPO / "projects").glob("*/storyboard.json")),
+    ids=lambda p: str(p.relative_to(REPO)),
+)
+def test_all_boards_and_projects_pass_schema_and_runtime(board_path: Path) -> None:
+    data = json.loads(board_path.read_text(encoding="utf-8"))
+    assert storyboard.validate_storyboard(data) == []
+    pytest.importorskip("jsonschema")
+    assert list(_validator().iter_errors(data)) == []
+
+
+def test_runtime_validator_rejects_duplicate_scene_id() -> None:
+    data = _example()
+    data["scenes"][1]["scene_id"] = data["scenes"][0]["scene_id"]
+    errors = storyboard.validate_storyboard(data)
+    assert any("duplicate scene_id" in e for e in errors)
+
+
 MUTATIONS = {
     # (label, mutate(data)) — both validators must reject every one of these
     "scene missing scene_id": lambda d: d["scenes"][0].pop("scene_id"),
@@ -52,6 +72,11 @@ MUTATIONS = {
     "bad fps enum": lambda d: d["format"].update(fps=23),
     "elements removed": lambda d: d["scenes"][0].pop("elements"),
     "width out of bounds": lambda d: d["format"].update(width=9999),
+    "scene_id traversal": lambda d: d["scenes"][0].update(scene_id="../../pwn"),
+    "bad fade_color": lambda d: d["scenes"][0].update(fade_color="not-a-color"),
+    "bad transition": lambda d: d["scenes"][0].update(transition="wipe"),
+    "bad pad_style": lambda d: d.setdefault("audio", {}).update(pad_style="kazoo"),
+    "orbit missing radius": lambda d: d["scenes"][0].update(camera={"mode": "orbit"}),
 }
 
 

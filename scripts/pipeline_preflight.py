@@ -26,6 +26,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
+
 import storyboard
 
 STYLE_SPECS: dict[str, dict[str, Any]] = {
@@ -149,6 +153,8 @@ def build_intake(
         )
     if time_sec <= 0:
         raise ValueError("--time must be positive")
+    if fps not in storyboard.VALID_FPS:
+        raise ValueError(f"fps must be one of {sorted(storyboard.VALID_FPS)}")
     plat = PLATFORMS[platform]
     if time_sec > plat["max_sec"]:
         raise ValueError(
@@ -269,7 +275,8 @@ def check_board(
     errors = storyboard.validate_storyboard(board)
     add("storyboard_valid", not errors, "; ".join(errors[:3]) if errors else "OK")
 
-    fmt = board.get("format", {})
+    raw_fmt = board.get("format")
+    fmt = raw_fmt if isinstance(raw_fmt, dict) else {}
     want = intake["format"]
     fmt_ok = (
         fmt.get("width") == want["width"]
@@ -283,8 +290,10 @@ def check_board(
         f"vs {want['width']}x{want['height']}@{want['fps']}",
     )
 
-    style_block = board.get("style") or {}
-    platform_block = board.get("platform") or {}
+    raw_style = board.get("style")
+    style_block = raw_style if isinstance(raw_style, dict) else {}
+    raw_plat = board.get("platform")
+    platform_block = raw_plat if isinstance(raw_plat, dict) else {}
     add(
         "style_preset_matches",
         style_block.get("preset") == intake["style_preset"],

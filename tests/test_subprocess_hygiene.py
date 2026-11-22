@@ -49,4 +49,13 @@ def test_popen_sites_manage_their_own_timeout() -> None:
         text = path.read_text(encoding="utf-8")
         tree = ast.parse(text)
         if any(c.func.attr == "Popen" for c in _subprocess_calls(tree)):  # type: ignore[attr-defined]
-            assert "timeout" in text, f"{path.name}: Popen without any timeout handling"
+            has_wait_timeout = any(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr in {"wait", "communicate"}
+                and any(kw.arg == "timeout" for kw in node.keywords)
+                for node in ast.walk(tree)
+            )
+            assert has_wait_timeout, (
+                f"{path.name}: Popen without .wait(timeout=...) or .communicate(timeout=...)"
+            )

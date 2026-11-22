@@ -38,6 +38,7 @@ MANIFEST_DEFAULT = REPO / "assets" / "manifest.json"
 # share-alike outputs; CC-BY and PDM are commercial-remixable; AI-generated
 # assets are allowed and disclose via publish_kit.
 LICENSE_ALLOWLIST = {"cc0", "pdm", "by", "by-sa", "ai-generated"}
+ATTRIBUTION_REQUIRED_LICENSES = frozenset({"by", "by-sa"})
 
 # Adversarial-phrasing triggers (consumers: political/news narrations).
 _ADVERSARIAL_TRIGGERS: tuple[tuple[str, str, str], ...] = (
@@ -115,23 +116,24 @@ def check_assets_license_allowlist(
         if not isinstance(entry, dict):
             continue
         lic = str(entry.get("license", "")).strip().lower()
+        asset_name = entry.get("file") or entry.get("src") or "unnamed"
         if not _license_ok(entry):
             issues.append(
                 _issue(
                     "assets_license_allowlist",
-                    f"{entry.get('src', 'unnamed')}: license {lic!r} not in allowlist {sorted(LICENSE_ALLOWLIST)} "
+                    f"{asset_name}: license {lic!r} not in allowlist {sorted(LICENSE_ALLOWLIST)} "
                     "(non-commercial or right-restricting reuse cannot be monetized)",
                     "ERROR",
                 )
             )
-        if (
-            not str(entry.get("attribution", "")).strip()
-            and entry.get("license") not in LICENSE_ALLOWLIST
+        elif (
+            lic in ATTRIBUTION_REQUIRED_LICENSES
+            and not str(entry.get("attribution", "")).strip()
         ):
             issues.append(
                 _issue(
                     "assets_license_allowlist",
-                    f"{entry.get('src', 'unnamed')}: missing required attribution",
+                    f"{asset_name}: license {lic!r} requires non-empty attribution",
                     "ERROR",
                 )
             )
@@ -215,18 +217,16 @@ def _scene_moves(scene: dict[str, Any]) -> bool:
     zoom_moved = float(camera.get("zoom_start", 1.0) or 1.0) != float(
         camera.get("zoom_end", 1.0) or 1.0
     )
-    orbit = (
-        str(camera.get("mode", "zoom")) != "static" and camera.get("mode") is not None
-    )
+    orbit = str(camera.get("mode", "zoom")) == "orbit"
     return (
         bool(scene.get("sfx_events"))
         or zoom_moved
-        or bool(orbit)
+        or orbit
         or any(
             isinstance(el, dict) and str(el.get("type", "")) in _RULES_MOVING_TYPES
             for el in scene.get("elements", []) or []
         )
-        or bool(scene.get("transition"))
+        or str(scene.get("transition", "cut")).lower() != "cut"
     )
 
 
@@ -280,7 +280,7 @@ def check_board_monetization(
             issues.append(_issue("script_unreadable", str(exc), "ERROR"))
         else:
             issues += adversarial_safe_phrasing(script)
-    elif board.get("narration"):
+    elif _narration_texts(board):
         issues += adversarial_safe_phrasing(board)
     issues += retention_static_hold(board)
     ok = all(issue["severity"] != "ERROR" for issue in issues)

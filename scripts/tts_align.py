@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import re
 import subprocess
 import sys
@@ -33,9 +34,14 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from storyboard import assign_start_times
+from storyboard import SCENE_ID_RE, assign_start_times
 
-ASPECTS = {"16:9": (1920, 1080), "9:16": (1080, 1920), "1:1": (1080, 1080)}
+ASPECTS = {
+    "16:9": (1920, 1080),
+    "9:16": (1080, 1920),
+    "1:1": (1080, 1080),
+    "4:5": (1440, 1800),
+}
 DEFAULT_ELEMENTS = {
     "geometry_rig": [
         {"type": "background", "color": "#050508"},
@@ -158,6 +164,8 @@ def align_words(text: str, duration_sec: float) -> list[dict[str, Any]]:
 
 
 def estimate_duration(text: str, wpm: float) -> float:
+    if wpm <= 0:
+        raise ValueError(f"wpm must be positive (got {wpm})")
     words = max(1, len(text.split()))
     return (
         words / (wpm / 60.0)
@@ -235,7 +243,13 @@ def synthesize_voice(
         cmd += ["-af", filters]
     cmd += ["-ar", "48000", "-ac", "1", "-sample_fmt", "s16", str(wav_out)]
     try:
-        subprocess.run(cmd, check=True, capture_output=True, timeout=120)
+        subprocess.run(
+            cmd,
+            check=True,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            timeout=120,
+        )
     except (subprocess.SubprocessError, OSError) as exc:
         print(
             f"tts_align: ffmpeg transcode failed for {scene_id!r}: {exc}",
@@ -256,6 +270,7 @@ def synthesize_voice(
                 str(wav_out),
             ],
             check=True,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             timeout=30,
             text=True,
@@ -363,13 +378,23 @@ def main(argv: list[str] | None = None) -> int:
     if not isinstance(voice_overrides, dict):
         voice_overrides = {}
     wpm = float(script.get("wpm") or args.wpm)
+    if wpm <= 0:
+        print(f"tts_align: wpm must be positive (got {wpm})", file=sys.stderr)
+        return 2
     width, height = ASPECTS[args.aspect]
     media_dir = args.media_dir or (args.output.parent / "audio")
     media_dir.mkdir(parents=True, exist_ok=True)
+    out_dir_resolved = args.output.resolve().parent
 
     scenes_out = []
     for idx, raw in enumerate(scenes_in):
         scene_id = str(raw.get("scene_id") or f"scene_{idx + 1:02d}")
+        if not SCENE_ID_RE.match(scene_id):
+            print(
+                f"tts_align: invalid scene_id {scene_id!r} (must match ^[a-z0-9_-]{{1,64}}$)",
+                file=sys.stderr,
+            )
+            return 2
         narration = str(raw.get("narration") or "").strip()
         if not narration:
             print(f"tts_align: scene {scene_id!r} has empty narration", file=sys.stderr)
@@ -391,7 +416,9 @@ def main(argv: list[str] | None = None) -> int:
                 pitch=args.pitch,
             )
             if wav_path is not None:
-                vo_rel = str(wav_path)
+                vo_rel = Path(
+                    os.path.relpath(wav_path.resolve(), out_dir_resolved)
+                ).as_posix()
         if duration is None:
             duration = estimate_duration(narration, wpm)
         spoken_dur = max(0.5, duration)

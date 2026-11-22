@@ -52,18 +52,25 @@ def test_allowlist_blocks_noncommercial(tmp_path):
         assert issues and issues[0]["severity"] == "ERROR", lic
 
 
-def test_allowlist_passes_commercial():
+def test_allowlist_passes_commercial(tmp_path):
     for lic in sorted(LICENSE_ALLOWLIST):
-        manifest = _manifest(
-            Path("/tmp/opencode/m-allow"), [{"src": "a.jpg", "license": lic}]
-        )
+        entry = {"file": "a.jpg", "license": lic}
+        if lic in ("by", "by-sa"):
+            entry["attribution"] = "Jane Photographer"
+        manifest = _manifest(tmp_path / lic, [entry])
         assert check_assets_license_allowlist(manifest) == [], lic
 
 
-def test_license_pd_is_blocked():
-    manifest = _manifest(
-        Path("/tmp/opencode/m-pd"), [{"src": "a.jpg", "license": "pd"}]
-    )
+def test_license_by_requires_attribution(tmp_path):
+    for lic in ("by", "by-sa"):
+        manifest = _manifest(tmp_path / lic, [{"file": "a.jpg", "license": lic}])
+        issues = check_assets_license_allowlist(manifest)
+        assert issues and issues[0]["severity"] == "ERROR"
+        assert "a.jpg" in issues[0]["detail"]
+
+
+def test_license_pd_is_blocked(tmp_path):
+    manifest = _manifest(tmp_path, [{"src": "a.jpg", "license": "pd"}])
     assert check_assets_license_allowlist(manifest)
 
 

@@ -20,6 +20,7 @@ import argparse
 import json
 import re
 import sys
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -102,6 +103,27 @@ def check_doc(text: str) -> dict[str, Any]:
     }
 
 
+class _HttpsOnlyRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Reject non-https redirect targets before opening the redirected socket."""
+
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: Any,
+        code: int,
+        msg: str,
+        headers: Any,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        if urllib.parse.urlsplit(newurl).scheme != "https":
+            raise ValueError(f"refusing redirect to non-https URL: {newurl!r}")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_DEFAULT_URLOPEN = urllib.request.urlopen
+_HTTPS_OPENER = urllib.request.build_opener(_HttpsOnlyRedirectHandler)
+
+
 def fetch_live(timeout: float) -> list[dict[str, Any]]:
     """Probe authoritative URLs for expected markers; failures are advisory.
 
@@ -114,8 +136,21 @@ def fetch_live(timeout: float) -> list[dict[str, Any]]:
         marker_found = False
         detail = ""
         try:
-            with urllib.request.urlopen(url, timeout=timeout) as response:
-                payload = response.read()
+            if urllib.parse.urlsplit(url).scheme != "https":
+                raise ValueError(f"refusing non-https URL: {url!r}")
+            ctx_mgr = (
+                _HTTPS_OPENER.open(url, timeout=timeout)
+                if urllib.request.urlopen is _DEFAULT_URLOPEN
+                else urllib.request.urlopen(url, timeout=timeout)
+            )
+            with ctx_mgr as response:
+                geturl = getattr(response, "geturl", None)
+                final_url = geturl() if callable(geturl) else url
+                if urllib.parse.urlsplit(final_url).scheme != "https":
+                    raise ValueError(
+                        f"refusing redirect to non-https URL: {final_url!r}"
+                    )
+                payload = response.read(2 * 1024 * 1024)
             body = payload.decode("utf-8", errors="replace")
             ok = True
             marker_found = any(marker in body for marker in markers)

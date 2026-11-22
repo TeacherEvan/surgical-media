@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -105,6 +106,7 @@ VALID_BLENDER_ENGINES = {"AUTO_EEVEE", "CYCLES"}
 VALID_LIGHTING_PRESETS = {"cyber_studio_volumetric", "clean_product_softbox"}
 VALID_CAMERA_MODES = {"orbit", "dolly", "crane", "static"}
 ANCHOR_ID_RE = re.compile(r"^[a-z0-9_-]{1,64}$")
+SCENE_ID_RE = re.compile(r"^[a-z0-9_-]{1,64}$")
 ACCENT_HEX_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 # (key, lo, hi) numeric ranges for scene_spec.camera_3d — mirrors the schema.
@@ -120,7 +122,15 @@ _CAMERA_3D_RANGES = (
 
 
 def _is_num(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+    )
+
+
+def _is_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
 
 
 def lint_storyboard(data: Any, board_dir: Path | None = None) -> list[str]:
@@ -180,11 +190,11 @@ def _validate_format(fmt: Any, errors: list[str]) -> None:
         errors.append("format object is required (width, height, fps)")
         return
     w, h, fps = fmt.get("width"), fmt.get("height"), fmt.get("fps")
-    if not isinstance(w, int) or not MIN_DIM <= w <= MAX_DIM:
+    if not _is_int(w) or not isinstance(w, int) or not MIN_DIM <= w <= MAX_DIM:
         errors.append(f"format.width must be an integer in [{MIN_DIM}, {MAX_DIM}]")
-    if not isinstance(h, int) or not MIN_DIM <= h <= MAX_DIM:
+    if not _is_int(h) or not isinstance(h, int) or not MIN_DIM <= h <= MAX_DIM:
         errors.append(f"format.height must be an integer in [{MIN_DIM}, {MAX_DIM}]")
-    if fps not in VALID_FPS:
+    if not _is_int(fps) or fps not in VALID_FPS:
         errors.append(f"format.fps must be one of {sorted(VALID_FPS)}")
 
 
@@ -209,6 +219,55 @@ def _validate_camera(cam: Any, where: str, errors: list[str]) -> None:
     amp = cam.get("shake_amplitude_px", 0.0)
     if not (_is_num(amp) and 0.0 <= float(amp) <= 80.0):
         errors.append(f"{where}: camera.shake_amplitude_px must be in [0, 80]")
+    mode = cam.get("mode", "zoom")
+    if mode not in {"zoom", "orbit", "static"}:
+        errors.append(
+            f"{where}: camera.mode must be one of ['orbit', 'static', 'zoom']"
+        )
+    for key in ("pivot_x", "pivot_y"):
+        if (
+            key in cam
+            and cam[key] is not None
+            and (not _is_num(cam[key]) or not (0.0 <= float(cam[key]) <= 1.0))
+        ):
+            errors.append(f"{where}: camera.{key} must be normalized to [0, 1]")
+    for key in ("orbit_radius_start", "orbit_radius_end"):
+        if (
+            key in cam
+            and cam[key] is not None
+            and (not _is_num(cam[key]) or not (0.5 <= float(cam[key]) <= 100.0))
+        ):
+            errors.append(f"{where}: camera.{key} must be in [0.5, 100.0]")
+    if mode == "orbit":
+        ors = cam.get("orbit_radius_start")
+        if ors is None or not _is_num(ors) or not (0.5 <= float(ors) <= 100.0):
+            errors.append(
+                f"{where}: camera.orbit_radius_start is required in [0.5, 100.0] for orbit mode"
+            )
+    for key in ("azimuth_start_deg", "azimuth_end_deg"):
+        if (
+            key in cam
+            and cam[key] is not None
+            and (not _is_num(cam[key]) or not (-360.0 <= float(cam[key]) <= 360.0))
+        ):
+            errors.append(f"{where}: camera.{key} must be in [-360.0, 360.0]")
+    if (
+        "orbit_easing" in cam
+        and cam["orbit_easing"] is not None
+        and cam["orbit_easing"] not in VALID_EASINGS
+    ):
+        errors.append(
+            f"{where}: camera.orbit_easing must be one of {sorted(VALID_EASINGS)}"
+        )
+    if (
+        "elevation_deg" in cam
+        and cam["elevation_deg"] is not None
+        and (
+            not _is_num(cam["elevation_deg"])
+            or not (-90.0 <= float(cam["elevation_deg"]) <= 90.0)
+        )
+    ):
+        errors.append(f"{where}: camera.elevation_deg must be in [-90.0, 90.0]")
 
 
 def _validate_camera_3d(camera_3d: Any, where: str, errors: list[str]) -> None:
@@ -396,15 +455,20 @@ def _validate_scene(scene: Any, i: int, errors: list[str]) -> None:
     sid = scene.get("scene_id", f"#{i}")
     where = f"scene {sid!r}"
 
-    if not str(scene.get("scene_id", "")).strip():
-        errors.append(f"{where}: scene_id is required")
+    raw_sid = scene.get("scene_id")
+    if not isinstance(raw_sid, str) or not SCENE_ID_RE.match(raw_sid):
+        errors.append(f"{where}: scene_id must match ^[a-z0-9_-]{{1,64}}$")
     if scene.get("archetype") not in VALID_ARCHETYPES:
         errors.append(f"{where}: archetype must be one of {sorted(VALID_ARCHETYPES)}")
     dur = scene.get("duration_sec")
-    if not isinstance(dur, (int, float)) or not (0.0 < float(dur) <= 600.0):
+    if (
+        not _is_num(dur)
+        or not isinstance(dur, (int, float))
+        or not (0.0 < float(dur) <= 600.0)
+    ):
         errors.append(f"{where}: duration_sec must be in (0, 600]")
     if "start_sec" in scene and (
-        not isinstance(scene["start_sec"], (int, float)) or scene["start_sec"] < 0
+        not _is_num(scene["start_sec"]) or float(scene["start_sec"]) < 0
     ):
         errors.append(f"{where}: start_sec must be >= 0")
 
@@ -456,8 +520,15 @@ def validate_storyboard(data: Any) -> list[str]:
         errors.append("scenes must be a non-empty array")
         return errors
 
+    seen_scene_ids: set[str] = set()
     for i, scene in enumerate(scenes):
         _validate_scene(scene, i, errors)
+        if isinstance(scene, dict):
+            sid = scene.get("scene_id")
+            if isinstance(sid, str) and SCENE_ID_RE.match(sid):
+                if sid in seen_scene_ids:
+                    errors.append(f"scene {sid!r}: duplicate scene_id")
+                seen_scene_ids.add(sid)
 
     audio = data.get("audio")
     if isinstance(audio, dict):

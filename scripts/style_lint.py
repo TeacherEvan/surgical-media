@@ -84,28 +84,10 @@ def _largest_box_center_score(
     return None if best is None else best[1]
 
 
-def lint_board(raw: dict[str, Any]) -> list[Finding]:
+def _check_scene_palette_and_glow(
+    scenes: list[dict[str, Any]], palette: list[tuple[int, int, int]]
+) -> list[Finding]:
     findings: list[Finding] = []
-    board = assign_start_times(raw)  # @refs + style/platform defaults resolved
-    fmt = board.get("format") or {}
-    w, h = float(fmt.get("width", 1280)), float(fmt.get("height", 720))
-    scenes = [s for s in board.get("scenes", []) if isinstance(s, dict)]
-    raw_scenes = [s for s in raw.get("scenes", []) if isinstance(s, dict)]
-    style = (
-        resolve_style(raw.get("style")) if isinstance(raw.get("style"), dict) else {}
-    )
-    _style_block = raw.get("style")
-    raw_style = _style_block if isinstance(_style_block, dict) else {}
-    style_preset = str(raw_style.get("preset") or style.get("preset") or "")
-    plat = (
-        resolve_platform(raw.get("platform"))
-        if isinstance(raw.get("platform"), dict)
-        else {}
-    )
-    palette = [
-        _rgb(v[:7]) for v in (style.get("palette") or {}).values() if isinstance(v, str)
-    ]
-
     for scene in scenes:
         sid = str(scene.get("scene_id", "?"))
         elements = [e for e in scene.get("elements", []) or [] if isinstance(e, dict)]
@@ -143,7 +125,17 @@ def lint_board(raw: dict[str, Any]) -> list[Finding]:
         glows = sum(1 for e in elements if e.get("glow") is True)
         if glows > 3:
             findings.append(_f("glow_overuse", sid, f"{glows} glowing elements"))
+    return findings
 
+
+def _check_motion_and_framing(
+    scenes: list[dict[str, Any]],
+    raw_scenes: list[dict[str, Any]],
+    style: dict[str, Any],
+    w: float,
+    h: float,
+) -> list[Finding]:
+    findings: list[Finding] = []
     run = 0
     for scene in scenes:
         score = _largest_box_center_score(scene, w, h)
@@ -156,7 +148,6 @@ def lint_board(raw: dict[str, Any]) -> list[Finding]:
                     "hero centred in 3+ consecutive scenes",
                 )
             )
-
     has_font = bool((style.get("type") or {}).get("display")) or any(
         isinstance(e, dict) and e.get("font_family")
         for s in scenes
@@ -170,7 +161,6 @@ def lint_board(raw: dict[str, Any]) -> list[Finding]:
                 "no style.type and no font_family — default font only",
             )
         )
-
     flat_candidates = [s for s in raw_scenes if "scene_spec" not in s]
     if len(flat_candidates) >= 3 and not style.get("motion"):
         still = [s for s in flat_candidates if not s.get("camera")]
@@ -191,73 +181,110 @@ def lint_board(raw: dict[str, Any]) -> list[Finding]:
         findings.append(
             _f("single_easing", "*", f"all {len(eases)} camera moves use {eases[0]!r}")
         )
+    return findings
 
-    if plat:
-        preset = PRESETS.get(str(plat.get("preset", "")), {})
-        if scenes:
-            first = scenes[0]
-            has_text = bool(first.get("words")) or any(
-                isinstance(e, dict) and e.get("type") in TEXT_ELEMENTS
-                for e in first.get("elements", []) or []
-            )
-            if not has_text:
-                findings.append(
-                    _f(
-                        "no_hook",
-                        str(first.get("scene_id", "?")),
-                        "first scene has no text/captions — state the hook on frame 0",
-                    )
-                )
-        beat = float(plat.get("beat_max_sec", 0) or 0)
-        if beat:
-            for scene in scenes:
-                dur = float(scene.get("duration_sec", 0))
-                if dur > 2 * beat:
-                    findings.append(
-                        _f(
-                            "long_hold",
-                            str(scene.get("scene_id", "?")),
-                            f"{dur:.1f}s hold > 2x beat budget ({beat:g}s)",
-                        )
-                    )
-        want = preset.get("aspect")
-        if want and classify_aspect(int(w), int(h)) != want:
+
+def _check_platform_rules(
+    scenes: list[dict[str, Any]], plat: dict[str, Any], w: float, h: float
+) -> list[Finding]:
+    if not plat:
+        return []
+    findings: list[Finding] = []
+    preset = PRESETS.get(str(plat.get("preset", "")), {})
+    if scenes:
+        first = scenes[0]
+        has_text = bool(first.get("words")) or any(
+            isinstance(e, dict) and e.get("type") in TEXT_ELEMENTS
+            for e in first.get("elements", []) or []
+        )
+        if not has_text:
             findings.append(
                 _f(
-                    "aspect_mismatch",
-                    "*",
-                    f"format is {classify_aspect(int(w), int(h))}, preset expects {want}",
+                    "no_hook",
+                    str(first.get("scene_id", "?")),
+                    "first scene has no text/captions — state the hook on frame 0",
                 )
             )
-
-    if style_preset == "newsroom_clean" or plat.get("require_sources"):
+    beat = float(plat.get("beat_max_sec", 0) or 0)
+    if beat:
         for scene in scenes:
-            sid = str(scene.get("scene_id", "?"))
-            elements = [
-                e for e in scene.get("elements", []) or [] if isinstance(e, dict)
-            ]
-            claims = [e for e in elements if e.get("type") in CLAIM_ELEMENTS]
-            cited = any(e.get("type") == "source_tag" for e in elements) or any(
-                e.get("type") == "quote_card" and str(e.get("attribution", "")).strip()
-                for e in elements
-            )
-            if claims and not cited:
+            dur = float(scene.get("duration_sec", 0))
+            if dur > 2 * beat:
                 findings.append(
                     _f(
-                        "unsourced_claim",
-                        sid,
-                        "claim element without a source_tag/attribution",
+                        "long_hold",
+                        str(scene.get("scene_id", "?")),
+                        f"{dur:.1f}s hold > 2x beat budget ({beat:g}s)",
                     )
                 )
-            for e in elements:
-                if (
-                    e.get("type") == "image"
-                    and not str(e.get("attribution", "")).strip()
-                ):
-                    findings.append(
-                        _f("unsourced_claim", sid, "image without attribution")
-                    )
+    want = preset.get("aspect")
+    if want and classify_aspect(int(w), int(h)) != want:
+        findings.append(
+            _f(
+                "aspect_mismatch",
+                "*",
+                f"format is {classify_aspect(int(w), int(h))}, preset expects {want}",
+            )
+        )
     return findings
+
+
+def _check_newsroom_sources(
+    scenes: list[dict[str, Any]], style_preset: str, plat: dict[str, Any]
+) -> list[Finding]:
+    if style_preset != "newsroom_clean" and not plat.get("require_sources"):
+        return []
+    findings: list[Finding] = []
+    for scene in scenes:
+        sid = str(scene.get("scene_id", "?"))
+        elements = [e for e in scene.get("elements", []) or [] if isinstance(e, dict)]
+        claims = [e for e in elements if e.get("type") in CLAIM_ELEMENTS]
+        cited = any(e.get("type") == "source_tag" for e in elements) or any(
+            e.get("type") == "quote_card" and str(e.get("attribution", "")).strip()
+            for e in elements
+        )
+        if claims and not cited:
+            findings.append(
+                _f(
+                    "unsourced_claim",
+                    sid,
+                    "claim element without a source_tag/attribution",
+                )
+            )
+        for e in elements:
+            if e.get("type") == "image" and not str(e.get("attribution", "")).strip():
+                findings.append(_f("unsourced_claim", sid, "image without attribution"))
+    return findings
+
+
+def lint_board(raw: dict[str, Any]) -> list[Finding]:
+    board = assign_start_times(raw)  # @refs + style/platform defaults resolved
+    fmt = board.get("format") or {}
+    w, h = float(fmt.get("width", 1280)), float(fmt.get("height", 720))
+    scenes = [s for s in board.get("scenes", []) if isinstance(s, dict)]
+    raw_scenes = [s for s in raw.get("scenes", []) if isinstance(s, dict)]
+    style = (
+        resolve_style(raw.get("style")) if isinstance(raw.get("style"), dict) else {}
+    )
+    _style_block = raw.get("style")
+    raw_style = _style_block if isinstance(_style_block, dict) else {}
+    style_preset = str(raw_style.get("preset") or style.get("preset") or "")
+    plat = (
+        resolve_platform(raw.get("platform"))
+        if isinstance(raw.get("platform"), dict)
+        else {}
+    )
+    palette = [
+        _rgb(v[:7])
+        for v in (style.get("palette") or {}).values()
+        if isinstance(v, str) and _HEX.match(v)
+    ]
+    return [
+        *_check_scene_palette_and_glow(scenes, palette),
+        *_check_motion_and_framing(scenes, raw_scenes, style, w, h),
+        *_check_platform_rules(scenes, plat, w, h),
+        *_check_newsroom_sources(scenes, style_preset, plat),
+    ]
 
 
 def score(findings: list[Finding]) -> int:
