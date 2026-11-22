@@ -125,7 +125,7 @@ Source proposal: [`plans/Surgical_Media_3.0_Master_Implementation_Plan.md`](plan
 | SM30-020/021 | Claim-ID research contract (`investigation_brief.py` validator + schema) | Done | `scripts/investigation_brief.py`, `schemas/investigation_brief.schema.json`, `tests/test_investigation_brief.py` (35 tests, parity) |
 | SM30-022/023 | `visual_anchors`, `visual_assets`, `target_format` validation parity | Done (was missing; now matches schema) | validator + parity test |
 | | Breaking schema change (`schema_version`=1.0.0, required `claim_id`/`claim_type`/`contradictions`) | Done — documented in CHANGELOG | `CHANGELOG.md` [v2.3.1] |
-| | Wire validator into `job_cli` plan step | **Next** | — |
+| | Wire validator into `job_cli` plan step | **Done** (`--brief` on `plan`, `validate-brief` subcommand) | `scripts/job_director.py`, `scripts/job_cli.py`, `tests/test_audit_regressions.py` |
 | SM30-024 | Horse Tenny comedy pilot as regression test fixture | **Next** (needs design sign-off) | — |
 
 ## 4. Invariants (do not regress)
@@ -136,7 +136,7 @@ The full list lives in [`AGENTS.md`](../AGENTS.md) → "Hard-won invariants" and
 ## 5. Verification contract
 
 ```bash
-bash scripts/ci_gates.sh   # 12 gates: boards → ruff → format → mypy --strict → 713 tests → metaschema → example-vs-schema → thumbnails (2D + hybrid + Three.js) → draft render + ffprobe QC → style_lint (report) → production-job examples → qc_gate (ebur128/dead-air/safe-zone)
+bash scripts/ci_gates.sh   # 12 gates: boards → ruff → format → mypy --strict → 772 tests → metaschema → example-vs-schema → thumbnails (2D + hybrid + Three.js) → draft render + ffprobe QC → style_lint (report) → production-job examples → qc_gate (ebur128/dead-air/safe-zone)
 ```
 
 Single gate detail and the local-first decision: [ADR 0002](adr/0002-local-first-verification.md). Test counts quoted in docs must match the current suite run (constant-sweep rule in the documentation-maintenance workflow).
