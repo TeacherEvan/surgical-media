@@ -34,6 +34,8 @@ def two_bone_ik(
     Returns (elbow, hand). ``bend`` = +1/-1 selects which side the elbow
     folds to (mirrored for left vs. right limbs).
     """
+    if upper <= 0.0 or lower <= 0.0:
+        raise ValueError("limb lengths must be positive")
     sx, sy = shoulder
     tx, ty = target
     dx, dy = tx - sx, ty - sy

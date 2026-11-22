@@ -51,6 +51,8 @@ def paint_scaling_chart(
     cv.line((px0, py0), (px0, base_y), PANEL_EDGE, 2.0)
 
     def curve_y(u: float) -> float:
+        if abs(exponent) < 1e-9:
+            return u
         return (math.exp(exponent * u) - 1.0) / (math.exp(exponent) - 1.0)
 
     # ghost of the full curve
@@ -105,7 +107,10 @@ def paint_scaling_chart(
                 )
 
     # quadratic odometer readout
-    mult = odo_from * math.pow(odo_to / max(odo_from, 1e-9), progress**1.5)
+    if odo_from > 0.0 and odo_to > 0.0:
+        mult = odo_from * math.pow(odo_to / odo_from, progress**1.5)
+    else:
+        mult = odo_from + (odo_to - odo_from) * (progress**1.5)
     odo_size = int((y1 - y0) * 0.16)
     cv.text(
         (px1, y0 + title_font + 8),

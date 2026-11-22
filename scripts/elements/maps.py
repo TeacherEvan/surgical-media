@@ -152,10 +152,7 @@ def paint_map_callout(
     )
 
     # label text
-    t_w = font.getlength(label)
-    cv.text(
-        (bx0 + tw / 2 - t_w / 2, by0 + th / 2 - 8), label, ink, size=34, anchor="mm"
-    )
+    cv.text((bx0 + tw / 2, by0 + th / 2), label, ink, size=34, anchor="mm")
     header_line = str(el.get("subtitle", ""))
     if header_line:
         cv.text(

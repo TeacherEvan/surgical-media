@@ -160,6 +160,7 @@ def _probe_blender_environment_uncached() -> dict[str, Any]:
         out = subprocess.check_output(
             [binary, "--version"],
             text=True,
+            stdin=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             timeout=15,
         )
@@ -238,6 +239,7 @@ def _probe_threejs_environment_uncached() -> dict[str, Any]:
         out = subprocess.check_output(
             [node_bin, "--version"],
             text=True,
+            stdin=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             timeout=15,
         )
@@ -291,15 +293,33 @@ def probe_threejs_environment() -> dict[str, Any]:
     return dict(_threejs_probe_cache)
 
 
+_KEYWORDS_3D_RE = re.compile(
+    r"\b(?:" + "|".join(re.escape(k) for k in sorted(KEYWORDS_3D)) + r")\b"
+)
+_KEYWORDS_MATH_RE = re.compile(
+    r"\b(?:" + "|".join(re.escape(k) for k in sorted(KEYWORDS_MATH)) + r")\b"
+)
+
+
 def _keyword_hits(keywords: set[str], haystack: str) -> int:
-    return sum(1 for keyword in keywords if keyword in haystack)
+    if keywords is KEYWORDS_3D:
+        return len({m.group(0) for m in _KEYWORDS_3D_RE.finditer(haystack)})
+    if keywords is KEYWORDS_MATH:
+        return len({m.group(0) for m in _KEYWORDS_MATH_RE.finditer(haystack)})
+    return sum(
+        1 for keyword in keywords if re.search(rf"\b{re.escape(keyword)}\b", haystack)
+    )
 
 
 def _as_float(value: object, default: float = 0.0) -> float:
-    try:
-        return float(value)  # type: ignore[arg-type]
-    except (TypeError, ValueError):
-        return default
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return default
+    return default
 
 
 def route_scene(scene: dict[str, Any]) -> str:

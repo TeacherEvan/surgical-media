@@ -27,6 +27,7 @@ import subprocess
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
@@ -75,8 +76,19 @@ _TRANSFORM_RE = re.compile(r"([a-zA-Z]+)\s*\(([^)]*)\)")
 _RGB_RE = re.compile(r"rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)", re.IGNORECASE)
 _UNSAFE_XML_RE = re.compile(r"<!\s*(?:DOCTYPE|ENTITY)\b", re.IGNORECASE)
 
-_RASTER_CACHE: dict[tuple[str, int, int], Image.Image] = {}
-_FILE_TEXT_CACHE: dict[str, str] = {}
+_MAX_CACHE_ENTRIES = 64
+_RASTER_CACHE: OrderedDict[tuple[str, int, int], Image.Image] = OrderedDict()
+_FILE_TEXT_CACHE: OrderedDict[tuple[str, int], str] = OrderedDict()
+_SVG_DOC_CACHE: OrderedDict[
+    str, tuple[tuple[float, float, float, float], list[dict[str, Any]]]
+] = OrderedDict()
+
+
+def _lru_set(cache: OrderedDict[Any, Any], key: Any, value: Any) -> None:
+    cache[key] = value
+    cache.move_to_end(key)
+    while len(cache) > _MAX_CACHE_ENTRIES:
+        cache.popitem(last=False)
 
 
 # ---------------------------------------------------------------------------
@@ -217,6 +229,7 @@ def _draw_translucent(
     painter: Any,
     alpha: float,
     points: list[Pt2] | None = None,
+    pad_px: float = 6.0,
 ) -> None:
     """Draw ``painter(draw, shift)`` with real alpha over the canvas.
 
@@ -231,6 +244,8 @@ def _draw_translucent(
     layer. ``points`` (design space) is used to compute the crop.
     """
     a = round(max(0.0, min(1.0, alpha)) * 255)
+    if a <= 0:
+        return
     if a >= 255:
         painter(cv.draw_, (0.0, 0.0))
         return
@@ -241,7 +256,7 @@ def _draw_translucent(
         px = [cv.draw_._tp(x, y) for x, y in points]
         if not px:
             return
-        pad = 6.0 * cv.scale + 2.0
+        pad = max(6.0, float(pad_px)) * cv.scale + 2.0
         x0 = max(0, math.floor(min(p[0] for p in px) - pad))
         y0 = max(0, math.floor(min(p[1] for p in px) - pad))
         x1 = min(x1, math.ceil(max(p[0] for p in px) + pad))
@@ -373,6 +388,11 @@ def parse_svg_path(d: str) -> list[tuple[list[Pt2], bool]]:
     def _is_cmd(tok: str) -> bool:
         return len(tok) == 1 and tok.isalpha()
 
+    def _has_nums(count: int) -> bool:
+        if i + count > len(tokens):
+            return False
+        return not any(_is_cmd(tokens[i + k]) for k in range(count))
+
     def _next_num() -> float:
         nonlocal i
         val = float(tokens[i])
@@ -390,7 +410,7 @@ def parse_svg_path(d: str) -> list[tuple[list[Pt2], bool]]:
             if cur_pts:
                 subpaths.append((cur_pts, False))
                 cur_pts = []
-            if i + 1 >= len(tokens):
+            if not _has_nums(2):
                 break
             x, y = _next_num(), _next_num()
             if cmd == "m":
@@ -403,7 +423,7 @@ def parse_svg_path(d: str) -> list[tuple[list[Pt2], bool]]:
             # Subsequent coordinate pairs after M/m are implicit L/l
             cmd = "L" if cmd == "M" else "l"
         elif cmd in ("L", "l"):
-            if i + 1 >= len(tokens):
+            if not _has_nums(2):
                 break
             x, y = _next_num(), _next_num()
             if cmd == "l":
@@ -413,6 +433,8 @@ def parse_svg_path(d: str) -> list[tuple[list[Pt2], bool]]:
             last_ctrl = None
             last_cmd = cmd
         elif cmd in ("H", "h"):
+            if not _has_nums(1):
+                break
             x = _next_num()
             if cmd == "h":
                 x += cur[0]
@@ -421,6 +443,8 @@ def parse_svg_path(d: str) -> list[tuple[list[Pt2], bool]]:
             last_ctrl = None
             last_cmd = cmd
         elif cmd in ("V", "v"):
+            if not _has_nums(1):
+                break
             y = _next_num()
             if cmd == "v":
                 y += cur[1]
@@ -429,7 +453,7 @@ def parse_svg_path(d: str) -> list[tuple[list[Pt2], bool]]:
             last_ctrl = None
             last_cmd = cmd
         elif cmd in ("C", "c"):
-            if i + 5 >= len(tokens):
+            if not _has_nums(6):
                 break
             x1, y1 = _next_num(), _next_num()
             x2, y2 = _next_num(), _next_num()
@@ -443,7 +467,7 @@ def parse_svg_path(d: str) -> list[tuple[list[Pt2], bool]]:
             cur = (x, y)
             last_cmd = cmd
         elif cmd in ("S", "s"):
-            if i + 3 >= len(tokens):
+            if not _has_nums(4):
                 break
             x2, y2 = _next_num(), _next_num()
             x, y = _next_num(), _next_num()
@@ -460,7 +484,7 @@ def parse_svg_path(d: str) -> list[tuple[list[Pt2], bool]]:
             cur = (x, y)
             last_cmd = cmd
         elif cmd in ("Q", "q"):
-            if i + 3 >= len(tokens):
+            if not _has_nums(4):
                 break
             x1, y1 = _next_num(), _next_num()
             x, y = _next_num(), _next_num()
@@ -472,7 +496,7 @@ def parse_svg_path(d: str) -> list[tuple[list[Pt2], bool]]:
             cur = (x, y)
             last_cmd = cmd
         elif cmd in ("T", "t"):
-            if i + 1 >= len(tokens):
+            if not _has_nums(2):
                 break
             x, y = _next_num(), _next_num()
             if cmd == "t":
@@ -487,7 +511,7 @@ def parse_svg_path(d: str) -> list[tuple[list[Pt2], bool]]:
             cur = (x, y)
             last_cmd = cmd
         elif cmd in ("A", "a"):
-            if i + 6 >= len(tokens):
+            if not _has_nums(7):
                 break
             rx, ry = _next_num(), _next_num()
             rot = _next_num()
@@ -736,6 +760,7 @@ def _rasterize_external(
     cache_key = (digest, bw, bh)
     cached = _RASTER_CACHE.get(cache_key)
     if cached is not None:
+        _RASTER_CACHE.move_to_end(cache_key)
         return cached
 
     tool = shutil.which("resvg") or shutil.which("rsvg-convert")
@@ -794,7 +819,7 @@ def _rasterize_external(
             with Image.open(out_png) as im:
                 rgba: Image.Image = im.convert("RGBA")
                 rgba.load()
-            _RASTER_CACHE[cache_key] = rgba
+            _lru_set(_RASTER_CACHE, cache_key, rgba)
             return rgba
     except Exception:  # noqa: BLE001 — fall back to built-in pure-Python renderer
         return None
@@ -814,12 +839,18 @@ def _load_svg_text(el: dict[str, Any], ctx: ElementContext) -> str | None:
     if not path.is_file():
         print(f"svg element: src not found: {path}", file=sys.stderr)
         return None
-    key = str(path.resolve())
-    cached = _FILE_TEXT_CACHE.get(key)
-    if cached is not None:
-        return cached
-    text = path.read_text(encoding="utf-8")
-    _FILE_TEXT_CACHE[key] = text
+    try:
+        resolved = path.resolve()
+        key = (str(resolved), resolved.stat().st_mtime_ns)
+        cached = _FILE_TEXT_CACHE.get(key)
+        if cached is not None:
+            _FILE_TEXT_CACHE.move_to_end(key)
+            return cached
+        text = resolved.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"svg element: cannot read {path}: {exc}", file=sys.stderr)
+        return None
+    _lru_set(_FILE_TEXT_CACHE, key, text)
     return text
 
 
@@ -916,9 +947,11 @@ def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -
         )
         if raster is not None:
             plate = raster
-            if abs(anim_scale - 1.0) > 1e-3:
-                sw_px = max(1, round(plate.width * anim_scale))
-                sh_px = max(1, round(plate.height * anim_scale))
+            cam_zoom = cv._z if cv.camera else 1.0
+            eff_scale = anim_scale * cam_zoom
+            if abs(eff_scale - 1.0) > 1e-3:
+                sw_px = max(1, round(plate.width * eff_scale))
+                sh_px = max(1, round(plate.height * eff_scale))
                 plate = plate.resize((sw_px, sh_px), Image.Resampling.LANCZOS)
             if abs(anim_rot) > 1e-3:
                 plate = plate.rotate(
@@ -928,8 +961,9 @@ def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -
                 r_ch, g_ch, b_ch, a_ch = plate.split()
                 a_ch = a_ch.point(lambda px: int(px * total_opacity))
                 plate = Image.merge("RGBA", (r_ch, g_ch, b_ch, a_ch))
-            cx_px = round((x0 + box_w * 0.5) * cv.scale)
-            cy_px = round((y0 + box_h * 0.5) * cv.scale)
+            cx_f, cy_f = cv.draw_._tp(x0 + box_w * 0.5, y0 + box_h * 0.5)
+            cx_px = round(cx_f)
+            cy_px = round(cy_f)
             paste_xy = (cx_px - plate.width // 2, cy_px - plate.height // 2)
             if el.get("style_match"):
                 _paste_contact_shadow(cv, plate, paste_xy, el)
@@ -938,14 +972,26 @@ def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -
                 cv.bloom_image.paste(plate.convert("RGB"), paste_xy, plate)
             return
 
-    # Pure-Python stdlib SVG vector engine (always available)
-    try:
-        root = ET.fromstring(svg_text)
-    except ET.ParseError as exc:
-        print(f"svg element: XML parse error: {exc}", file=sys.stderr)
+    # Pure-Python stdlib SVG vector engine (always available; parsed doc cached)
+    doc_key = hashlib.sha256(svg_text.encode("utf-8")).hexdigest()[:16]
+    cached_doc = _SVG_DOC_CACHE.get(doc_key)
+    if cached_doc is not None:
+        _SVG_DOC_CACHE.move_to_end(doc_key)
+        (vx, vy, vw, vh), local_primitives = cached_doc
+    else:
+        try:
+            root = ET.fromstring(svg_text)
+        except ET.ParseError as exc:
+            print(f"svg element: XML parse error: {exc}", file=sys.stderr)
+            return
+        vx, vy, vw, vh = _extract_viewbox(root)
+        local_primitives = []
+        _collect_primitives(root, _IDENTITY, {}, local_primitives)
+        _lru_set(_SVG_DOC_CACHE, doc_key, ((vx, vy, vw, vh), local_primitives))
+
+    if not local_primitives:
         return
 
-    vx, vy, vw, vh = _extract_viewbox(root)
     fit = str(el.get("fit", "contain")).lower()
     if fit == "stretch":
         sx, sy = box_w / vw, box_h / vh
@@ -971,10 +1017,25 @@ def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -
         )
         base_mat = _mat_mul(xform, base_mat)
 
+    scale_est = math.hypot(base_mat[0], base_mat[1])
     primitives: list[dict[str, Any]] = []
-    _collect_primitives(root, base_mat, {}, primitives)
-    if not primitives:
-        return
+    for lp in local_primitives:
+        if lp["kind"] == "text":
+            tx, ty = lp["pos"]
+            primitives.append(
+                {
+                    **lp,
+                    "pos": _apply_mat(base_mat, tx, ty),
+                    "size": float(lp["size"]) * max(scale_est, 0.1),
+                }
+            )
+        else:
+            primitives.append(
+                {
+                    **lp,
+                    "points": [_apply_mat(base_mat, px, py) for px, py in lp["points"]],
+                }
+            )
 
     avg_scale = (sx + sy) * 0.5 * abs(anim_scale)
     stroke_scale = float(el.get("stroke_scale", 1.0))
@@ -1040,6 +1101,7 @@ def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -
                     ),
                     stroke_alpha,
                     points=trimmed,
+                    pad_px=sw,
                 )
                 if glow:
                     cv.bloom_polyline(
@@ -1058,13 +1120,15 @@ def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -
                     points=pts,
                 )
                 if stroke_hex:
+                    stroke_pts = pts + [pts[0]]
                     _draw_translucent(
                         cv,
-                        lambda d, sh, poly=pts, col=stroke_hex: d.polygon(
-                            _shift_points(poly, sh), outline=col
+                        lambda d, sh, line=stroke_pts, col=stroke_hex, width=sw: (
+                            d.polyline(_shift_points(line, sh), col, width=width)
                         ),
                         stroke_alpha,
-                        points=pts,
+                        points=stroke_pts,
+                        pad_px=sw,
                     )
                 if glow:
                     cv.bloom_polygon(
@@ -1082,6 +1146,7 @@ def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -
                     ),
                     stroke_alpha,
                     points=draw_pts,
+                    pad_px=sw,
                 )
                 if glow:
                     cv.bloom_polyline(

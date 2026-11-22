@@ -84,12 +84,33 @@ class CDPClient {
         }
       }
     });
+    this.ws.addEventListener("close", () => {
+      for (const { reject } of this.pending.values()) {
+        reject(new Error("CDP WebSocket closed unexpectedly"));
+      }
+      this.pending.clear();
+    });
   }
 
-  send(method, params = {}) {
+  send(method, params = {}, timeoutMs = 15000) {
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
+      const timer = setTimeout(() => {
+        if (this.pending.has(id)) {
+          this.pending.delete(id);
+          reject(new Error(`CDP command ${method} timed out after ${timeoutMs}ms`));
+        }
+      }, timeoutMs);
+      this.pending.set(id, {
+        resolve: (val) => {
+          clearTimeout(timer);
+          resolve(val);
+        },
+        reject: (err) => {
+          clearTimeout(timer);
+          reject(err);
+        },
+      });
       this.ws.send(JSON.stringify({ id, method, params }));
     });
   }
@@ -149,7 +170,7 @@ function launchChromium(browserBinary, userDataDir, width, height) {
       `--window-size=${width},${height}`,
       "about:blank",
     ],
-    { stdio: ["ignore", "pipe", "pipe"] },
+    { stdio: ["ignore", "ignore", "pipe"] },
   );
 
   const ready = new Promise((resolve, reject) => {

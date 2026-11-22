@@ -29,7 +29,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 if TYPE_CHECKING:
     from camera import WorldCamera2D
 
-_COLOR_CACHE: dict[str, RGBA] = {}
+_COLOR_CACHE: dict[tuple[str, int], RGBA] = {}
 
 RGBA = tuple[int, int, int, int]
 RGB = tuple[int, int, int]
@@ -38,12 +38,13 @@ RGB = tuple[int, int, int]
 def parse_color(value: str | Sequence[int], default_alpha: int = 255) -> RGBA:
     key = value if isinstance(value, str) else None
     if key is not None:
-        cached = _COLOR_CACHE.get(key.strip().lstrip("#"))
+        ckey = (key.strip().lstrip("#"), int(default_alpha))
+        cached = _COLOR_CACHE.get(ckey)
         if cached is not None:
             return cached
     result = _parse_color_uncached(value, default_alpha)
     if key is not None:
-        _COLOR_CACHE[key.strip().lstrip("#")] = result
+        _COLOR_CACHE[(key.strip().lstrip("#"), int(default_alpha))] = result
     return result
 
 
@@ -113,16 +114,29 @@ def rgb(value: str | Sequence[int], default_alpha: int = 255) -> RGB:
     return parse_color(value, default_alpha)[:3]
 
 
-def find_font(mono: bool = False, family: str | None = None) -> str | None:
+def find_font(
+    mono: bool = False, family: str | None = None, bold: bool = True
+) -> str | None:
     fam = (family or ("mono" if mono else "sans")).lower()
     if fam == "mono":
-        candidates = _FONT_MONO_CANDIDATES
+        candidates = (
+            _FONT_MONO_CANDIDATES
+            if bold
+            else [
+                str(_BUNDLED_FONTS / "JetBrainsMono-Regular.ttf"),
+                *_FONT_MONO_CANDIDATES,
+            ]
+        )
     elif fam in ("serif_italic", "italic"):
         candidates = _FONT_SERIF_ITALIC_CANDIDATES
     elif fam == "serif":
         candidates = _FONT_SERIF_CANDIDATES
     else:
-        candidates = _FONT_CANDIDATES
+        candidates = (
+            _FONT_CANDIDATES
+            if bold
+            else [str(_BUNDLED_FONTS / "Inter-Regular.ttf"), *_FONT_CANDIDATES]
+        )
     for candidate in candidates:
         if Path(candidate).is_file():
             return candidate
@@ -146,7 +160,7 @@ def get_font(
     cached = _FONT_CACHE.get(key)
     if cached is not None:
         return cached
-    path = find_font(mono=mono, family=fam)
+    path = find_font(mono=mono, family=fam, bold=bold)
     if path:
         try:
             ft = ImageFont.truetype(path, size=size)
@@ -287,9 +301,10 @@ class _Draw:
         fill_ink = rgb(fill) if fill else None
         width_ink = self._tw(width)
         if radius > 0:
+            zoom = self.canvas._z if self.canvas.camera else 1.0
             self.draw.rounded_rectangle(
                 xy,
-                radius=radius * self.canvas.scale,
+                radius=radius * zoom * self.canvas.scale,
                 outline=outline_ink,
                 fill=fill_ink,
                 width=width_ink,
@@ -493,6 +508,8 @@ class SupersampledCanvas:
             Image.Resampling.BOX if self.scale >= 2 else Image.Resampling.LANCZOS
         )
         base = self.image.resize(size, downsample)
+        if self.bloom_image.getbbox() is None:
+            return base
         # bloom is low-frequency by construction — run the pyramid at half res
         bloom_rgb = self.bloom_image.resize(half, Image.Resampling.LANCZOS)
         tight = bloom_rgb.filter(

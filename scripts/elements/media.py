@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
@@ -12,16 +13,33 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
 from elements._shared import ElementContext, _smoothstep
 
-_IMAGE_CACHE: dict[str, Image.Image] = {}
+_IMAGE_CACHE: OrderedDict[tuple[str, int], Image.Image] = OrderedDict()
+_BACKDROP_BLUR_CACHE: OrderedDict[
+    tuple[str, int, int, int, float, float], Image.Image
+] = OrderedDict()
 
 
-def _load_image(path: str) -> Image.Image:
-    img = _IMAGE_CACHE.get(path)
+def _load_image(path: str) -> Image.Image | None:
+    try:
+        resolved = Path(path).resolve()
+        key = (str(resolved), resolved.stat().st_mtime_ns)
+    except OSError as exc:
+        print(f"image element: cannot stat {path}: {exc}", file=sys.stderr)
+        return None
+    img = _IMAGE_CACHE.get(key)
     if img is None:
-        img = Image.open(path)
-        img.load()
-        img = img.convert("RGB")
-        _IMAGE_CACHE[path] = img
+        try:
+            with Image.open(resolved) as opened:
+                opened.load()
+                img = opened.convert("RGB")
+        except (OSError, ValueError) as exc:
+            print(f"image element: cannot decode {path}: {exc}", file=sys.stderr)
+            return None
+        _IMAGE_CACHE[key] = img
+        while len(_IMAGE_CACHE) > 32:
+            _IMAGE_CACHE.popitem(last=False)
+    else:
+        _IMAGE_CACHE.move_to_end(key)
     return img
 
 
@@ -53,6 +71,8 @@ def paint_image(
         print(f"image element: src not found: {path}", file=sys.stderr)
         return
     img = _load_image(str(path))
+    if img is None:
+        return
     iw, ih = img.size
     if iw < 8 or ih < 8:
         print(f"image element: {path} too small ({iw}x{ih})", file=sys.stderr)
@@ -92,18 +112,27 @@ def paint_image(
         blur = float(el.get("blur", (x1 - x0) * 0.06)) * scale
         dim = float(el.get("dim", 0.72))
         anchor_y = min(1.0, max(0.0, float(el.get("anchor_y", 0.5))))
-        fill = max(bw / iw, bh / ih)
-        crop_w = max(1, int(bw / fill))
-        crop_h = max(1, int(bh / fill))
-        left = (iw - crop_w) // 2
-        top = (ih - crop_h) // 2
-        tile = img.crop((left, top, left + crop_w, top + crop_h)).resize(
-            (bw, bh), Image.Resampling.LANCZOS
-        )
-        if blur > 0.0:
-            tile = tile.filter(ImageFilter.GaussianBlur(blur))
-        if dim != 1.0:
-            tile = ImageEnhance.Brightness(tile).enhance(dim)
+        bg_key = (str(path.resolve()), path.stat().st_mtime_ns, bw, bh, blur, dim)
+        cached_bg = _BACKDROP_BLUR_CACHE.get(bg_key)
+        if cached_bg is not None:
+            _BACKDROP_BLUR_CACHE.move_to_end(bg_key)
+            tile = cached_bg.copy()
+        else:
+            fill = max(bw / iw, bh / ih)
+            crop_w = max(1, int(bw / fill))
+            crop_h = max(1, int(bh / fill))
+            left = (iw - crop_w) // 2
+            top = (ih - crop_h) // 2
+            tile = img.crop((left, top, left + crop_w, top + crop_h)).resize(
+                (bw, bh), Image.Resampling.LANCZOS
+            )
+            if blur > 0.0:
+                tile = tile.filter(ImageFilter.GaussianBlur(blur))
+            if dim != 1.0:
+                tile = ImageEnhance.Brightness(tile).enhance(dim)
+            _BACKDROP_BLUR_CACHE[bg_key] = tile.copy()
+            while len(_BACKDROP_BLUR_CACHE) > 16:
+                _BACKDROP_BLUR_CACHE.popitem(last=False)
         fg_scale = min(bw / iw, bh / ih) / zoom
         nw, nh = max(1, int(iw * fg_scale)), max(1, int(ih * fg_scale))
         fg = img.resize((nw, nh), Image.Resampling.LANCZOS)

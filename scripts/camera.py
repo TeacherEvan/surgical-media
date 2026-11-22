@@ -182,4 +182,4 @@ class WorldCamera2D:
         """Exponential trauma decay; trauma in [0, 1], dt in seconds."""
         if trauma <= 0.0:
             return 0.0
-        return max(0.0, trauma * math.exp(-rate * dt) - 0.0)
+        return max(0.0, trauma * math.exp(-rate * max(0.0, dt)))

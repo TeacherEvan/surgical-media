@@ -113,95 +113,103 @@ def paint_quote_card(
     saved_cam = cv.camera
     if card_alpha < 0.999:
         cv.camera = None
+    try:
+        if fill_col not in (None, "", "none"):
+            if card_alpha < 0.999:
+                _paste_soft_pill(
+                    cv,
+                    (x0, y0, x1, y1),
+                    str(fill_col),
+                    card_alpha * reveal,
+                    rad,
+                    outline=(
+                        None if outline_col in (None, "", "none") else str(outline_col)
+                    ),
+                    outline_width=1.8,
+                )
+            else:
+                cv.rectangle(
+                    (x0, y0, x1, y1),
+                    fill=str(fill_col),
+                    outline=(
+                        None if outline_col in (None, "", "none") else str(outline_col)
+                    ),
+                    width=2.0,
+                    radius=rad,
+                )
 
-    if fill_col not in (None, "", "none"):
-        if card_alpha < 0.999:
-            _paste_soft_pill(
-                cv,
-                (x0, y0, x1, y1),
-                str(fill_col),
-                card_alpha * reveal,
-                rad,
-                outline=None if outline_col in (None, "", "none") else str(outline_col),
-                outline_width=1.8,
+        inner_w = (x1 - x0) * 0.86
+        if show_mark:
+            glyph_size = int((y1 - y0) * 0.34)
+            cv.text(
+                (x0 + (x1 - x0) * 0.055, y0 + (y1 - y0) * 0.16),
+                "“",
+                accent_col,
+                size=glyph_size,
+                anchor="lm",
+                family=family,
+                bold=bold,
             )
+        font_size = int(el.get("size") or max(13, int((y1 - y0) * 0.115)))
+        font = get_font(font_size, family=family, bold=bold)
+        max_w = inner_w if align == "center" else inner_w - (x1 - x0) * 0.12
+        lines = _wrap_text(quote, font, max_w)
+        line_step = font_size * 1.32
+        if align == "center":
+            total_h = line_step * min(4, len(lines))
+            ty = (y0 + y1) * 0.5 - total_h * 0.5 + font_size * 0.45
+            if attribution:
+                ty -= font_size * 0.55
+            tx = (x0 + x1) * 0.5
+            anchor = "mm"
         else:
-            cv.rectangle(
-                (x0, y0, x1, y1),
-                fill=str(fill_col),
-                outline=None if outline_col in (None, "", "none") else str(outline_col),
-                width=2.0,
-                radius=rad,
+            ty = y0 + (y1 - y0) * 0.30
+            tx = x0 + (x1 - x0) * 0.075
+            anchor = "lm"
+        for line in lines[:4]:
+            cv.text(
+                (tx, ty),
+                line,
+                ink_col,
+                size=font_size,
+                anchor=anchor,
+                family=family,
+                bold=bold,
             )
-
-    inner_w = (x1 - x0) * 0.86
-    if show_mark:
-        glyph_size = int((y1 - y0) * 0.34)
-        cv.text(
-            (x0 + (x1 - x0) * 0.055, y0 + (y1 - y0) * 0.16),
-            "“",
-            accent_col,
-            size=glyph_size,
-            anchor="lm",
-            family=family,
-            bold=bold,
-        )
-    font_size = int(el.get("size") or max(13, int((y1 - y0) * 0.115)))
-    font = get_font(font_size, family=family, bold=bold)
-    max_w = inner_w if align == "center" else inner_w - (x1 - x0) * 0.12
-    lines = _wrap_text(quote, font, max_w)
-    line_step = font_size * 1.32
-    if align == "center":
-        total_h = line_step * min(4, len(lines))
-        ty = (y0 + y1) * 0.5 - total_h * 0.5 + font_size * 0.45
+            ty += line_step
         if attribution:
-            ty -= font_size * 0.55
-        tx = (x0 + x1) * 0.5
-        anchor = "mm"
-    else:
-        ty = y0 + (y1 - y0) * 0.30
-        tx = x0 + (x1 - x0) * 0.075
-        anchor = "lm"
-    for line in lines[:4]:
-        cv.text(
-            (tx, ty),
-            line,
-            ink_col,
-            size=font_size,
-            anchor=anchor,
-            family=family,
-            bold=bold,
-        )
-        ty += line_step
-    if attribution:
-        attr_prefix = str(el.get("attribution_prefix", "— "))
-        attr_text = f"{attr_prefix}{attribution}"
-        attr_size = int(el.get("attribution_size") or max(10, int(font_size * 0.68)))
-        attr_family = el.get("attribution_family", family)
-        max_w_attr = (x1 - x0) * 0.86
-        while (
-            attr_size > 8
-            and get_font(attr_size, family=attr_family, bold=False).getlength(attr_text)
-            > max_w_attr
-        ):
-            attr_size -= 1
-        attr_pos = (
-            ((x0 + x1) * 0.5, ty + font_size * 0.35)
-            if align == "center"
-            else (x0 + (x1 - x0) * 0.075, y1 - (y1 - y0) * 0.16)
-        )
-        cv.text(
-            attr_pos,
-            attr_text,
-            dim_col,
-            size=attr_size,
-            anchor="mm" if align == "center" else "lm",
-            family=attr_family,
-            bold=False,
-        )
-
-    if card_alpha < 0.999:
-        cv.camera = saved_cam
+            attr_prefix = str(el.get("attribution_prefix", "— "))
+            attr_text = f"{attr_prefix}{attribution}"
+            attr_size = int(
+                el.get("attribution_size") or max(10, int(font_size * 0.68))
+            )
+            attr_family = el.get("attribution_family", family)
+            max_w_attr = (x1 - x0) * 0.86
+            while (
+                attr_size > 8
+                and get_font(attr_size, family=attr_family, bold=False).getlength(
+                    attr_text
+                )
+                > max_w_attr
+            ):
+                attr_size -= 1
+            attr_pos = (
+                ((x0 + x1) * 0.5, ty + font_size * 0.35)
+                if align == "center"
+                else (x0 + (x1 - x0) * 0.075, y1 - (y1 - y0) * 0.16)
+            )
+            cv.text(
+                attr_pos,
+                attr_text,
+                dim_col,
+                size=attr_size,
+                anchor="mm" if align == "center" else "lm",
+                family=attr_family,
+                bold=False,
+            )
+    finally:
+        if card_alpha < 0.999:
+            cv.camera = saved_cam
 
 
 def paint_kinetic_captions(
@@ -301,13 +309,19 @@ def paint_kinetic_captions(
                 outline_width=1.2 if bg_outline else 0.0,
             )
         else:
-            cv.rectangle(
-                pill_box,
-                fill=str(bg_color),
-                outline=str(bg_outline) if bg_outline else None,
-                width=1.2 if bg_outline else 0.0,
-                radius=pill_rad,
-            )
+            saved_cam = cv.camera
+            if y_anchor is not None:
+                cv.camera = None
+            try:
+                cv.rectangle(
+                    pill_box,
+                    fill=str(bg_color),
+                    outline=str(bg_outline) if bg_outline else None,
+                    width=1.2 if bg_outline else 0.0,
+                    radius=pill_rad,
+                )
+            finally:
+                cv.camera = saved_cam
 
     for li, (_, _, spans) in enumerate(line_boxes):
         ly = y + li * line_h
@@ -389,12 +403,17 @@ def paint_source_tag(
     sx0, sy0, sx1, sy1 = ctx.zones["safe"]
     size = int(el.get("size") or max(13, int(ctx.height * 0.021)))
     family = el.get("font_family")
-    label_font = get_font(size, family=family, bold=True)
-    body_font = get_font(size, family=family, bold=False)
-    gap = size * 0.6
-    pad_x, pad_y = size * 0.7, size * 0.45
-    w = label_font.getlength(label) + gap + body_font.getlength(text) + 2 * pad_x
-    w = min(w, (sx1 - sx0) * 0.96)
+    max_w = (sx1 - sx0) * 0.96
+    while size > 9:
+        label_font = get_font(size, family=family, bold=True)
+        body_font = get_font(size, family=family, bold=False)
+        gap = size * 0.6
+        pad_x, pad_y = size * 0.7, size * 0.45
+        w = label_font.getlength(label) + gap + body_font.getlength(text) + 2 * pad_x
+        if w <= max_w:
+            break
+        size -= 1
+    w = min(w, max_w)
     h = size + 2 * pad_y
     corner = str(el.get("corner", "bl"))
     x0 = sx1 - w if corner.endswith("r") else sx0
@@ -410,21 +429,26 @@ def paint_source_tag(
         outline_width=1.2,
     )
     cy = y0 + h / 2
-    cv.text(
-        (x0 + pad_x, cy),
-        label,
-        accent,
-        size=size,
-        anchor="lm",
-        family=family,
-        bold=True,
-    )
-    cv.text(
-        (x0 + pad_x + label_font.getlength(label) + gap, cy),
-        text,
-        ink,
-        size=size,
-        anchor="lm",
-        family=family,
-        bold=False,
-    )
+    saved_cam = cv.camera
+    cv.camera = None
+    try:
+        cv.text(
+            (x0 + pad_x, cy),
+            label,
+            accent,
+            size=size,
+            anchor="lm",
+            family=family,
+            bold=True,
+        )
+        cv.text(
+            (x0 + pad_x + label_font.getlength(label) + gap, cy),
+            text,
+            ink,
+            size=size,
+            anchor="lm",
+            family=family,
+            bold=False,
+        )
+    finally:
+        cv.camera = saved_cam

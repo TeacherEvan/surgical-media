@@ -6,7 +6,7 @@ import math
 from functools import lru_cache
 from typing import Any
 
-from canvas import RGB, SupersampledCanvas, parse_color, rgb
+from canvas import SupersampledCanvas, parse_color, rgb
 from PIL import Image, ImageDraw, ImageFilter
 
 from elements._shared import ElementContext
@@ -62,7 +62,7 @@ def _render_gradient(
 
 
 @lru_cache(maxsize=32)
-def _vignette_mask(size: tuple[int, int], strength: float, color: RGB) -> Image.Image:
+def _vignette_mask(size: tuple[int, int], strength: float) -> Image.Image:
     """Corner-fade mask resized to the canvas — time-independent: cacheable."""
     vw, vh = 64, 64
     vmask = Image.new("L", (vw, vh), 0)
@@ -123,12 +123,14 @@ def paint_background(
     vignette_strength = float(el.get("vignette_strength", 0.0))
     if vignette_strength > 0.001:
         v_col = rgb(el.get("vignette_color", "#DFCFC0"))
-        vmask = _vignette_mask(cv.image.size, vignette_strength, v_col)
+        vmask = _vignette_mask(cv.image.size, vignette_strength)
         cv.image.paste(Image.new("RGB", cv.image.size, v_col), (0, 0), vmask)
 
 
 def paint_grid(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -> None:
     spacing = float(el.get("spacing", 90))
+    if not math.isfinite(spacing) or spacing <= 0.0:
+        return
     color = el.get("color", "#131B2E")
     color = parse_color(color, default_alpha=int(255 * float(el.get("alpha", 1.0))))
     w = max(1.0, ctx.width * 0.0012)

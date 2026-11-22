@@ -370,9 +370,9 @@ function buildOrbitalOrField(THREE, scene) {
     roughness: 0.22,
   });
   const coilCount = 12;
+  const coilGeom = new THREE.TorusGeometry(smallR * 1.38, 0.065, 14, 36);
   for (let i = 0; i < coilCount; i++) {
     const u = (2.0 * Math.PI * i) / coilCount;
-    const coilGeom = new THREE.TorusGeometry(smallR * 1.38, 0.065, 14, 36);
     const coil = new THREE.Mesh(coilGeom, coilMat);
     coil.position.set(bigR * Math.cos(u), bigR * Math.sin(u), 0.0);
     coil.rotation.order = "ZYX";
@@ -478,6 +478,10 @@ function buildOrganicSerpent(THREE, scene) {
   group.add(eyeL, eyeR);
 
   const up = new THREE.Vector3(0, 0, 1);
+  const altUp = new THREE.Vector3(0, 1, 0);
+  const tangent = new THREE.Vector3();
+  const right = new THREE.Vector3();
+  const frameUp = new THREE.Vector3();
 
   return (tNorm) => {
     const posAttr = geom.attributes.position;
@@ -489,9 +493,13 @@ function buildOrganicSerpent(THREE, scene) {
       const du = 1e-3;
       const p0 = serpentSpinePoint(Math.max(0.0, u - du), tNorm);
       const p1 = serpentSpinePoint(Math.min(1.0, u + du), tNorm);
-      const tangent = new THREE.Vector3(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]).normalize();
-      const right = new THREE.Vector3().crossVectors(tangent, up).normalize();
-      const frameUp = new THREE.Vector3().crossVectors(right, tangent).normalize();
+      tangent.set(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]).normalize();
+      right.crossVectors(tangent, up);
+      if (right.lengthSq() < 1e-12) {
+        right.crossVectors(tangent, altUp);
+      }
+      right.normalize();
+      frameUp.crossVectors(right, tangent).normalize();
       const r = serpentRadiusAt(u);
 
       for (let j = 0; j < sides; j++) {
@@ -558,6 +566,19 @@ function buildNetworkTopology(THREE, scene) {
   const curves = [];
   const packets = [];
   const packetGeom = new THREE.SphereGeometry(0.065, 10, 10);
+  const tubeMat = new THREE.MeshStandardMaterial({
+    color: 0x38bdf8,
+    emissive: 0x0ea5e9,
+    emissiveIntensity: 0.45,
+    transparent: true,
+    opacity: 0.85,
+  });
+  const pktMat = new THREE.MeshStandardMaterial({
+    color: 0xfde047,
+    emissive: 0xfacc15,
+    emissiveIntensity: 1.5,
+    roughness: 0.1,
+  });
 
   for (let i = 0; i < edges.length; i++) {
     const [aIdx, bIdx] = edges[i];
@@ -569,21 +590,8 @@ function buildNetworkTopology(THREE, scene) {
     curves.push(curve);
 
     const tubeGeom = new THREE.TubeGeometry(curve, 24, 0.024, 8, false);
-    const tubeMat = new THREE.MeshStandardMaterial({
-      color: 0x38bdf8,
-      emissive: 0x0ea5e9,
-      emissiveIntensity: 0.45,
-      transparent: true,
-      opacity: 0.85,
-    });
     group.add(new THREE.Mesh(tubeGeom, tubeMat));
 
-    const pktMat = new THREE.MeshStandardMaterial({
-      color: 0xfde047,
-      emissive: 0xfacc15,
-      emissiveIntensity: 1.5,
-      roughness: 0.1,
-    });
     const pkt = new THREE.Mesh(packetGeom, pktMat);
     group.add(pkt);
     packets.push({ mesh: pkt, curve, phase: (i * 0.17) % 1.0 });
@@ -593,6 +601,7 @@ function buildNetworkTopology(THREE, scene) {
   for (const node of nodes) {
     dynamicAnchors[node.id] = node.pos;
   }
+  const pktPos = new THREE.Vector3();
 
   return (tNorm) => {
     const t = clamp01(tNorm);
@@ -602,8 +611,8 @@ function buildNetworkTopology(THREE, scene) {
     }
     for (const pkt of packets) {
       const u = (t * 1.4 + pkt.phase) % 1.0;
-      const pt = pkt.curve.getPoint(u);
-      pkt.mesh.position.copy(pt);
+      pkt.curve.getPoint(u, pktPos);
+      pkt.mesh.position.copy(pktPos);
     }
     return dynamicAnchors;
   };
@@ -676,6 +685,9 @@ async function buildExternalAsset(THREE, scene, spec, GLTFLoader, SVGLoader) {
     group.add(extrudeSvgTo3D(THREE, SVGLoader, svgMarkup, spec.params || {}));
   } else if (assetUrl && assetUrl.endsWith(".svg") && SVGLoader) {
     const res = await fetch(assetUrl);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch SVG asset (${res.status}): ${assetUrl}`);
+    }
     const svgText = await res.text();
     group.add(extrudeSvgTo3D(THREE, SVGLoader, svgText, spec.params || {}));
   } else if (assetUrl && GLTFLoader) {
@@ -792,6 +804,9 @@ export async function createSceneController(THREE, spec, width, height, extras =
 
   const anchorDefs = Array.isArray(spec.anchors_3d) ? spec.anchors_3d : [];
   const forward = new THREE.Vector3();
+  const worldVec = new THREE.Vector3();
+  const deltaVec = new THREE.Vector3();
+  const ndcVec = new THREE.Vector3();
   const targetArr = Array.isArray(spec.params?.camera_target)
     ? spec.params.camera_target
     : [0.0, 0.0, 0.0];
@@ -817,12 +832,12 @@ export async function createSceneController(THREE, spec, width, height, extras =
       if (!aDef || typeof aDef !== "object" || !aDef.anchor_id) continue;
       const aid = String(aDef.anchor_id);
       const rawPos = dynamicAnchors[aid] ?? aDef.local_pos ?? [0, 0, 0];
-      const worldVec = new THREE.Vector3(
+      worldVec.set(
         Number(rawPos[0] ?? 0),
         Number(rawPos[1] ?? 0),
         Number(rawPos[2] ?? 0),
       );
-      const zDepth = worldVec.clone().sub(camera.position).dot(forward);
+      const zDepth = deltaVec.subVectors(worldVec, camera.position).dot(forward);
       if (zDepth <= Z_NEAR_VISIBLE) {
         anchors.push({
           anchor_id: aid,
@@ -833,9 +848,9 @@ export async function createSceneController(THREE, spec, width, height, extras =
         });
         continue;
       }
-      const ndc = worldVec.clone().project(camera);
-      const u = 0.5 + 0.5 * ndc.x;
-      const v = 0.5 - 0.5 * ndc.y;
+      ndcVec.copy(worldVec).project(camera);
+      const u = 0.5 + 0.5 * ndcVec.x;
+      const v = 0.5 - 0.5 * ndcVec.y;
       const visible =
         zDepth > Z_NEAR_VISIBLE && u >= 0.02 && u <= 0.98 && v >= 0.02 && v <= 0.98;
       anchors.push({

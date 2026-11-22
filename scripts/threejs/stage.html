@@ -58,7 +58,8 @@
         renderer.setSize(width, height, false);
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = Number(params.exposure ?? 1.15);
+        const rawExposure = Number(params.exposure ?? 1.15);
+        renderer.toneMappingExposure = Number.isFinite(rawExposure) ? rawExposure : 1.15;
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         if (transparentBg) {
@@ -67,7 +68,9 @@
 
         // Studio IBL environment map so metallic PBR surfaces reflect realistic studio light
         const pmrem = new THREE.PMREMGenerator(renderer);
-        const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+        const roomEnv = new RoomEnvironment();
+        const envTex = pmrem.fromScene(roomEnv, 0.04).texture;
+        roomEnv.dispose();
         pmrem.dispose();
 
         let customModule = null;
@@ -90,12 +93,15 @@
           composer = new EffectComposer(renderer);
           composer.setSize(width, height);
           composer.addPass(new RenderPass(controller.scene, controller.camera));
-          const strength = Number(
+          const rawStrength = Number(
             params.bloom_strength ??
               (spec.lighting_preset === "clean_product_softbox" ? 0.28 : 0.52),
           );
-          const radius = Number(params.bloom_radius ?? 0.45);
-          const threshold = Number(params.bloom_threshold ?? 0.58);
+          const strength = Number.isFinite(rawStrength) ? rawStrength : 0.52;
+          const rawRadius = Number(params.bloom_radius ?? 0.45);
+          const radius = Number.isFinite(rawRadius) ? rawRadius : 0.45;
+          const rawThreshold = Number(params.bloom_threshold ?? 0.58);
+          const threshold = Number.isFinite(rawThreshold) ? rawThreshold : 0.58;
           composer.addPass(
             new UnrealBloomPass(new THREE.Vector2(width, height), strength, radius, threshold),
           );

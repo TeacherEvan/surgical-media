@@ -54,6 +54,16 @@ class Grader:
         self.seed = int(seed)
         self._vignette_mask: Image.Image | None = None
         self._grain_tiles: list[Image.Image] = []
+        k = self.warmth * 0.10
+        self._r_lut = [min(255, max(0, round(v * (1.0 + k)))) for v in range(256)]
+        self._b_lut = [min(255, max(0, round(v * (1.0 - k)))) for v in range(256)]
+        self._halation_luma_lut = [
+            0 if v < HALATION_THRESHOLD else round((v - HALATION_THRESHOLD) * 3.0)
+            for v in range(256)
+        ]
+        strength = self.halation * 0.55
+        self._halation_scale_lut = [round(v * strength) for v in range(256)] * 3
+        self._halation_tint: Image.Image | None = None
 
     @property
     def active(self) -> bool:
@@ -61,30 +71,26 @@ class Grader:
 
     # -- stages ------------------------------------------------------------
     def _apply_warmth(self, frame: Image.Image) -> Image.Image:
-        k = self.warmth * 0.10
-        r_lut = [min(255, max(0, round(v * (1.0 + k)))) for v in range(256)]
-        b_lut = [min(255, max(0, round(v * (1.0 - k)))) for v in range(256)]
         r, g, b = frame.split()
-        return Image.merge("RGB", (r.point(r_lut), g, b.point(b_lut)))
+        return Image.merge("RGB", (r.point(self._r_lut), g, b.point(self._b_lut)))
 
     def _apply_halation(self, frame: Image.Image) -> Image.Image:
         small = frame.resize(
             (max(1, self.width // 4), max(1, self.height // 4)),
             Image.Resampling.BILINEAR,
         )
-        luma = small.convert("L").point(
-            [
-                0 if v < HALATION_THRESHOLD else round((v - HALATION_THRESHOLD) * 3.0)
-                for v in range(256)
-            ]
-        )
+        luma = small.convert("L").point(self._halation_luma_lut)
         radius = max(2.0, self.width / 120.0)
         glow = luma.filter(ImageFilter.GaussianBlur(radius))
         glow = glow.resize((self.width, self.height), Image.Resampling.BILINEAR)
-        strength = self.halation * 0.55
-        tint = Image.new("RGB", (self.width, self.height), HALATION_TINT)
-        lit = ImageChops.multiply(tint, Image.merge("RGB", (glow, glow, glow)))
-        lit = lit.point([round(v * strength) for v in range(256)] * 3)
+        if self._halation_tint is None:
+            self._halation_tint = Image.new(
+                "RGB", (self.width, self.height), HALATION_TINT
+            )
+        lit = ImageChops.multiply(
+            self._halation_tint, Image.merge("RGB", (glow, glow, glow))
+        )
+        lit = lit.point(self._halation_scale_lut)
         return ImageChops.screen(frame, lit)
 
     def _get_vignette(self) -> Image.Image:

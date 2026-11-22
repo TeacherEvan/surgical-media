@@ -133,6 +133,7 @@ def prerender_threejs_scene(
         result = subprocess.run(
             argv,
             check=False,
+            stdin=subprocess.DEVNULL,
             timeout=eff_timeout,
             capture_output=True,
         )

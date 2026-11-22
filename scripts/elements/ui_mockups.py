@@ -73,12 +73,13 @@ def paint_swipe_card(
     cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext
 ) -> None:
     x0, y0, x1, y1 = (float(v) for v in el.get("box", [60, 420, 1020, 1400]))
-    default_accent = str(el.get("accent", el.get("accent", "#FFD23F")))
+    default_accent = str(el.get("accent", "#FFD23F"))
     cards = [c for c in el.get("cards", []) if isinstance(c, dict)]
     if not cards:
         cards = [{"label": "Stallion. 7/10. Owns a garden."}]
     pop = float(el.get("pop", 0.1))
-    scale = _wobble(ctx.local_time, float(el.get("pop_period", 0.55)), pop)
+    pop_period = max(1e-3, float(el.get("pop_period", 0.55)))
+    scale = _wobble(ctx.local_time, pop_period, pop)
 
     gap = (y1 - y0) * 0.08
     top = cards[-1]
@@ -214,7 +215,7 @@ def paint_chat_bubble(
         ty0 = y0 + 10 + i * (th + 18) * 1.1 + (1.0 - progress) * 18
         if side == "right":
             bx0 = x1 - tw - pad
-            tx = bx0 + tw - pad
+            tx = bx0 + pad * 0.5
             tail_pts = [
                 (bx0 + tw + 4, ty0 + th - 6),
                 (bx0 + tw + 22, ty0 + th - 12),

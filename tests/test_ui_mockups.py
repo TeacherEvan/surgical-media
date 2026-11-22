@@ -109,7 +109,9 @@ def test_social_post_default_renders_nonblank():
     colors = _colors(_render({"type": "social_post", "box": [40, 220, 1040, 620]}))
     assert rgb("#A65A38") in colors  # default avatar accent
     assert rgb("#FF4D6D") in colors  # default heart
-    assert len(colors) > 50
+    assert rgb("#1B1B1F") in colors  # header/body text ink
+    # Inter-Regular.ttf body weight yields ~41 unique sampled colors
+    assert len(colors) > 30
 
 
 def test_social_post_custom_body():

@@ -56,7 +56,8 @@ def _frame_legibility(im: Image.Image) -> float:
 
 
 def score_frame(path: Path) -> dict[str, float]:
-    im = Image.open(path).convert("RGB")
+    with Image.open(path) as opened:
+        im = opened.convert("RGB")
     contrast = _frame_contrast(im)
     legibility = _frame_legibility(im)
     score = round(contrast * 0.55 + legibility * 0.45, 3)
@@ -67,18 +68,26 @@ def score_frame(path: Path) -> dict[str, float]:
     }
 
 
-def pick_thumbnail(thumbnails_dir: Path) -> tuple[Path, dict[str, Any]]:
+def pick_thumbnail(
+    thumbnails_dir: Path, candidates: list[Path] | None = None
+) -> tuple[Path, dict[str, Any]]:
     """Return (best frame, its score) — the highest-scoring frame."""
     best_path: Path | None = None
     best_score = -1.0
     best_meta: dict[str, Any] = {}
-    for p in sorted(thumbnails_dir.glob("*.png")) + sorted(
-        thumbnails_dir.glob("*.jpg")
-    ):
+    paths = (
+        list(candidates)
+        if candidates is not None
+        else (
+            sorted(thumbnails_dir.glob("*.png")) + sorted(thumbnails_dir.glob("*.jpg"))
+        )
+    )
+    for p in paths:
         meta = score_frame(p)
         if meta["score"] > best_score:
             best_path, best_score, best_meta = p, meta["score"], meta
-    assert best_path is not None, "no frames found"
+    if best_path is None:
+        raise ValueError("no frames found")
     return best_path, best_meta
 
 
@@ -97,16 +106,17 @@ def generate_thumbnail(
     thumbs = render_thumbnails(Path(storyboard), thumbnails_dir)
     if not thumbs:
         return {"ok": False, "reason": "no thumbnails rendered"}
-    best, meta = pick_thumbnail(thumbnails_dir)
+    best, meta = pick_thumbnail(thumbnails_dir, candidates=thumbs)
     meta["path"] = str(out_path)
     if meta["score"] < min_score:
         meta["ok"] = False
         return meta
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    im = Image.open(best).convert("RGB")
-    im.save(out_path, "JPEG", quality=quality)
-    if out_path.stat().st_size > int(max_mb * 1024 * 1024):
-        im.save(out_path, "JPEG", quality=max(60, quality - 40))
+    with Image.open(best) as opened:
+        im = opened.convert("RGB")
+        im.save(out_path, "JPEG", quality=quality)
+        if out_path.stat().st_size > int(max_mb * 1024 * 1024):
+            im.save(out_path, "JPEG", quality=max(60, quality - 40))
     meta["ok"] = True
     return meta
 

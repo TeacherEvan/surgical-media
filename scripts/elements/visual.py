@@ -61,7 +61,10 @@ def paint_orb_pulse(
 def paint_dot_field(
     cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext
 ) -> None:
-    n = max(4, int(el.get("n", 28)))
+    raw_n = int(el.get("n", 28))
+    if raw_n <= 0:
+        return
+    n = max(4, raw_n)
     radius = float(el.get("radius", 6.0))
     r_min, r_max = (
         float(el.get("radius_min", radius * 0.8)),
@@ -174,7 +177,7 @@ def paint_typewriter_text(
     if not text.strip():
         return
     size = float(el.get("size", 22.0))
-    family = el.get("family")
+    family = el.get("font_family") or el.get("family")
     bold = bool(el.get("bold", True))
     color = str(el.get("color", INK))
     accent = str(el.get("accent", GOLD))
@@ -282,7 +285,7 @@ def paint_leader_arrow(
 
     # full path faint, walked portion in color
     cv.polyline(points, DIM, max(1.0, width * 0.35))
-    cv.polyline([points[0], cur], color, width)
+    cv.polyline(points[: seg_at + 1] + [cur], color, width)
 
     # animated arrowhead at the cursor
     dx, dy = b[0] - a[0], b[1] - a[1]

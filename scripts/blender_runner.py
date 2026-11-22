@@ -22,12 +22,15 @@ Supported categories:
                          frame for a travelling S-wave, with a gold head,
                          emissive eyes and a tongue on a head rig; the whole
                          body sways gently on a parent rig.
+  network_topology_3d    6-node icosahedron network with pulsing halos,
+                         quadratic Bezier tubes, and travelling data packets.
+  external_asset_3d      normalized .glb/.gltf turntable import with studio
+                         pedestal fallback when no asset_path is supplied.
 
 The following known 3D categories are **not** implemented and raise
 ``NotImplementedError`` (no silent fallback):
 
-  network_topology_3d, rigid_body_physics_3d, mathematical_manifold_3d,
-  external_asset_3d
+  rigid_body_physics_3d, mathematical_manifold_3d
 
 Importing this module outside Blender is safe: ``bpy``/``bmesh``/``mathutils``/
 ``bpy_extras`` are imported in a guarded block and ``INSIDE_BLENDER`` is set to
@@ -39,7 +42,9 @@ otherwise.
 import argparse
 import json
 import math
+import os
 import sys
+import tempfile
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -368,6 +373,28 @@ def _cubic_ease_in_out(u: float) -> float:
     return 1.0 - ((-2.0 * u + 2.0) ** 3) / 2.0
 
 
+def compute_camera_location(
+    cam_spec: dict[str, Any], u: float
+) -> tuple[float, float, float]:
+    """Compute world camera (x, y, z) orbiting around ``target_pos`` at normalized time ``u``."""
+    target = cam_spec.get("target_pos", [0.0, 0.0, 0.0])
+    tx, ty, tz = float(target[0]), float(target[1]), float(target[2])
+    radius_start = float(cam_spec.get("radius_start", 9.0))
+    radius_end = float(cam_spec.get("radius_end", 6.0))
+    azimuth_start = float(cam_spec.get("azimuth_start_deg", -38.0))
+    azimuth_end = float(cam_spec.get("azimuth_end_deg", 40.0))
+    elevation = math.radians(float(cam_spec.get("elevation_deg", 24.0)))
+    mode = str(cam_spec.get("mode", "orbit")).lower()
+    eased = 0.0 if mode == "static" else _cubic_ease_in_out(u)
+    azimuth = math.radians(azimuth_start + (azimuth_end - azimuth_start) * eased)
+    radius = radius_start + (radius_end - radius_start) * eased
+    return (
+        tx + radius * math.cos(elevation) * math.sin(azimuth),
+        ty - radius * math.cos(elevation) * math.cos(azimuth),
+        tz + radius * math.sin(elevation),
+    )
+
+
 def setup_camera_rig(
     scene: Any, cam_spec: dict[str, Any] | None, total_frames: float
 ) -> Any:
@@ -375,12 +402,7 @@ def setup_camera_rig(
     cam_spec = cam_spec or {}
     target = cam_spec.get("target_pos", [0.0, 0.0, 0.0])
     focal = float(cam_spec.get("focal_length_mm", 50))
-    fstop = float(cam_spec.get("aperture_fstop", 2.8))
-    radius_start = float(cam_spec.get("radius_start", 9.0))
-    radius_end = float(cam_spec.get("radius_end", 6.0))
-    azimuth_start = float(cam_spec.get("azimuth_start_deg", -38.0))
-    azimuth_end = float(cam_spec.get("azimuth_end_deg", 40.0))
-    elevation = math.radians(float(cam_spec.get("elevation_deg", 24.0)))
+    fstop = float(cam_spec.get("aperture_fstop", cam_spec.get("fstop", 2.8)))
 
     empty = bpy.data.objects.new("Focus_Target_Empty", None)
     _try_set(empty, "empty_display_type", "SPHERE")
@@ -393,7 +415,7 @@ def setup_camera_rig(
     cam_data.dof.focus_object = empty
     cam_data.dof.aperture_fstop = fstop
     cam_obj = bpy.data.objects.new("Camera", cam_data)
-    cam_obj.location = (0.0, -radius_start, 3.0)
+    cam_obj.location = compute_camera_location(cam_spec, 0.0)
     scene.collection.objects.link(cam_obj)
     constraint = cam_obj.constraints.new("TRACK_TO")
     constraint.target = empty
@@ -404,14 +426,7 @@ def setup_camera_rig(
     n = max(1, int(total_frames))
     for frame in range(1, n + 1):
         u = (frame - 1) / max(1, n - 1)
-        eased = _cubic_ease_in_out(u)
-        azimuth = math.radians(azimuth_start + (azimuth_end - azimuth_start) * eased)
-        radius = radius_start + (radius_end - radius_start) * eased
-        cam_obj.location = (
-            radius * math.cos(elevation) * math.sin(azimuth),
-            -radius * math.cos(elevation) * math.cos(azimuth),
-            radius * math.sin(elevation),
-        )
+        cam_obj.location = compute_camera_location(cam_spec, u)
         cam_obj.keyframe_insert(data_path="location", frame=frame)
     return cam_obj
 
@@ -475,8 +490,11 @@ def _new_beveled_cube(name: str, z: float, size: Sequence[float]) -> Any:
     obj.scale = (float(size[0]), float(size[1]), float(size[2]))
     try:
         bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-    except Exception:  # noqa: S110,BLE001 - unscaled cube still renders fine
-        pass
+    except (RuntimeError, AttributeError) as exc:
+        print(
+            f"blender_runner: warning — transform_apply skipped on {name}: {exc}",
+            file=sys.stderr,
+        )
     bevel = obj.modifiers.new("Bevel", "BEVEL")
     bevel.width = 0.03
     bevel.segments = 3
@@ -1031,7 +1049,20 @@ def export_anchor_tracks(
     payload = {"total_frames": n, "frames": frames_out}
     out_path = Path(out_json_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(payload, indent=2))
+    text = json.dumps(payload, indent=2) + "\n"
+    with tempfile.NamedTemporaryFile(
+        "w",
+        encoding="utf-8",
+        dir=out_path.parent,
+        prefix=f".{out_path.name}.",
+        suffix=".tmp",
+        delete=False,
+    ) as fh:
+        tmp_path = Path(fh.name)
+        fh.write(text)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp_path, out_path)
     return out_path
 
 
@@ -1072,7 +1103,7 @@ def run_blender_scene(
         preset=spec.get("lighting_preset", "cyber_studio_volumetric"),
         style_light=spec.get("style_light"),
     )
-    cam_spec = spec.get("camera") or {}
+    cam_spec = spec.get("camera") or spec.get("camera_3d") or {}
     cam_obj = setup_camera_rig(scene, cam_spec, total_frames)
 
     category = spec.get("category")

@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import elements
 from camera import WorldCamera2D
-from canvas import SupersampledCanvas, get_font, layout_zones, rgb
+from canvas import SupersampledCanvas, get_font, layout_zones
 from elements import ElementContext, render_element
 
 W, H = 220, 390  # 9:16-ish, small for speed
@@ -240,10 +240,10 @@ def test_gradient_and_vignette_masks_are_cached():
     g2 = _render_gradient((W, H), ("#111C31", "#1D2740", "#0E1421"), "vertical")
     assert g2 is g1, "identical gradient params must share the cached mask"
     assert _render_gradient((W, H), ("#111C31", "#1D2740"), "horizontal") is not g1
-    v1 = _vignette_mask((W, H), 0.9, rgb("#DFCFC0"))
-    v2 = _vignette_mask((W, H), 0.9, rgb("#DFCFC0"))
+    v1 = _vignette_mask((W, H), 0.9)
+    v2 = _vignette_mask((W, H), 0.9)
     assert v2 is v1, "identical vignette params must share the cached mask"
-    assert _vignette_mask((W, H), 0.5, rgb("#DFCFC0")) is not v1
+    assert _vignette_mask((W, H), 0.5) is not v1
 
 
 def test_quote_card_translucent_card_text_is_camera_independent():

@@ -56,18 +56,19 @@ def composite_3d_tracked_hud(
     # at the canvas edges and the leader lines cross the whole frame).
     vertical = aspect_ratio == "9:16"
     if vertical:
-        hud_box = (84.0, 226.0, w - 84.0, 302.0)
-        card_h = _CARD_H
+        sx, sy = w / 1080.0, h / 1920.0
+        hud_box = (84.0 * sx, 226.0 * sy, w - 84.0 * sx, 302.0 * sy)
+        card_h = _CARD_H * sy
         locked_boxes = [
-            LayoutBox("hud_header", *hud_box, locked=True, padding=12.0),
+            LayoutBox("hud_header", *hud_box, locked=True, padding=12.0 * sx),
             LayoutBox(
                 "center_3d_repulsor",
-                84.0,
-                820.0,
-                w - 84.0,
-                1400.0,
+                84.0 * sx,
+                820.0 * sy,
+                w - 84.0 * sx,
+                1400.0 * sy,
                 locked=True,
-                padding=16.0,
+                padding=16.0 * sx,
             ),
         ]
     else:
@@ -99,9 +100,10 @@ def composite_3d_tracked_hud(
         label_w = label_font.getlength(label)
         metric_w = metric_font.getlength(metric)
         if vertical:
-            card_w = min(440.0, max(340.0, max(label_w, metric_w) + 44.0))
-            cx0 = 84.0 if idx % 2 == 0 else (w - 84.0 - card_w)
-            cy0 = 560.0 + (idx // 2) * (card_h + 24.0)
+            sx, sy = w / 1080.0, h / 1920.0
+            card_w = min(440.0 * sx, max(340.0 * sx, max(label_w, metric_w) + 44.0))
+            cx0 = 84.0 * sx if idx % 2 == 0 else (w - 84.0 * sx - card_w)
+            cy0 = 560.0 * sy + (idx // 2) * (card_h + 24.0 * sy)
         else:
             card_w = max(290.0, max(label_w, metric_w) + 44.0)
             put_left = idx % 2 == 1
@@ -133,7 +135,7 @@ def composite_3d_tracked_hud(
             continue
         pop = spring_pop(appear_t)
 
-        accent = anchor.get("accent_hex", _HUD_ACCENT)
+        accent = anchor.get("accent_hex") or _HUD_ACCENT
         ax = anchor["u"] * w
         ay = anchor["v"] * h
         box = solved[f"anchor_card_{idx}"]

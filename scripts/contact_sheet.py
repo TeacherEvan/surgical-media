@@ -26,7 +26,10 @@ def build_sheet(
 ) -> Path:
     if not thumbs:
         raise ValueError("no thumbnails to tile")
-    imgs = [Image.open(p).convert("RGB") for p in thumbs]
+    imgs: list[Image.Image] = []
+    for p in thumbs:
+        with Image.open(p) as opened:
+            imgs.append(opened.convert("RGB"))
     ratio = imgs[0].height / imgs[0].width
     tile_h = round(tile_w * ratio)
     cols = max(1, min(cols, len(imgs)))

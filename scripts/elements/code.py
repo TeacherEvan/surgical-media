@@ -317,7 +317,9 @@ def paint_code_terminal(
     font_size = max(9, int(line_h * 0.58))
     cursor_on = int(ctx.local_time * 2.4) % 2 == 0
 
-    for i, line in enumerate(lines[:shown]):
+    start_line = max(0, shown - 18)
+    visible = lines[start_line:shown]
+    for i, line in enumerate(visible):
         ly = body_top + i * line_h
         if isinstance(line, str):
             line = {"text": line, "kind": "normal"}
@@ -326,7 +328,7 @@ def paint_code_terminal(
         fg, row_bg = _CODE_KIND.get(kind, _CODE_KIND["normal"])
         if row_bg:
             cv.rectangle((x0 + 4, ly, x1 - 4, ly + line_h), fill=row_bg)
-        gutter = str(i + 1).rjust(3)
+        gutter = str(start_line + i + 1).rjust(3)
         cv.text(
             (x0 + 14, ly + line_h / 2),
             gutter,
@@ -336,7 +338,7 @@ def paint_code_terminal(
             anchor="lm",
         )
         end_x = _draw_syntax(cv, x0 + 44, ly + line_h / 2, text, fg, font_size)
-        if i == shown - 1 and cursor_on:
+        if i == len(visible) - 1 and cursor_on:
             tx = end_x + 2
             cv.rectangle(
                 (tx, ly + line_h * 0.18, tx + font_size * 0.6, ly + line_h * 0.82),

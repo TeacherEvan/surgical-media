@@ -90,10 +90,17 @@ function parseArgs(argv) {
 }
 
 function safeResolveUnder(rootDir, relPath) {
-  const root = path.resolve(rootDir);
+  const root = fs.existsSync(rootDir) ? fs.realpathSync(rootDir) : path.resolve(rootDir);
   const candidate = path.resolve(root, relPath);
   if (candidate !== root && !candidate.startsWith(root + path.sep)) {
     return null;
+  }
+  if (fs.existsSync(candidate)) {
+    const real = fs.realpathSync(candidate);
+    if (real !== root && !real.startsWith(root + path.sep)) {
+      return null;
+    }
+    return real;
   }
   return candidate;
 }
@@ -106,9 +113,13 @@ class CDPClient {
     this.pending = new Map();
   }
 
-  async connect() {
+  async connect(timeoutMs = 15000) {
     this.ws = new WebSocket(this.wsUrl);
     await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error(`CDP WebSocket connect timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
       const onOpen = () => {
         cleanup();
         resolve();
@@ -118,6 +129,7 @@ class CDPClient {
         reject(new Error(`CDP WebSocket error: ${ev.message || "connection failed"}`));
       };
       const cleanup = () => {
+        clearTimeout(timer);
         this.ws.removeEventListener("open", onOpen);
         this.ws.removeEventListener("error", onError);
       };
@@ -146,10 +158,25 @@ class CDPClient {
     });
   }
 
-  send(method, params = {}) {
+  send(method, params = {}, timeoutMs = 30000) {
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
+      const timer = setTimeout(() => {
+        if (this.pending.has(id)) {
+          this.pending.delete(id);
+          reject(new Error(`CDP command ${method} timed out after ${timeoutMs}ms`));
+        }
+      }, timeoutMs);
+      this.pending.set(id, {
+        resolve: (val) => {
+          clearTimeout(timer);
+          resolve(val);
+        },
+        reject: (err) => {
+          clearTimeout(timer);
+          reject(err);
+        },
+      });
       this.ws.send(JSON.stringify({ id, method, params }));
     });
   }
@@ -169,18 +196,25 @@ function startStaticServer({ spec, width, height, threeModule, baseDir }) {
 
   // Optional custom scene script & external 3D asset (resolved against baseDir)
   const params = spec && typeof spec.params === "object" && spec.params ? spec.params : {};
-  const resolveLocal = (rawPath) => {
+  const resolveLocal = (rawPath, allowedExts) => {
     if (!rawPath || typeof rawPath !== "string") return null;
+    let resolved = null;
     if (path.isAbsolute(rawPath)) {
-      return fs.existsSync(rawPath) && fs.statSync(rawPath).isFile() ? rawPath : null;
+      resolved = fs.existsSync(rawPath) && fs.statSync(rawPath).isFile() ? rawPath : null;
+    } else {
+      const anchorDir = baseDir ? path.resolve(baseDir) : process.cwd();
+      resolved = safeResolveUnder(anchorDir, rawPath);
+      if (resolved && (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile())) {
+        resolved = null;
+      }
     }
-    const anchorDir = baseDir ? path.resolve(baseDir) : process.cwd();
-    const resolved = path.resolve(anchorDir, rawPath);
-    return fs.existsSync(resolved) && fs.statSync(resolved).isFile() ? resolved : null;
+    if (!resolved) return null;
+    const ext = path.extname(resolved).toLowerCase();
+    return allowedExts.includes(ext) ? resolved : null;
   };
 
-  const customScriptPath = resolveLocal(params.threejs_script);
-  const externalAssetPath = resolveLocal(params.asset_path);
+  const customScriptPath = resolveLocal(params.threejs_script, [".mjs", ".js"]);
+  const externalAssetPath = resolveLocal(params.asset_path, [".glb", ".gltf", ".svg"]);
 
   const clientSpec = {
     ...spec,
@@ -201,7 +235,14 @@ function startStaticServer({ spec, width, height, threeModule, baseDir }) {
   };
 
   const server = http.createServer((req, res) => {
-    const urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
+    let urlPath;
+    try {
+      urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
+    } catch {
+      res.writeHead(400);
+      res.end("Bad request");
+      return;
+    }
     if (urlPath === "/" || urlPath === "/index.html") {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(stageHtml);
@@ -260,7 +301,7 @@ function launchChromium(browserBinary, userDataDir, width, height) {
       `--window-size=${width},${height}`,
       "about:blank",
     ],
-    { stdio: ["ignore", "pipe", "pipe"] },
+    { stdio: ["ignore", "ignore", "pipe"] },
   );
 
   const ready = new Promise((resolve, reject) => {
@@ -381,11 +422,10 @@ async function main() {
       total_frames: totalFrames,
       frames: framesOut,
     };
-    fs.writeFileSync(
-      path.join(args.outDir, "anchor_tracks.json"),
-      JSON.stringify(tracksPayload, null, 2),
-      "utf8",
-    );
+    const tracksPath = path.join(args.outDir, "anchor_tracks.json");
+    const tracksTmp = `${tracksPath}.${process.pid}.tmp`;
+    fs.writeFileSync(tracksTmp, JSON.stringify(tracksPayload, null, 2), "utf8");
+    fs.renameSync(tracksTmp, tracksPath);
   } finally {
     if (cdp) {
       try {

@@ -116,7 +116,13 @@ class PerspectiveCamera3D:
         self.f_scale = 1.0 / math.tan(fov_x / 2.0)
 
         self.forward = _norm(_sub(self.target, self.eye))
-        self.right = _norm(_cross(self.forward, self.up))
+        raw_right = _cross(self.forward, self.up)
+        if _dot(raw_right, raw_right) < 1e-12:
+            alt_up: Vec3 = (
+                (0.0, 1.0, 0.0) if abs(self.forward[1]) < 0.9 else (1.0, 0.0, 0.0)
+            )
+            raw_right = _cross(self.forward, alt_up)
+        self.right = _norm(raw_right)
         self.true_up = _cross(self.right, self.forward)
 
         # 4x4 look-at view matrix: rows are the camera basis + translation.
@@ -323,7 +329,10 @@ def generate_serpent_mesh(t_norm: float) -> list[MeshFace]:
         u = i / (rings - 1)
         centre = serpent_spine_point(u, t_norm)
         tangent = tangent_at(u)
-        right = _norm(_cross(tangent, up))
+        raw_right = _cross(tangent, up)
+        if _dot(raw_right, raw_right) < 1e-12:
+            raw_right = _cross(tangent, (0.0, 1.0, 0.0))
+        right = _norm(raw_right)
         frame_up = _norm(_cross(right, tangent))
         r = radius_at(u)
         rv: list[tuple[float, float, float]] = []

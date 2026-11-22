@@ -64,7 +64,8 @@ def test_orb_pulse_breathes_over_time():
 
 
 def test_orb_pulse_negative_radius_is_noop():
-    _render({"type": "orb_pulse", "radius": -5}, 0.5)  # no crash, no hang
+    blank = _canvas().final().tobytes()
+    assert _render({"type": "orb_pulse", "radius": -5}, 0.5) == blank
 
 
 # ---------------------------------------------------------------------------
@@ -77,7 +78,8 @@ def test_dot_field_drifts_over_time():
 
 
 def test_dot_field_empty_is_noop():
-    _render({"type": "dot_field", "n": 0}, 0.5)
+    blank = _canvas().final().tobytes()
+    assert _render({"type": "dot_field", "n": 0}, 0.5) == blank
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +136,8 @@ def test_typewriter_reveals_more_glyphs_over_time():
 
 
 def test_typewriter_no_text_is_noop():
-    _render({"type": "typewriter_text", "text": ""}, 0.5)
+    blank = _canvas().final().tobytes()
+    assert _render({"type": "typewriter_text", "text": ""}, 0.5) == blank
 
 
 def test_typewriter_cursor_hold_is_seconds():
@@ -175,8 +178,9 @@ def test_leader_arrow_wrap_loops():
 
 
 def test_leader_arrow_needs_two_points():
-    _render({"type": "leader_arrow", "points": [[10, 100]]}, 0.5)
-    _render({"type": "leader_arrow"}, 0.5)
+    blank = _canvas().final().tobytes()
+    assert _render({"type": "leader_arrow", "points": [[10, 100]]}, 0.5) == blank
+    assert _render({"type": "leader_arrow"}, 0.5) == blank
 
 
 # ---------------------------------------------------------------------------

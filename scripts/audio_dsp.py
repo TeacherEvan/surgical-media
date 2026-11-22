@@ -20,9 +20,12 @@ from __future__ import annotations
 
 import argparse
 import math
+import os
 import random
+import tempfile
 import wave
 from array import array
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -264,12 +267,24 @@ def read_wav_mono(path: str | Path, target_rate: int = RATE) -> list[float]:
         ]
     else:
         raise ValueError(f"unsupported sample width {sampwidth} in {path}")
+    if not mono:
+        return []
     if rate == target_rate:
         return mono
-    # linear resample (VO is already 48 kHz from ffmpeg; this path is a safety net)
+    # linear interpolation resample (VO is already 48 kHz from ffmpeg; this path is a safety net)
     ratio = rate / target_rate
     out_len = int(len(mono) / ratio)
-    return [mono[min(len(mono) - 1, int(i * ratio))] for i in range(out_len)]
+    out: list[float] = []
+    last = len(mono) - 1
+    for i in range(out_len):
+        pos = i * ratio
+        lo = int(pos)
+        if lo >= last:
+            out.append(mono[last])
+        else:
+            frac = pos - lo
+            out.append(mono[lo] + frac * (mono[lo + 1] - mono[lo]))
+    return out
 
 
 def measure_duration(path: str | Path) -> float:
@@ -280,16 +295,33 @@ def measure_duration(path: str | Path) -> float:
 def write_wav_stereo(path: str | Path, interleaved: array[int]) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with wave.open(str(path), "wb") as w:
-        w.setnchannels(2)
-        w.setsampwidth(2)
-        w.setframerate(RATE)
-        w.writeframes(interleaved.tobytes())
+    with tempfile.NamedTemporaryFile(
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        delete=False,
+    ) as fh:
+        tmp_path = Path(fh.name)
+    try:
+        with wave.open(str(tmp_path), "wb") as w:
+            w.setnchannels(2)
+            w.setsampwidth(2)
+            w.setframerate(RATE)
+            w.writeframes(interleaved.tobytes())
+        os.replace(tmp_path, path)
+    except Exception:
+        tmp_path.unlink(missing_ok=True)
+        raise
 
 
 # ---------------------------------------------------------------------------
 # Mixing
 # ---------------------------------------------------------------------------
+
+
+@lru_cache(maxsize=64)
+def _cached_sfx(name: str, intensity_q: float, rate: int) -> tuple[float, ...]:
+    return tuple(synth_sfx(name, intensity_q, rate))
 
 
 def duck_envelope(
@@ -329,6 +361,11 @@ def mix_timeline(
     n = round(duration_sec * RATE)
     vo = read_wav_mono(vo_path, RATE) if vo_path else []
     env = duck_envelope(vo) if (vo and pad) else [0.0] * n
+    if len(env) < n:
+        tail_start = env[-1] if env else 0.0
+        tail_n = n - len(env)
+        release_n = max(1, int(0.45 * RATE))
+        env = env + [tail_start * max(0.0, 1.0 - k / release_n) for k in range(tail_n)]
 
     left = [0.0] * n
     right = [0.0] * n
@@ -343,7 +380,7 @@ def mix_timeline(
             lv_s += v_s
             rv_s += v_s
         if pad:
-            gain = 1.0 - duck_depth * env[i] if i < len(env) else 1.0 - duck_depth
+            gain = 1.0 - duck_depth * env[i]
             if pad_style == "pastel_harp":
                 pl, pr = pastel_harp_stereo_at(t, duration_sec, pad_level)
                 lv_s += pl * gain
@@ -360,7 +397,7 @@ def mix_timeline(
     for t_sec, name, intensity in sfx_events or []:
         if name == "trauma":  # camera-only event, no audio component
             continue
-        sfx = synth_sfx(name, intensity, RATE)
+        sfx = _cached_sfx(name, round(float(intensity), 3), RATE)
         offset = int(t_sec * RATE)
         for j, s in enumerate(sfx):
             idx = offset + j
@@ -403,60 +440,54 @@ def build_master_wav(
         total = max(total, float(sc.get("start_sec", 0.0)) + float(sc["duration_sec"]))
 
     n = round(total * RATE)
+    vo_mix = [0.0] * n
+    any_vo = False
+    for sc in scenes:
+        start = max(0, int(float(sc.get("start_sec", 0.0)) * RATE))
+        vo = read_wav_mono(sc["vo_wav"], RATE) if sc.get("vo_wav") else []
+        if vo:
+            any_vo = True
+            limit = min(len(vo), max(0, n - start))
+            for j in range(limit):
+                vo_mix[start + j] += vo[j]
+
+    env = duck_envelope(vo_mix) if (any_vo and pad) else [0.0] * n
     left = [0.0] * n
     right = [0.0] * n
-
     peak = 0.0
+
+    for i in range(n):
+        v_s = vo_mix[i] * 0.90
+        lv_s = v_s
+        rv_s = v_s
+        if pad:
+            gain = 1.0 - duck_depth * env[i]
+            t_now = i / RATE
+            if pad_style == "pastel_harp":
+                pl, pr = pastel_harp_stereo_at(t_now, total, pad_level)
+                lv_s += pl * gain
+                rv_s += pr * gain
+            else:
+                p_s = pad_at(t_now, pad_level) * gain
+                lv_s += p_s
+                rv_s += p_s
+        left[i] = lv_s
+        right[i] = rv_s
+        a = max(abs(lv_s), abs(rv_s))
+        peak = max(peak, a)
 
     for sc in scenes:
         start = int(float(sc.get("start_sec", 0.0)) * RATE)
-        dur_n = int(float(sc["duration_sec"]) * RATE)
-        vo = read_wav_mono(sc["vo_wav"], RATE) if sc.get("vo_wav") else []
-        # VO stems may be shorter than the scene (e.g. after --trim-silence or --pad-tail):
-        # hold the last envelope value (0 once VO finishes so the music swells gently).
-        env = duck_envelope(vo) if (vo and pad) else [0.0] * dur_n
-        if len(env) < dur_n:
-            tail_start = env[-1] if env else 0.0
-            tail_n = dur_n - len(env)
-            release_n = max(1, int(0.45 * RATE))
-            tail = [tail_start * max(0.0, 1.0 - k / release_n) for k in range(tail_n)]
-            env = env + tail
-
-        for j in range(dur_n):
-            i = start + j
-            if i >= n:
-                break
-            lv_s = 0.0
-            rv_s = 0.0
-            if j < len(vo):
-                v_s = vo[j] * 0.90
-                lv_s += v_s
-                rv_s += v_s
-            if pad:
-                gain = 1.0 - duck_depth * env[j]
-                t_now = (start + j) / RATE
-                if pad_style == "pastel_harp":
-                    pl, pr = pastel_harp_stereo_at(t_now, total, pad_level)
-                    lv_s += pl * gain
-                    rv_s += pr * gain
-                else:
-                    p_s = pad_at(t_now, pad_level) * gain
-                    lv_s += p_s
-                    rv_s += p_s
-            lv, rv = left[i] + lv_s, right[i] + rv_s
-            left[i] = lv
-            right[i] = rv
-            a = max(abs(lv), abs(rv))
-            peak = max(peak, a)
-
         for ev in sc.get("sfx_events", []):
             name = ev.get("sfx")
             if name == "trauma":
                 continue
-            sfx = synth_sfx(name, float(ev.get("intensity", 1.0)), RATE)
+            sfx = _cached_sfx(name, round(float(ev.get("intensity", 1.0)), 3), RATE)
             offset = start + int(float(ev["t_sec"]) * RATE)
             for j, s in enumerate(sfx):
                 idx = offset + j
+                if idx < 0:
+                    continue
                 if idx >= n:
                     break
                 lv, rv = left[idx] + s, right[idx] + s
