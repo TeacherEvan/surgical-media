@@ -56,8 +56,8 @@ against the **strict** box. Coordinates are for 1080x1920; scale ×2/3 for 720x1
 - **Shorts + Content ID:** Since **2026-09-24**, new Shorts over 1 minute with an active
   claim are no longer automatically blocked worldwide; they stay up under the owner's policy
   and monetize once resolved ([Google Help](https://support.google.com/youtube/answer/6013276)).
-  Background commercial music still draws claims almost instantly, so prefer royalty-free
-  or procedural audio and do a **Private upload** pre-check before publishing.
+  Background commercial music still draws claims almost instantly, so prefer clean voiceover
+  or royalty-free music (`audio.music_wav`), not synthetic tonal drones, and do a **Private upload** pre-check before publishing.
 - **Originality:** Since **2026-10**, YouTube has throttled channel-level Shorts reach for
   repurposed clips with bare descriptive narration, minor crops/filters, or bulk templates.
   Pass the 5-point originality gate in `references/style-and-architecture.md` before scripting.

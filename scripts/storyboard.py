@@ -39,9 +39,10 @@ VALID_SFX = {
     "confirm",
     "trauma",
     "soft_chime",
+    "thud",
 }
 VALID_TRANSITIONS = {"cut", "dissolve"}
-VALID_PAD_STYLES = {"drone", "pastel_harp"}
+VALID_PAD_STYLES = {"room_tone", "drone", "pastel_harp"}
 KNOWN_ELEMENTS = {
     "background",
     "grid",
@@ -177,6 +178,99 @@ def lint_storyboard(data: Any, board_dir: Path | None = None) -> list[str]:
                 path = board_dir / vo
             if not path.is_file():
                 warnings.append(f"scene {sid!r}: vo_wav not found: {path}")
+
+        for ev in scene.get("sfx_events") or []:
+            if not isinstance(ev, dict):
+                continue
+            if ev.get("sfx") != "trauma":
+                swav = ev.get("wav")
+                if not isinstance(swav, str) or not swav.strip():
+                    warnings.append(
+                        f"scene {sid!r}: sfx_events {ev.get('sfx')!r} has no wav file "
+                        "(synthesized SFX are muted by default)"
+                    )
+                else:
+                    spath = Path(swav)
+                    if not spath.is_absolute() and board_dir is not None:
+                        spath = board_dir / swav
+                    if not spath.is_file():
+                        warnings.append(
+                            f"scene {sid!r}: sfx_events wav not found: {spath}"
+                        )
+
+        elements = [e for e in (scene.get("elements") or []) if isinstance(e, dict)]
+        image_boxes: list[tuple[float, float, float, float]] = []
+        for el in elements:
+            etype = el.get("type")
+            if etype == "image":
+                raw_b = el.get("box")
+                if (
+                    isinstance(raw_b, list)
+                    and len(raw_b) == 4
+                    and all(_is_num(v) for v in raw_b)
+                ):
+                    image_boxes.append(tuple(float(v) for v in raw_b))  # type: ignore[arg-type]
+                elif isinstance(w, int) and isinstance(h, int):
+                    image_boxes.append((0.0, 0.0, float(w), float(h)))
+        for el in elements:
+            etype = el.get("type")
+            if etype == "quote_card":
+                fill = el.get("fill")
+                if (
+                    fill not in (None, "", "none")
+                    and float(el.get("alpha", 0.58)) >= 0.85
+                ):
+                    warnings.append(
+                        f"scene {sid!r}: quote_card has opaque fill (alpha >= 0.85)"
+                    )
+                raw_qb = el.get("box")
+                if (
+                    isinstance(raw_qb, list)
+                    and len(raw_qb) == 4
+                    and all(_is_num(v) for v in raw_qb)
+                ):
+                    qx0, qy0, qx1, qy1 = (float(v) for v in raw_qb)
+                elif isinstance(w, int) and isinstance(h, int):
+                    qx0, qy0, qx1, qy1 = w * 0.16, h * 0.52, w * 0.84, h * 0.78
+                else:
+                    qx0 = qy0 = qx1 = qy1 = 0.0
+                q_area = max(0.0, qx1 - qx0) * max(0.0, qy1 - qy0)
+                if q_area > 0.0:
+                    for ix0, iy0, ix1, iy1 in image_boxes:
+                        inter = max(0.0, min(qx1, ix1) - max(qx0, ix0)) * max(
+                            0.0, min(qy1, iy1) - max(qy0, iy0)
+                        )
+                        if inter / q_area >= 0.25:
+                            warnings.append(
+                                f"scene {sid!r}: quote_card overlaps image (>= 25%)"
+                            )
+                            break
+            elif etype == "kinetic_captions":
+                bg_c = el.get("bg_color")
+                if (
+                    bg_c not in (None, "", "none")
+                    and float(el.get("bg_alpha", 0.52)) >= 0.85
+                ):
+                    warnings.append(
+                        f"scene {sid!r}: kinetic_captions has opaque bg_color (bg_alpha >= 0.85)"
+                    )
+
+    audio = data.get("audio")
+    if isinstance(audio, dict):
+        if audio.get("pad") is True and audio.get("pad_style", "room_tone") in (
+            "drone",
+            "pastel_harp",
+        ):
+            warnings.append(
+                f"audio: synthetic tonal pad_style {audio.get('pad_style')!r} enabled"
+            )
+        mw = audio.get("music_wav")
+        if isinstance(mw, str) and mw.strip():
+            mpath = Path(mw)
+            if not mpath.is_absolute() and board_dir is not None:
+                mpath = board_dir / mw
+            if not mpath.is_file():
+                warnings.append(f"audio: music_wav not found: {mpath}")
     return warnings
 
 
@@ -445,6 +539,10 @@ def _validate_sfx_events(
             errors.append(
                 f"{where}: sfx_events[{j}].t_sec ({ev['t_sec']}) exceeds scene duration"
             )
+        if "wav" in ev and (not isinstance(ev["wav"], str) or len(ev["wav"]) > 512):
+            errors.append(
+                f"{where}: sfx_events[{j}].wav must be a string of <= 512 chars"
+            )
 
 
 def _validate_scene(scene: Any, i: int, errors: list[str]) -> None:
@@ -497,6 +595,60 @@ def _validate_scene(scene: Any, i: int, errors: list[str]) -> None:
     _validate_sfx_events(scene, dur, where, errors)
 
 
+_VALID_AUDIO_KEYS = {
+    "pad",
+    "pad_level",
+    "duck_depth",
+    "pad_style",
+    "music_wav",
+    "music_level",
+    "allow_synth_sfx",
+    "allow_synth_pad",
+    "sample_rate",
+}
+
+
+def _validate_audio(audio: Any, errors: list[str]) -> None:
+    if audio is None:
+        return
+    if not isinstance(audio, dict):
+        errors.append("audio must be an object")
+        return
+    unknown = set(audio) - _VALID_AUDIO_KEYS
+    if unknown:
+        errors.append(f"audio has unknown keys: {sorted(unknown)}")
+    if "pad" in audio and not isinstance(audio["pad"], bool):
+        errors.append("audio.pad must be a boolean")
+    if "pad_level" in audio and (
+        not _is_num(audio["pad_level"]) or not (0.0 <= float(audio["pad_level"]) <= 0.5)
+    ):
+        errors.append("audio.pad_level must be a number in [0.0, 0.5]")
+    if "duck_depth" in audio and (
+        not _is_num(audio["duck_depth"])
+        or not (0.0 <= float(audio["duck_depth"]) <= 1.0)
+    ):
+        errors.append("audio.duck_depth must be a number in [0.0, 1.0]")
+    ps = audio.get("pad_style")
+    if ps is not None and ps not in VALID_PAD_STYLES:
+        errors.append(f"audio.pad_style must be one of {sorted(VALID_PAD_STYLES)}")
+    if "music_wav" in audio and (
+        not isinstance(audio["music_wav"], str) or len(audio["music_wav"]) > 512
+    ):
+        errors.append("audio.music_wav must be a string of <= 512 chars")
+    if "music_level" in audio and (
+        not _is_num(audio["music_level"])
+        or not (0.0 <= float(audio["music_level"]) <= 0.5)
+    ):
+        errors.append("audio.music_level must be a number in [0.0, 0.5]")
+    for bkey in ("allow_synth_sfx", "allow_synth_pad"):
+        if bkey in audio and not isinstance(audio[bkey], bool):
+            errors.append(f"audio.{bkey} must be a boolean")
+    if "sample_rate" in audio and (
+        not _is_int(audio["sample_rate"]) or audio["sample_rate"] not in {44100, 48000}
+    ):
+        errors.append("audio.sample_rate must be 44100 or 48000")
+
+
 def validate_storyboard(data: Any) -> list[str]:
     errors: list[str] = []
     if not isinstance(data, dict):
@@ -530,11 +682,7 @@ def validate_storyboard(data: Any) -> list[str]:
                     errors.append(f"scene {sid!r}: duplicate scene_id")
                 seen_scene_ids.add(sid)
 
-    audio = data.get("audio")
-    if isinstance(audio, dict):
-        ps = audio.get("pad_style")
-        if ps is not None and ps not in VALID_PAD_STYLES:
-            errors.append(f"audio.pad_style must be one of {sorted(VALID_PAD_STYLES)}")
+    _validate_audio(data.get("audio"), errors)
 
     return errors
 

@@ -17,10 +17,7 @@
       "duration_sec": 1.5,
       "fade_in_sec": 0.2,
       "fade_out_sec": 0.2,
-      "sfx_events": [
-        { "t_sec": 0.05, "sfx": "whoosh", "intensity": 0.6 },
-        { "t_sec": 0.5, "sfx": "chime", "intensity": 0.6 }
-      ],
+      "sfx_events": [],
       "scene_spec": {
         "category": "exploded_hardware_3d",
         "explode_factor": 1.15,
@@ -75,10 +72,7 @@
       "duration_sec": 1.5,
       "fade_in_sec": 0.2,
       "fade_out_sec": 0.2,
-      "sfx_events": [
-        { "t_sec": 0.08, "sfx": "whoosh", "intensity": 0.6 },
-        { "t_sec": 0.6, "sfx": "chime", "intensity": 0.6 }
-      ],
+      "sfx_events": [],
       "scene_spec": {
         "category": "orbital_or_field_3d",
         "hud_title": "TWISTED STELLARATOR MAGNETIC CAGE",

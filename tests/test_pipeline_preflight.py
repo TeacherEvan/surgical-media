@@ -173,6 +173,32 @@ def test_wrong_style_preset_fails() -> None:
     )["ok"]
 
 
+def test_no_synthetic_tones_blocks_procedural_sfx_and_synth_pads() -> None:
+    intake = pf.build_intake(25, "comedic", "tiktok")
+    bad_sfx = _board()
+    bad_sfx["scenes"][0]["sfx_events"] = [{"t_sec": 0.5, "sfx": "whoosh"}]
+    rep = pf.check_board(bad_sfx, intake, _brief())
+    assert not rep["ok"]
+    assert not next(c for c in rep["checks"] if c["check"] == "no_synthetic_tones")[
+        "ok"
+    ]
+
+    bad_pad = _board()
+    bad_pad["audio"] = {"pad": True, "pad_style": "drone"}
+    rep_pad = pf.check_board(bad_pad, intake, _brief())
+    assert not rep_pad["ok"]
+    assert not next(c for c in rep_pad["checks"] if c["check"] == "no_synthetic_tones")[
+        "ok"
+    ]
+
+    good = _board()
+    good["scenes"][0]["sfx_events"] = [
+        {"t_sec": 0.5, "sfx": "trauma"},
+        {"t_sec": 1.0, "sfx": "pop", "wav": "assets/real_click.wav"},
+    ]
+    assert pf.check_board(good, intake, _brief())["ok"]
+
+
 # -- CLI --------------------------------------------------------------------
 def test_cli_intake_mode_writes_file(tmp_path: Path) -> None:
     out = tmp_path / "intake.json"

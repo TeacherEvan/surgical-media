@@ -44,7 +44,7 @@ Fields that lock every engine to the same frame grid:
 | `scenes[].words[]` | `tts_align.py` | measured WordBoundary or syllable-weighted beats |
 | `scenes[].sfx_events[]` | storyboard | frame-accurate sound, scene-relative `t_sec` |
 | `scenes[].vo_wav` | `tts_align.py` | the VO stem each span is cut against |
-| `audio` | storyboard | pad / duck depth / sample rate |
+| `audio` | storyboard | `pad: false` default; optional `music_wav` / `room_tone` / duck depth / sample rate (no tonal synth beds) |
 | `style`, `platform` | storyboard | palette/type/grade, safe zone, hook and beat budgets |
 
 Build order is fixed: research brief → script.json → `tts_normalizer.py` → `tts_align.py`

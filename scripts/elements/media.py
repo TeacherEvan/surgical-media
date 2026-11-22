@@ -111,7 +111,8 @@ def paint_image(
         # plate in the remaining vertical space (0 = top, 0.5 = centered).
         blur = float(el.get("blur", (x1 - x0) * 0.06)) * scale
         dim = float(el.get("dim", 0.72))
-        anchor_y = min(1.0, max(0.0, float(el.get("anchor_y", 0.5))))
+        default_anchor = 0.36 if (y1 - y0) > (x1 - x0) * 1.2 else 0.5
+        anchor_y = min(1.0, max(0.0, float(el.get("anchor_y", default_anchor))))
         bg_key = (str(path.resolve()), path.stat().st_mtime_ns, bw, bh, blur, dim)
         cached_bg = _BACKDROP_BLUR_CACHE.get(bg_key)
         if cached_bg is not None:

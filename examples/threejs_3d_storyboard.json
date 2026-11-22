@@ -18,10 +18,7 @@
       "duration_sec": 1.5,
       "fade_in_sec": 0.2,
       "fade_out_sec": 0.2,
-      "sfx_events": [
-        { "t_sec": 0.05, "sfx": "whoosh", "intensity": 0.6 },
-        { "t_sec": 0.6, "sfx": "confirm", "intensity": 0.6 }
-      ],
+      "sfx_events": [],
       "scene_spec": {
         "category": "network_topology_3d",
         "hud_title": "THREE.JS WEBGL // EDGE MESH TOPOLOGY",
@@ -69,10 +66,7 @@
       "duration_sec": 1.5,
       "fade_in_sec": 0.2,
       "fade_out_sec": 0.2,
-      "sfx_events": [
-        { "t_sec": 0.08, "sfx": "whoosh", "intensity": 0.6 },
-        { "t_sec": 0.55, "sfx": "chime", "intensity": 0.6 }
-      ],
+      "sfx_events": [],
       "scene_spec": {
         "category": "exploded_hardware_3d",
         "explode_factor": 1.1,

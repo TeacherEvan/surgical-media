@@ -7,7 +7,7 @@ Fails hard (exit 1) if:
   * resolution or fps deviates from expectation
   * integrated duration drifts from the storyboard by more than 150 ms
   * video codec is not H.264
-  * more than 75% of the audio track is digital silence (pad + VO always present)
+  * more than 75% of the audio track is digital silence (voiced boards carry VO/music/room_tone)
 
 Usage:
     verify_output.py --input out.mp4 [--storyboard board.json]
@@ -30,7 +30,7 @@ from monetization_gate import check_board_monetization
 
 DRIFT_TOLERANCE_SEC = 0.150
 MAX_SILENCE_FRACTION = (
-    0.75  # pipeline always mixes a pad + VO — >75% silent means broken audio
+    0.75  # voiced boards carry VO/music/room_tone — >75% silent means broken audio
 )
 SILENCE_NOISE_DB = -50.0
 SILENCE_MIN_SEC = 0.8
@@ -209,7 +209,7 @@ def verify_mp4(
         )
         sr = int(audio.get("sample_rate", 0))
         check("audio_48k", sr == 48000, f"sample_rate={sr}")
-        # Broken-audio net: the pipeline always mixes a pad + VO, so an
+        # Broken-audio net: voiced boards carry VO/music/room_tone, so an
         # (almost) fully silent track means the master build failed silently.
         if duration and shutil.which("ffmpeg"):
             try:

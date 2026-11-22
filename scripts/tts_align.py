@@ -481,8 +481,7 @@ def main(argv: list[str] | None = None) -> int:
         "format": {"width": width, "height": height, "fps": args.fps},
         "scenes": scenes_out,
         "audio": {
-            "pad": True,
-            "pad_level": 0.055,
+            "pad": False,
             "duck_depth": 0.72,
             "sample_rate": 48000,
         },

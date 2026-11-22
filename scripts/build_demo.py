@@ -83,10 +83,7 @@ def main() -> None:
                     {"type": "kinetic_captions"},
                 ],
                 "words": words(S1_NARR, 0.0, 4.2),
-                "sfx_events": [
-                    {"t_sec": 0.15, "sfx": "whoosh", "intensity": 0.7},
-                    {"t_sec": 3.15, "sfx": "chime", "intensity": 1.0},
-                ],
+                "sfx_events": [],
             },
             {
                 "scene_id": "doc_curve",
@@ -125,11 +122,7 @@ def main() -> None:
                     {"type": "kinetic_captions"},
                 ],
                 "words": words(S2_NARR, 4.2, 5.0),
-                "sfx_events": [
-                    {"t_sec": 0.9, "sfx": "pop", "intensity": 0.6},
-                    {"t_sec": 2.3, "sfx": "pop", "intensity": 0.8},
-                    {"t_sec": 3.8, "sfx": "confirm", "intensity": 0.9},
-                ],
+                "sfx_events": [],
             },
             {
                 "scene_id": "code_cascade",
@@ -214,18 +207,14 @@ def main() -> None:
                 ],
                 "words": words(S3_NARR, 9.2, 5.2),
                 "sfx_events": [
-                    {"t_sec": 0.2, "sfx": "type_click", "intensity": 0.8},
-                    {"t_sec": 1.35, "sfx": "type_click", "intensity": 1.0},
-                    {"t_sec": 1.9, "sfx": "error_buzz", "intensity": 0.6},
-                    {"t_sec": 2.45, "sfx": "error_buzz", "intensity": 0.8},
-                    {"t_sec": 3.0, "sfx": "error_buzz", "intensity": 1.0},
                     {"t_sec": 3.0, "sfx": "trauma", "intensity": 0.9},
                 ],
             },
         ],
         "audio": {
             "pad": True,
-            "pad_level": 0.05,
+            "pad_style": "room_tone",
+            "pad_level": 0.10,
             "duck_depth": 0.72,
             "sample_rate": 48000,
         },

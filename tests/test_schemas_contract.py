@@ -76,6 +76,11 @@ MUTATIONS = {
     "bad fade_color": lambda d: d["scenes"][0].update(fade_color="not-a-color"),
     "bad transition": lambda d: d["scenes"][0].update(transition="wipe"),
     "bad pad_style": lambda d: d.setdefault("audio", {}).update(pad_style="kazoo"),
+    "bad music_level": lambda d: d.setdefault("audio", {}).update(music_level=1.5),
+    "bad allow_synth_sfx": lambda d: d.setdefault("audio", {}).update(
+        allow_synth_sfx="yes"
+    ),
+    "unknown audio key": lambda d: d.setdefault("audio", {}).update(bogus=1),
     "orbit missing radius": lambda d: d["scenes"][0].update(camera={"mode": "orbit"}),
 }
 
@@ -98,3 +103,24 @@ def test_schema_and_runtime_validator_agree(label):
         f"validators disagree on mutation {label!r}: "
         f"schema_rejects={schema_rejects} runtime_rejects={runtime_rejects}"
     )
+
+
+def test_room_tone_music_wav_and_thud_pass_both_validators():
+    data = _example()
+    data["audio"] = {
+        "pad": True,
+        "pad_style": "room_tone",
+        "pad_level": 0.035,
+        "music_wav": "assets/bg.wav",
+        "music_level": 0.14,
+        "allow_synth_sfx": False,
+        "allow_synth_pad": False,
+        "duck_depth": 0.72,
+        "sample_rate": 48000,
+    }
+    data["scenes"][0]["sfx_events"].append(
+        {"t_sec": 0.5, "sfx": "thud", "wav": "assets/hit.wav", "intensity": 0.7}
+    )
+    assert storyboard.validate_storyboard(data) == []
+    pytest.importorskip("jsonschema")
+    assert list(_validator().iter_errors(data)) == []

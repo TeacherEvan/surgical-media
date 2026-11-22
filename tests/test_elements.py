@@ -309,3 +309,67 @@ def test_source_tag_paints_and_fades_in():
 
     assert frame(0.0).getbbox() is None  # not revealed yet
     assert frame(1.0).getbbox() is not None  # tag drawn
+
+
+def test_quote_card_and_captions_default_to_no_black_box():
+    cv = SupersampledCanvas(W, H, scale=2, background="#E8EEF5")
+    cv.set_frame(0.8, 1.0)
+    render_element(
+        cv,
+        {
+            "type": "quote_card",
+            "quote": "Short quote.",
+            "attribution": "Source",
+            "box": [20, 40, 200, 180],
+        },
+        _ctx(t=0.8, local_time=1.0),
+    )
+    render_element(cv, {"type": "kinetic_captions"}, _ctx(t=0.8, local_time=1.0))
+    img = cv.final().convert("RGB")
+    # Interior margin of quote_card and caption strip must stay bright (#E8EEF5), not black
+    assert sum(img.getpixel((190, 165))) > 600
+    assert sum(img.getpixel((12, 340))) > 600
+
+
+def test_kinetic_captions_pages_to_max_lines():
+    words = [
+        {"word": f"word{i}", "start": i * 0.2, "end": (i + 1) * 0.2} for i in range(24)
+    ]
+    cv_early = SupersampledCanvas(W, H, scale=2, background="#050508")
+    cv_early.set_frame(0.1, 0.2)
+    render_element(
+        cv_early,
+        {"type": "kinetic_captions", "size": 16, "max_lines": 2},
+        _ctx(t=0.1, local_time=0.2, words=words),
+    )
+    cv_late = SupersampledCanvas(W, H, scale=2, background="#050508")
+    cv_late.set_frame(0.9, 4.4)
+    render_element(
+        cv_late,
+        {"type": "kinetic_captions", "size": 16, "max_lines": 2},
+        _ctx(t=0.9, local_time=4.4, words=words),
+    )
+    assert cv_early.final().tobytes() != cv_late.final().tobytes()
+
+
+def test_hud_badge_and_source_tag_boxless_fill_none():
+    before, after = _bytes_after(
+        lambda cv: (
+            render_element(
+                cv,
+                {"type": "hud_badge", "text": "01 · TOPIC", "fill": "none"},
+                _ctx(),
+            ),
+            render_element(
+                cv,
+                {
+                    "type": "source_tag",
+                    "label": "SOURCE",
+                    "text": "UN 2026",
+                    "fill": "none",
+                },
+                _ctx(),
+            ),
+        )
+    )
+    assert before != after

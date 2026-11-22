@@ -198,8 +198,9 @@
               "required": ["t_sec", "sfx"],
               "properties": {
                 "t_sec": { "type": "number", "minimum": 0 },
-                "sfx": { "type": "string", "enum": ["pop", "whoosh", "chime", "type_click", "error_buzz", "confirm", "trauma", "soft_chime"] },
-                "intensity": { "type": "number", "minimum": 0.1, "maximum": 1.0 }
+                "sfx": { "type": "string", "enum": ["pop", "whoosh", "chime", "type_click", "error_buzz", "confirm", "trauma", "soft_chime", "thud"] },
+                "intensity": { "type": "number", "minimum": 0.1, "maximum": 1.0 },
+                "wav": { "type": "string", "maxLength": 512 }
               }
             }
           }
@@ -287,10 +288,14 @@
       "type": "object",
       "unevaluatedProperties": false,
       "properties": {
-        "pad": { "type": "boolean", "default": true },
+        "pad": { "type": "boolean", "default": false },
         "pad_level": { "type": "number", "minimum": 0.0, "maximum": 0.5 },
         "duck_depth": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
-        "pad_style": { "type": "string", "enum": ["drone", "pastel_harp"] },
+        "pad_style": { "type": "string", "enum": ["room_tone", "drone", "pastel_harp"], "default": "room_tone" },
+        "music_wav": { "type": "string", "maxLength": 512 },
+        "music_level": { "type": "number", "minimum": 0.0, "maximum": 0.5 },
+        "allow_synth_sfx": { "type": "boolean", "default": false },
+        "allow_synth_pad": { "type": "boolean", "default": false },
         "sample_rate": { "type": "integer", "enum": [44100, 48000] }
       }
     }

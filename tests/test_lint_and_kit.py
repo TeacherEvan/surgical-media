@@ -55,6 +55,40 @@ def test_style_lint_catches_slop_tells():
     assert style_lint.score(style_lint.lint_board(b)) < 100
 
 
+def test_style_lint_catches_audio_and_overlay_antipatterns():
+    b = _board(
+        audio={"pad": True, "pad_style": "drone"},
+    )
+    b["scenes"][0]["narration"] = "Spoken line."
+    b["scenes"][0]["sfx_events"] = [
+        {"t_sec": 0.5, "sfx": "chime"},
+        {"t_sec": 0.8, "sfx": "whoosh"},
+    ]
+    b["scenes"][1]["elements"] = [
+        {"type": "image", "src": "a.png", "box": [0, 0, 1280, 720], "attribution": "A"},
+        {
+            "type": "quote_card",
+            "quote": "Over photo",
+            "fill": "#000000",
+            "alpha": 0.95,
+            "box": [100, 100, 1100, 500],
+        },
+        {"type": "kinetic_captions", "bg_color": "#000000", "bg_alpha": 0.95},
+    ]
+    rules = {f["rule"] for f in style_lint.lint_board(b)}
+    assert "synth_pad_enabled" in rules
+    assert "tonal_sfx_overuse" in rules
+    assert "synth_sfx_used" in rules
+    assert "opaque_text_box" in rules
+    assert "text_obstructs_visual" in rules
+
+
+def test_reference_boards_score_100_on_style_lint():
+    for ref in sorted((REPO / "examples").glob("ref_*.json")):
+        findings = style_lint.lint_board(json.loads(ref.read_text(encoding="utf-8")))
+        assert style_lint.score(findings) == 100, f"{ref.name}: {findings}"
+
+
 def test_contact_sheet_builds_tiled_image(tmp_path):
     thumbs = []
     for i, col in enumerate([(200, 80, 80), (80, 200, 80), (80, 80, 200)]):

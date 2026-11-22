@@ -263,6 +263,35 @@ def check_brief(brief: dict[str, Any]) -> tuple[bool, str]:
     return True, f"{len(usable)} sourced claim-ID facts"
 
 
+def check_no_synthetic_tones(board: dict[str, Any]) -> tuple[bool, str]:
+    """Reject boards with synthetic tonal pads or procedural SFX without a real wav."""
+    audio = board.get("audio")
+    if isinstance(audio, dict):
+        if audio.get("pad") is True and str(audio.get("pad_style", "room_tone")) in (
+            "drone",
+            "pastel_harp",
+        ):
+            return (
+                False,
+                f"synthetic tonal pad_style {audio.get('pad_style')!r} is banned",
+            )
+        if audio.get("allow_synth_sfx") is True or audio.get("allow_synth_pad") is True:
+            return False, "allow_synth_sfx / allow_synth_pad is banned"
+    for scene in board.get("scenes") or []:
+        if not isinstance(scene, dict):
+            continue
+        sid = scene.get("scene_id", "?")
+        for ev in scene.get("sfx_events") or []:
+            if not isinstance(ev, dict):
+                continue
+            if ev.get("sfx") != "trauma" and not str(ev.get("wav", "")).strip():
+                return (
+                    False,
+                    f"scene {sid!r}: procedural sfx {ev.get('sfx')!r} has no real wav file",
+                )
+    return True, "no synthetic tones or procedural SFX"
+
+
 def check_board(
     board: dict[str, Any], intake: dict[str, Any], brief: dict[str, Any]
 ) -> dict[str, Any]:
@@ -317,6 +346,9 @@ def check_board(
 
     brief_ok, brief_detail = check_brief(brief)
     add("originality_brief", brief_ok, brief_detail)
+
+    synth_ok, synth_detail = check_no_synthetic_tones(board)
+    add("no_synthetic_tones", synth_ok, synth_detail)
 
     ok = all(c["ok"] for c in checks)
     return {

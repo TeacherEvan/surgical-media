@@ -10,7 +10,7 @@ Pick per scene (`archetype`). Blend across scenes freely; the renderer doesn't c
 | **Hero elements** | `phi_divider`, `tesseract`, `stick_rig` | `scaling_chart`, `quote_card`, `grid` | `system_architecture`, `code_terminal` |
 | **VO rate** | non-verbal — SFX-locked beats | 150–165 WPM | 175–195 WPM |
 | **Beat density** | 1 visual state / 2–3 s | 1 visual state / 2.5–3 s | 1 visual state / 1.5–3 s |
-| **Signature SFX** | `chime` (φ-interval), `whoosh`, `pop` on lock | `pop` milestones, `confirm` on thesis land | `type_click`, `error_buzz`, camera `trauma` |
+| **Signature SFX** | camera `trauma` / real recorded `wav` only (no cheap synth SFX) | camera `trauma` / real recorded `wav` only | camera `trauma` / real recorded `wav` only |
 | **Camera** | slow ease_out_expo zoom (1.0 → 1.15) | static or micro ease_in_out_cubic drift (≤1.05) | micro push-in + `trauma` shake on the headline failure |
 
 ## `geometry_rig` — procedural math & the IK stick figure
@@ -24,7 +24,7 @@ The figure is drawn by `rig.py`: a 2-bone analytical IK limb solves shoulder→e
 ## `doc_essay` — documentary data essay
 
 - **`scaling_chart`** — exponential `y(u) = (e^{ku} − 1)/(e^k − 1)` with glowing playhead, three spring-pop milestone badges and a quadratic odometer (`odometer_from → odometer_to`, e.g. 1× → 500×). `exponent` 3.5–4.5 reads as "compute" instantly.
-- **`quote_card`** — translucent slate card (`#111C31` over `#050508` bases), specular border `#2B3A55`, gold glyph. Quotes ≤ 4 wrapped lines or they overflow; the painter clips at 4.
+- **`quote_card`** — boxless editorial pull-quote (`fill: "none"`, accent bar + dark text stroke) by default; optional translucent card (`alpha: 0.58`). Quotes ≤ 4 wrapped lines or they overflow; the painter clips at 4. Never place over photographs.
 - **Grid stays faint:** `#131B2E` at spacing ≥ 64 px. If the grid competes with the curve, the exponent visualizes nothing.
 - **Pacing:** one idea per clause, 8–15 words. Odometer lands *after* the sentence completes — data punctuation, not decoration.
 
@@ -62,4 +62,4 @@ Each archetype has a canonical look; **a second palette set per archetype** (2 o
 
 ## Caption Discipline
 
-`kinetic_captions` reads the scene's `words` array (syllable-weighted timestamps from `tts_align.py`). Past words are `#E5E9F0`, the active word pops gold at 1.18×, future words sit at `#39424F`. On 9:16 the strip auto-centers inside the caption safe band; on 16:9 it sits under the stage. Long clauses wrap to the measured width automatically.
+`kinetic_captions` reads the scene's `words` array (syllable-weighted timestamps from `tts_align.py`). Past words are `#E5E9F0`, the active word pops gold, future words sit at `#C4CDD9`, with a clean dark text stroke and no opaque black box (`bg_color: "none"`). Paged to `max_lines: 2` so captions never dump an entire paragraph over the frame. On 9:16 the strip auto-centers inside the caption safe band; on 16:9 it sits under the stage.

@@ -124,13 +124,14 @@ def caption_defaults(
             "y_anchor": 0.60 if portrait else 0.84,
             "ink_color": ink,
             "accent": accent,
-            "dim_color": mix_hex(ground, ink, 0.38),
+            "dim_color": mix_hex(ground, ink, 0.72),
             "bg_color": "none",
             "stroke_color": shadow,
-            "stroke_width": round(size * 0.10, 2),
-            "active_stroke_width": round(size * 0.13, 2),
+            "stroke_width": round(min(3.2, max(1.6, size * 0.05)), 2),
+            "active_stroke_width": round(min(3.8, max(2.0, size * 0.062)), 2),
             "pop_scale": 0.14,
             "max_width_frac": 0.9 if portrait else 0.8,
+            "max_lines": 2,
         }
     if kind == "editorial":
         size = round(height * (0.028 if portrait else 0.034))
@@ -140,14 +141,15 @@ def caption_defaults(
             "size": size,
             "ink_color": ink,
             "accent": accent,
-            "dim_color": mix_hex(ground, ink, 0.45),
+            "dim_color": mix_hex(ground, ink, 0.72),
             "bg_color": ground,
-            "bg_alpha": 0.82,
+            "bg_alpha": 0.45,
             "bg_outline": mix_hex(ground, ink, 0.18),
             "bg_radius": 16.0,
-            "stroke_color": "none",
-            "stroke_width": 0.0,
+            "stroke_color": shadow,
+            "stroke_width": 1.2,
             "pop_scale": 0.05,
+            "max_lines": 2,
         }
     return {}
 

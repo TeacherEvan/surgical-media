@@ -379,6 +379,42 @@ def test_image_backdrop_blur_anchor_y_moves_plate(tmp_path):
     assert sum(bot_img.getpixel((W // 2, H - 8))) > sum(bot_img.getpixel((W // 2, 8)))
 
 
+def test_image_backdrop_blur_portrait_default_lifts_above_captions(tmp_path):
+    png = tmp_path / "wide.png"
+    Image.new("RGB", (320, 180), (220, 180, 120)).save(png)
+    pw, ph = 180, 320
+    cv = SupersampledCanvas(pw, ph, scale=2, background="#050508")
+    cv.set_frame(1.0, 1.0)
+    ctx = ElementContext(
+        width=pw,
+        height=ph,
+        t=1.0,
+        scene_time=1.0,
+        local_time=1.0,
+        words=[],
+        seed=1,
+        zones=layout_zones(pw, ph),
+        base_dir=str(tmp_path),
+    )
+    render_element(
+        cv,
+        {
+            "type": "image",
+            "src": "wide.png",
+            "box": [0, 0, pw, ph],
+            "fit": "backdrop_blur",
+            "fade_in_sec": 0.0,
+            "dim": 0.35,
+            "kb_zoom": 1.0,
+        },
+        ctx,
+    )
+    img = cv.final().convert("RGB")
+    upper_mid = sum(img.getpixel((pw // 2, int(ph * 0.36))))
+    lower_cap = sum(img.getpixel((pw // 2, int(ph * 0.78))))
+    assert upper_mid > lower_cap
+
+
 def test_bundled_inter_is_the_default_face():
     """Bundled OFL Inter must win over system fonts for sans text."""
     import canvas

@@ -550,7 +550,14 @@ def test_audio_dsp_no_pad_double_sum_and_smooth_duck_release(tmp_path: Path) -> 
         {"start_sec": 0.0, "duration_sec": 0.5},
         {"start_sec": 0.0, "duration_sec": 0.5},
     ]
-    audio_dsp.build_master_wav(scenes, out_wav, pad=True, pad_level=0.05)
+    audio_dsp.build_master_wav(
+        scenes,
+        out_wav,
+        pad=True,
+        pad_level=0.05,
+        pad_style="drone",
+        allow_synth_pad=True,
+    )
     with wave.open(str(out_wav), "rb") as w:
         frames = array("h", w.readframes(w.getnframes()))
     expected_peak = max(

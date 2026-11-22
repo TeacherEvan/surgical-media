@@ -9,7 +9,9 @@
   "meta":  { "title": "…", "author": "…", "seed": 20261118 },   // seed → deterministic frames
   "format":{ "width": 1920, "height": 1080, "fps": 30 },         // fps ∈ 24/25/30/50/60
   "scenes":[ … ],
-  "audio": { "pad": true, "pad_level": 0.055, "duck_depth": 0.72, "sample_rate": 48000 }
+  "audio": { "pad": false, "duck_depth": 0.72, "sample_rate": 48000 }
+  // Optional real music: "music_wav": "assets/bg.wav", "music_level": 0.14
+  // Optional unvoiced air: "pad": true, "pad_style": "room_tone", "pad_level": 0.035
 }
 ```
 
@@ -66,6 +68,8 @@ Rich videos are **stacked layers**: a hero motion, a payload (caption/diagram/qu
 ### Scene visual quality checklist (one per board, read before writing scenes)
 
 - **One hero per scene** — pick exactly one moving hero (`orb_pulse`, `orbit_ring`, `typewriter_text`, `equalizer`, camera `orbit`/`static`, …). A scene with only captions looks like a text slide.
+- **No black text boxes over visuals** — `kinetic_captions` and `quote_card` default to boxless stroked typography; never stack `quote_card` or opaque dark boxes on top of photographs or 3D subjects.
+- **No cheap procedural SFX or synth pads** — leave `audio.pad: false` on voiced boards and never emit procedural `sfx_events` (`pop`, `chime`, `confirm`, `whoosh`, `type_click`, `error_buzz`, `soft_chime`, `thud`) without a real recorded `wav` file. Use clean VO, real `audio.music_wav`, real `sfx_events[].wav`, or camera-only `trauma`.
 - **No dead frames** — the hero moves on a beat, captions land after motion, pops happen early in a beat.
 - **Payload on top** — captions/quotes/diagrams overlay the motion, never compete with it.
 - **Copy a recipe card** from the table above (`data reveal`, `character moment`, `tour`, `impact beat`) instead of composing from scratch — same grammar, ship-tested combos.
@@ -106,7 +110,7 @@ Full-viewport fill. Painted through the camera but oversized ±4×, so shake nev
 Unit grid lines; spacing in px. Keep color close to canvas (it is geometry, not content).
 
 ### `hud_badge` — `{ "type": "hud_badge", "text": "01 · SCALING", "corner": "tl" }`
-Corner: `tl` / `tr` / `tc`. Spring-pops in over 0.55 s; gold capsule, monospace.
+Corner: `tl` / `tr` / `tc`. Spring-pops in over 0.55 s; translucent capsule (`alpha: 0.48` default, or `fill: "none"` for a boxless accent underline), monospace.
 
 ### `scaling_chart` — `{ "exponent": 4.35, "odometer_from": 1.0, "odometer_to": 500.0, "accent": "#38BDF8", "label": "FRONTIER COMPUTE", "odo_suffix": "×", "odo_decimals": 1, "milestones": [{"u": 0.25, "tag": "10×"}], "box": [x0, y0, x1, y1] }`
 Exponential curve with playhead + milestone badges (defaults `10×/100×/500×` at u=0.25/0.5/0.78; override with `milestones`, `[]` disables) + geometric odometer (`from → to`). `odo_suffix` defaults to `×` — set e.g. `" m"`/`" km"`/`" %"` for physical quantities. `box` optional.
@@ -130,7 +134,7 @@ Cubic-bezier edges, 2 packet dots per route, `200 OK` (green, `#50FA7B`) → `50
 Diff-row tinting (`add` → green tint/`#7EE787`, `del` → red tint/`#FFA198`, `comment` → `#8B949E`), gutter numbers, progressive line reveal tied to scene `t`, blinking block cursor on the revealed tail.
 
 ### `quote_card` — `{ "quote": "…", "attribution": "…", "box": [x0, y0, x1, y1] }`
-Gold glyph, ≤ 4 wrapped lines (measured wrap, 4-line clip), slate `#111C31` card with specular `#2B3A55` border.
+Boxless editorial pull-quote by default (`fill: "none"`, left accent bar + dark text stroke); ≤ 4 wrapped lines (4-line clip). Set `fill` + `alpha` (default `0.58`) only when a translucent glass card is explicitly needed, and never place it over photographs.
 
 ### `stick_rig` — `{ "x": 640, "y": 672, "height": 300, "reach_to": [640, 345], "reach_side": "right" }`
 Hollow-head IK figure (law-of-cosines two-bone solve). `reach_to` is a world-space design point the hand tracks; omit for idle sway. Feet at `y` (ground). Deterministic bob from scene-local time.
@@ -160,7 +164,7 @@ Progressive glyph reveal with a blinking block cursor — tells stories through 
 Animated leader walking a polyline (arc-speed `speed` px/s, can `wrap`) — walkthrough/tour scenes. Fade it or set `speed` to 0 when the tour ends.
 
 ### `kinetic_captions` — `{ "type": "kinetic_captions", "accent": "#FFD700", "size": 22 }`
-Reads the scene's `words` array; word-by-word karaoke in the caption band. `accent` (current word) and `size` optional.
+Reads the scene's `words` array; word-by-word karaoke in the caption band. Defaults to boxless stroked typography (`bg_color: "none"`) and 2-line phrase-window paging (`max_lines: 2`). `accent` (current word) and `size` optional.
 
 ## Scene backends (optional — `scene_spec` + `backend`)
 
@@ -191,8 +195,7 @@ HUD cards (`blender_hybrid` / `threejs_hybrid`) are placed by `scripts/layout_so
 
 ## `sfx_events`
 
-`pop` · `whoosh` · `chime` · `confirm` · `type_click` · `error_buzz` — synthesized offline, mixed at scene offset, ducked pad, −1 dBFS ceiling, loudnorm −14 LUFS on mux.
-`trauma` — camera-only; no audio. `intensity` scales SFX or shake (0.1–1.0).
+`trauma` — camera-shake only (no audio). For sound effects, supply a real recorded WAV file via `{"t_sec": 1.2, "sfx": "pop", "wav": "assets/real_hit.wav", "intensity": 0.7}`. Procedural synthesized SFX without `wav` are muted by default in `render_engine.py` and hard-rejected by `pipeline_preflight.py`.
 
 ## Genre painters
 

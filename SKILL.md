@@ -112,8 +112,8 @@ style_lint. A failed gate exits 3.
 - SVG `fill-opacity` alpha-composites (`elements/svg.py:_draw_translucent`); never pre-multiply RGB
   (opaque box). Photos: `image` (cover|contain|backdrop_blur); `Image.blend` for fades.
 - >150 ms A/V drift means `duration_sec` vs VO mismatch — re-run `tts_align.py`, never hand-tweak.
-- Shorts >60 s + commercial music still draws Content ID claims; prefer procedural audio and a
-  Private upload pre-check. WebGL must be virtual-clock captured, never screen-recorded.
+- Clean audio by default: `audio.pad` defaults to `false` and `render_engine.py` mutes synthesized SFX/tonal pads (`pipeline_preflight.py` hard-fails on them). Never emit procedural `sfx_events` (`pop`/`chime`/`confirm`/`whoosh`/`type_click`/`error_buzz`/`thud`) or tonal pads; use clean VO, real `audio.music_wav`, real `sfx_events[].wav`, or camera-only `trauma`.
+- No black text boxes over visuals: `kinetic_captions` and `quote_card` default to boxless stroked typography (`bg_color: "none"`, `fill: "none"`, 2-line paged captions); never stack `quote_card` or opaque dark boxes on top of photos or 3D subjects. WebGL must be virtual-clock captured, never screen-recorded.
 ## References
 
 `references/specs-licensing-compliance.md` (caps/safe zones/licenses) ·

@@ -32,9 +32,9 @@ Changing `-pix_fmt` without changing `frame.tobytes()` corrupts every frame (byt
 
 True-peak vs sample-peak: `loudnorm` handles inter-sample peaks; the pre-mux mix already sits under −1 dBFS (limiter in `audio_dsp.build_master_wav`), so loudnorm only trims integrated level, never pumps.
 
-## Sidechain ducking (VO under pad)
+## Sidechain ducking (VO under music / room tone)
 
-`audio_dsp` follows the concept spec: one-pole rectified envelope follower (fast attack ~4 ms, release ~180 ms), pad attenuated by `duck_depth` (default 0.72 ≈ −11 dB) during active speech, restored in gaps. Pad = 110 Hz root + 3:2 just fifth + detuned octave at −25 dBFS-ish (`pad_level 0.055`).
+`audio_dsp` defaults to `pad: false` (clean VO) and mutes procedural synthesized SFX/tonal pads by default (`pipeline_preflight.py` hard-fails on them). When `audio.music_wav` (real licensed music), `sfx_events[].wav` (real recorded Foley), or `audio.pad: true` (`pad_style: "room_tone"`, pitchless 400 Hz low-pass studio air for unvoiced renders) is enabled, a one-pole rectified envelope follower (fast attack ~4 ms, release ~180 ms) attenuates the bed by `duck_depth` (default 0.72 ≈ −11 dB) during active speech and restores it in gaps.
 
 ## QC gate (`verify_output.py`)
 

@@ -102,6 +102,7 @@ def test_offline_storyboard_generation(tmp_path):
         sys.argv = argv
     board = json.loads(out.read_text(encoding="utf-8"))
     assert [s["scene_id"] for s in board["scenes"]] == ["s1", "s2"]
+    assert board["audio"]["pad"] is False
     assert board["scenes"][1]["start_sec"] == board["scenes"][0]["duration_sec"]
     assert board["format"]["width"] == 1920
     assert all(

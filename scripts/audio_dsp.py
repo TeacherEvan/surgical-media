@@ -45,38 +45,67 @@ def _env_decay(t: float, rate: float) -> float:
 def synth_sfx(name: str, intensity: float = 1.0, rate: int = RATE) -> list[float]:
     intensity = min(1.0, max(0.05, float(intensity)))
     if name == "pop":
-        n = int(0.10 * rate)
-        return [
-            (
-                math.sin(2 * math.pi * 700 * (i / rate)) * _env_decay(i / rate, 45)
-                + 0.35
-                * math.sin(2 * math.pi * 1420 * (i / rate))
-                * _env_decay(i / rate, 60)
+        # Short damped low-mid bubble/wood pop (240 -> 115 Hz)
+        n = int(0.065 * rate)
+        out_pop: list[float] = []
+        phase = 0.0
+        for i in range(n):
+            t = i / rate
+            freq = 115.0 + 125.0 * math.exp(-38.0 * t)
+            phase += 2.0 * math.pi * freq / rate
+            att = 1.0 - math.exp(-t / 0.003)
+            out_pop.append(
+                math.sin(phase) * _env_decay(t, 55.0) * att * 0.28 * intensity
             )
-            * 0.8
-            * intensity
-            for i in range(n)
-        ]
-    if name == "chime":  # 528 Hz with golden-ratio partials
-        n = int(1.4 * rate)
-        partials = ((528.0, 1.0, 2.1), (528.0 * PHI, 0.5, 2.7), (528.0 * 2, 0.22, 3.4))
-        return [
-            sum(
-                a * math.sin(2 * math.pi * f * (i / rate)) * _env_decay(i / rate, d)
-                for f, a, d in partials
+        return out_pop
+    if name == "thud":
+        # Soft low percussive transition hit (115 -> 46 Hz)
+        n = int(0.11 * rate)
+        out_thud: list[float] = []
+        phase = 0.0
+        for i in range(n):
+            t = i / rate
+            freq = 46.0 + 69.0 * math.exp(-26.0 * t)
+            phase += 2.0 * math.pi * freq / rate
+            att = 1.0 - math.exp(-t / 0.003)
+            out_thud.append(
+                math.sin(phase) * _env_decay(t, 32.0) * att * 0.34 * intensity
             )
-            * 0.5
+        return out_thud
+    if name == "chime":  # Short warm damped single-bell tap (440 Hz + soft octave)
+        n = int(0.45 * rate)
+        out_chime: list[float] = []
+        for i in range(n):
+            t = i / rate
+            att = 1.0 - math.exp(-t / 0.008)
+            val = math.sin(2.0 * math.pi * 440.0 * t) * _env_decay(
+                t, 7.5
+            ) + 0.18 * math.sin(2.0 * math.pi * 880.0 * t) * _env_decay(t, 11.0)
+            out_chime.append(val * att * 0.22 * intensity)
+        return out_chime
+    if name == "confirm":  # Two short gentle damped taps (440 -> 523.25 Hz)
+        n1 = int(0.16 * rate)
+        n2 = int(0.22 * rate)
+        gap = int(0.08 * rate)
+        tap1 = [
+            math.sin(2.0 * math.pi * 440.0 * (i / rate))
+            * _env_decay(i / rate, 12.0)
+            * (1.0 - math.exp(-(i / rate) / 0.006))
+            * 0.22
             * intensity
-            for i in range(n)
+            for i in range(n1)
         ]
-    if name == "confirm":  # two-note confirmation: 528 → 528*φ
-        note1 = synth_sfx("chime", intensity * 0.8, rate)
-        note2 = synth_sfx("chime", intensity * 0.6, rate)
-        gap = int(0.18 * rate)
-        out = note1 + [0.0] * gap + note2
-        return out
+        tap2 = [
+            math.sin(2.0 * math.pi * 523.25 * (i / rate))
+            * _env_decay(i / rate, 10.0)
+            * (1.0 - math.exp(-(i / rate) / 0.006))
+            * 0.20
+            * intensity
+            for i in range(n2)
+        ]
+        return tap1 + [0.0] * gap + tap2
     if name == "whoosh":
-        n = int(0.6 * rate)
+        n = int(0.55 * rate)
         rng = random.Random(20261118)
         out = []
         low = 0.0
@@ -85,55 +114,112 @@ def synth_sfx(name: str, intensity: float = 1.0, rate: int = RATE) -> list[float
             sweep = (i / n) ** 1.6
             low += (0.02 + 0.35 * sweep) * (x - low)  # one-pole lowpass, opening up
             env = math.sin(math.pi * min(1.0, i / n)) ** 2
-            out.append(low * env * 0.9 * intensity)
+            out.append(low * env * 0.36 * intensity)
         return out
     if name == "type_click":
-        n = int(0.05 * rate)
-        return [
-            math.copysign(1.0, math.sin(2 * math.pi * 2300 * (i / rate)))
-            * _env_decay(i / rate, 95)
-            * 0.5
-            * intensity
-            for i in range(n)
-        ]
+        # Band-limited tactile noise click (no harsh square-wave tone)
+        n = int(0.020 * rate)
+        rng = random.Random(20261121)
+        out_tc: list[float] = []
+        prev_x = 0.0
+        lp = 0.0
+        for i in range(n):
+            t = i / rate
+            x = rng.uniform(-1.0, 1.0)
+            hp = x - prev_x
+            prev_x = x
+            lp += 0.38 * (hp - lp)
+            out_tc.append(lp * _env_decay(t, 220.0) * 0.26 * intensity)
+        return out_tc
     if name == "error_buzz":
-        n = int(0.45 * rate)
-        return [
-            (
-                sum(
-                    (1.0 / k) * math.sin(2 * math.pi * 110 * k * (i / rate))
-                    for k in range(1, 8)
+        # Short low muted double-thud (no harsh sawtooth buzzer)
+        n = int(0.22 * rate)
+        out_eb: list[float] = []
+        pulse2_start = 0.08
+        for i in range(n):
+            t = i / rate
+            p1 = (
+                (
+                    math.sin(2.0 * math.pi * 110.0 * t)
+                    + 0.35 * math.sin(2.0 * math.pi * 165.0 * t)
                 )
-                / 1.6
-                * _env_decay(i / rate, 6.0)
-                * (1.0 + 0.15 * math.sin(2 * math.pi * 27 * (i / rate)))
+                * _env_decay(t, 26.0)
+                * (1.0 - math.exp(-t / 0.003))
             )
-            * 0.8
-            * intensity
-            for i in range(n)
-        ]
-    if name == "soft_chime":  # warm acoustic harp / celesta pentatonic bloom
-        n = int(2.2 * rate)
-        sc_partials = (
-            (293.66, 0.55, 1.35),  # D4
-            (440.00, 0.45, 1.55),  # A4
-            (587.33, 0.35, 1.85),  # D5
-            (739.99, 0.24, 2.20),  # F#5
-            (1174.66, 0.10, 3.00),  # D6 shimmer
-        )
+            p2 = 0.0
+            if t >= pulse2_start:
+                t2 = t - pulse2_start
+                p2 = (
+                    (
+                        math.sin(2.0 * math.pi * 110.0 * t2)
+                        + 0.35 * math.sin(2.0 * math.pi * 165.0 * t2)
+                    )
+                    * _env_decay(t2, 26.0)
+                    * (1.0 - math.exp(-t2 / 0.003))
+                )
+            out_eb.append((p1 + p2) * 0.22 * intensity)
+        return out_eb
+    if name == "soft_chime":  # Short warm single-note bell (329.63 Hz + soft octave)
+        n = int(0.55 * rate)
         out_sc: list[float] = []
         for i in range(n):
             t = i / rate
-            attack = 1.0 - math.exp(-t / 0.025)
-            val = sum(
-                a * math.sin(2 * math.pi * f * t) * _env_decay(t, d)
-                for f, a, d in sc_partials
-            )
-            out_sc.append(val * attack * 0.36 * intensity)
+            attack = 1.0 - math.exp(-t / 0.012)
+            val = math.sin(2.0 * math.pi * 329.63 * t) * _env_decay(
+                t, 6.0
+            ) + 0.15 * math.sin(2.0 * math.pi * 659.25 * t) * _env_decay(t, 9.0)
+            out_sc.append(val * attack * 0.18 * intensity)
         return out_sc
     raise ValueError(
-        f"unknown sfx {name!r}; valid: pop, chime, confirm, whoosh, type_click, error_buzz, soft_chime"
+        f"unknown sfx {name!r}; valid: pop, thud, chime, confirm, whoosh, type_click, error_buzz, soft_chime"
     )
+
+
+def synth_room_tone(
+    n: int, level: float = 0.03, rate: int = RATE
+) -> tuple[list[float], list[float]]:
+    """Pitchless warm studio air (two-pole 400 Hz low-pass noise, stereo)."""
+    if n <= 0 or level <= 0.0:
+        return [0.0] * max(0, n), [0.0] * max(0, n)
+    rng = random.Random(20261122)
+    alpha = 1.0 - math.exp(-2.0 * math.pi * 400.0 / rate)
+    l1 = l2 = 0.0
+    r1 = r2 = 0.0
+    left = [0.0] * n
+    right = [0.0] * n
+    sq_sum = 0.0
+    for i in range(n):
+        c = rng.uniform(-1.0, 1.0)
+        s = rng.uniform(-1.0, 1.0)
+        wl = 0.85 * c + 0.15 * s
+        wr = 0.85 * c - 0.15 * s
+        l1 += alpha * (wl - l1)
+        l2 += alpha * (l1 - l2)
+        r1 += alpha * (wr - r1)
+        r2 += alpha * (r1 - r2)
+        left[i] = l2
+        right[i] = r2
+        sq_sum += 0.5 * (l2 * l2 + r2 * r2)
+    rms = math.sqrt(sq_sum / max(1, n)) or 1.0
+    gain = (0.35 * level) / rms
+    cap = 0.91 * level
+    fade = min(n // 4, int(0.08 * rate))
+    for i in range(n):
+        env = 1.0
+        if fade > 0:
+            if i < fade:
+                env = i / fade
+            elif i >= n - fade:
+                env = (n - 1 - i) / fade
+        g = gain * env
+        lv = left[i] * g
+        rv = right[i] * g
+        if cap > 0.0:
+            lv = math.tanh(lv / cap) * cap
+            rv = math.tanh(rv / cap) * cap
+        left[i] = lv
+        right[i] = rv
+    return left, right
 
 
 def pad_at(t_sec: float, level: float = 0.055) -> float:
@@ -287,6 +373,69 @@ def read_wav_mono(path: str | Path, target_rate: int = RATE) -> list[float]:
     return out
 
 
+def read_wav_stereo(
+    path: str | Path, target_rate: int = RATE
+) -> tuple[list[float], list[float]]:
+    """Decode a PCM wav to stereo (left, right) floats in [-1, 1], resampling if needed."""
+    with wave.open(str(path), "rb") as w:
+        channels, sampwidth, rate, frames = (
+            w.getnchannels(),
+            w.getsampwidth(),
+            w.getframerate(),
+            w.getnframes(),
+        )
+        raw = w.readframes(frames)
+    if frames == 0:
+        return [], []
+    if sampwidth == 2:
+        samples = array("h", raw)
+        scale = 1.0 / FULL_SCALE
+        left = [samples[i] * scale for i in range(0, len(samples), channels)]
+        right = (
+            [samples[i + 1] * scale for i in range(0, len(samples), channels)]
+            if channels >= 2
+            else list(left)
+        )
+    elif sampwidth == 1:
+        left = [((raw[i] - 128) / 128.0) for i in range(0, len(raw), channels)]
+        right = (
+            [((raw[i + 1] - 128) / 128.0) for i in range(0, len(raw), channels)]
+            if channels >= 2
+            else list(left)
+        )
+    elif sampwidth == 4:
+        samples_i = array("i", raw)
+        scale = 1.0 / 2147483648.0
+        left = [samples_i[i] * scale for i in range(0, len(samples_i), channels)]
+        right = (
+            [samples_i[i + 1] * scale for i in range(0, len(samples_i), channels)]
+            if channels >= 2
+            else list(left)
+        )
+    else:
+        raise ValueError(f"unsupported sample width {sampwidth} in {path}")
+    if not left:
+        return [], []
+    if rate == target_rate:
+        return left, right
+    ratio = rate / target_rate
+    out_len = int(len(left) / ratio)
+    last = len(left) - 1
+    out_l: list[float] = []
+    out_r: list[float] = []
+    for i in range(out_len):
+        pos = i * ratio
+        lo = int(pos)
+        if lo >= last:
+            out_l.append(left[last])
+            out_r.append(right[last])
+        else:
+            frac = pos - lo
+            out_l.append(left[lo] + frac * (left[lo + 1] - left[lo]))
+            out_r.append(right[lo] + frac * (right[lo + 1] - right[lo]))
+    return out_l, out_r
+
+
 def measure_duration(path: str | Path) -> float:
     with wave.open(str(path), "rb") as w:
         return w.getnframes() / float(w.getframerate())
@@ -348,10 +497,12 @@ def mix_timeline(
     duration_sec: float,
     vo_path: str | Path | None = None,
     *,
-    pad: bool = True,
-    pad_level: float = 0.055,
+    pad: bool = False,
+    pad_level: float = 0.03,
     duck_depth: float = 0.72,
-    pad_style: str = "drone",
+    pad_style: str = "room_tone",
+    music_wav: str | Path | None = None,
+    music_level: float = 0.14,
     sfx_events: list[tuple[float, str, float]] | None = None,
     sample_rate: int = RATE,
 ) -> array[int]:
@@ -360,16 +511,27 @@ def mix_timeline(
         raise ValueError(f"mix_timeline works at {RATE} Hz; got {sample_rate}")
     n = round(duration_sec * RATE)
     vo = read_wav_mono(vo_path, RATE) if vo_path else []
-    env = duck_envelope(vo) if (vo and pad) else [0.0] * n
+    ml: list[float] = []
+    mr: list[float] = []
+    if music_wav and Path(music_wav).is_file():
+        ml, mr = read_wav_stereo(music_wav, RATE)
+    has_music = bool(ml)
+    env = duck_envelope(vo) if (vo and (pad or has_music)) else [0.0] * n
     if len(env) < n:
         tail_start = env[-1] if env else 0.0
         tail_n = n - len(env)
         release_n = max(1, int(0.45 * RATE))
         env = env + [tail_start * max(0.0, 1.0 - k / release_n) for k in range(tail_n)]
 
+    rt_l: list[float] = []
+    rt_r: list[float] = []
+    if pad and pad_style == "room_tone":
+        rt_l, rt_r = synth_room_tone(n, pad_level, RATE)
+
     left = [0.0] * n
     right = [0.0] * n
     peak = 0.0
+    m_len = len(ml)
 
     for i in range(n):
         t = i / RATE
@@ -379,9 +541,12 @@ def mix_timeline(
             v_s = vo[i] * 0.90
             lv_s += v_s
             rv_s += v_s
+        gain = 1.0 - duck_depth * env[i]
         if pad:
-            gain = 1.0 - duck_depth * env[i]
-            if pad_style == "pastel_harp":
+            if pad_style == "room_tone":
+                lv_s += rt_l[i] * gain
+                rv_s += rt_r[i] * gain
+            elif pad_style == "pastel_harp":
                 pl, pr = pastel_harp_stereo_at(t, duration_sec, pad_level)
                 lv_s += pl * gain
                 rv_s += pr * gain
@@ -389,6 +554,9 @@ def mix_timeline(
                 p_s = pad_at(t, pad_level) * gain
                 lv_s += p_s
                 rv_s += p_s
+        if has_music:
+            lv_s += ml[i % m_len] * music_level * gain
+            rv_s += mr[i % m_len] * music_level * gain
         left[i] = lv_s
         right[i] = rv_s
         a = max(abs(lv_s), abs(rv_s))
@@ -424,10 +592,14 @@ def build_master_wav(
     scenes: list[dict[str, Any]],
     output_path: str | Path,
     *,
-    pad: bool = True,
-    pad_level: float = 0.055,
+    pad: bool = False,
+    pad_level: float = 0.03,
     duck_depth: float = 0.72,
-    pad_style: str = "drone",
+    pad_style: str = "room_tone",
+    music_wav: str | Path | None = None,
+    music_level: float = 0.14,
+    allow_synth_sfx: bool = False,
+    allow_synth_pad: bool = False,
 ) -> float:
     """Mix every scene's VO stem + SFX into one continuous master wav.
 
@@ -451,7 +623,19 @@ def build_master_wav(
             for j in range(limit):
                 vo_mix[start + j] += vo[j]
 
-    env = duck_envelope(vo_mix) if (any_vo and pad) else [0.0] * n
+    ml: list[float] = []
+    mr: list[float] = []
+    if music_wav and Path(music_wav).is_file():
+        ml, mr = read_wav_stereo(music_wav, RATE)
+    has_music = bool(ml)
+    m_len = len(ml)
+
+    rt_l: list[float] = []
+    rt_r: list[float] = []
+    if pad and pad_style == "room_tone":
+        rt_l, rt_r = synth_room_tone(n, pad_level, RATE)
+
+    env = duck_envelope(vo_mix) if (any_vo and (pad or has_music)) else [0.0] * n
     left = [0.0] * n
     right = [0.0] * n
     peak = 0.0
@@ -460,17 +644,23 @@ def build_master_wav(
         v_s = vo_mix[i] * 0.90
         lv_s = v_s
         rv_s = v_s
+        gain = 1.0 - duck_depth * env[i]
         if pad:
-            gain = 1.0 - duck_depth * env[i]
             t_now = i / RATE
-            if pad_style == "pastel_harp":
+            if pad_style == "room_tone":
+                lv_s += rt_l[i] * gain
+                rv_s += rt_r[i] * gain
+            elif allow_synth_pad and pad_style == "pastel_harp":
                 pl, pr = pastel_harp_stereo_at(t_now, total, pad_level)
                 lv_s += pl * gain
                 rv_s += pr * gain
-            else:
+            elif allow_synth_pad:
                 p_s = pad_at(t_now, pad_level) * gain
                 lv_s += p_s
                 rv_s += p_s
+        if has_music:
+            lv_s += ml[i % m_len] * music_level * gain
+            rv_s += mr[i % m_len] * music_level * gain
         left[i] = lv_s
         right[i] = rv_s
         a = max(abs(lv_s), abs(rv_s))
@@ -482,19 +672,35 @@ def build_master_wav(
             name = ev.get("sfx")
             if name == "trauma":
                 continue
-            sfx = _cached_sfx(name, round(float(ev.get("intensity", 1.0)), 3), RATE)
+            intensity = min(1.0, max(0.05, float(ev.get("intensity", 1.0))))
             offset = start + int(float(ev["t_sec"]) * RATE)
-            for j, s in enumerate(sfx):
-                idx = offset + j
-                if idx < 0:
-                    continue
-                if idx >= n:
-                    break
-                lv, rv = left[idx] + s, right[idx] + s
-                left[idx] = lv
-                right[idx] = rv
-                a = max(abs(lv), abs(rv))
-                peak = max(peak, a)
+            wav_src = ev.get("wav")
+            if isinstance(wav_src, str) and wav_src.strip() and Path(wav_src).is_file():
+                sl, sr = read_wav_stereo(wav_src, RATE)
+                for j in range(len(sl)):
+                    idx = offset + j
+                    if idx < 0:
+                        continue
+                    if idx >= n:
+                        break
+                    lv = left[idx] + sl[j] * intensity
+                    rv = right[idx] + sr[j] * intensity
+                    left[idx] = lv
+                    right[idx] = rv
+                    peak = max(peak, abs(lv), abs(rv))
+            elif allow_synth_sfx and name:
+                sfx = _cached_sfx(name, round(intensity, 3), RATE)
+                for j, s in enumerate(sfx):
+                    idx = offset + j
+                    if idx < 0:
+                        continue
+                    if idx >= n:
+                        break
+                    lv, rv = left[idx] + s, right[idx] + s
+                    left[idx] = lv
+                    right[idx] = rv
+                    a = max(abs(lv), abs(rv))
+                    peak = max(peak, a)
 
     gain = (0.891 / peak) if peak > 0.891 else 1.0
 
@@ -521,6 +727,7 @@ def main() -> int:
         "--sfx",
         choices=[
             "pop",
+            "thud",
             "chime",
             "confirm",
             "whoosh",

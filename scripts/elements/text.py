@@ -73,8 +73,61 @@ def paint_hud_badge(
     cx, cy = bx0 + w / 2, by0 + h / 2
     sw, sh = w * scale_pop, h * scale_pop
     box = (cx - sw / 2, cy - sh / 2, cx + sw / 2, cy + sh / 2)
-    cv.rectangle(box, fill="#0B1220", outline=GOLD, width=2.0, radius=h * 0.35)
-    cv.text((cx, cy), text, GOLD, size=font_size, mono=True, anchor="mm")
+    fill_col = el.get("fill", "#0B1220")
+    alpha = float(el.get("alpha", 0.48))
+    outline_col = el.get("outline", GOLD)
+    accent = str(el.get("accent", el.get("ink_color", GOLD)))
+    stroke_col = el.get("stroke_color", "#05070C")
+    if stroke_col in ("none", ""):
+        stroke_col = None
+
+    saved_cam = cv.camera
+    if fill_col not in (None, "", "none") and alpha < 0.999:
+        cv.camera = None
+    try:
+        if fill_col not in (None, "", "none"):
+            outline_str = (
+                None if outline_col in (None, "", "none") else str(outline_col)
+            )
+            if alpha < 0.999:
+                _paste_soft_pill(
+                    cv,
+                    box,
+                    str(fill_col),
+                    alpha * reveal,
+                    h * 0.35,
+                    outline=outline_str,
+                    outline_width=1.6 if outline_str else 0.0,
+                )
+            else:
+                cv.rectangle(
+                    box,
+                    fill=str(fill_col),
+                    outline=outline_str,
+                    width=2.0 if outline_str else 0.0,
+                    radius=h * 0.35,
+                )
+        else:
+            # Boxless editorial HUD stamp: subtle accent underline beneath the text.
+            ul_y = cy + sh * 0.42
+            cv.line(
+                (cx - sw * 0.46, ul_y),
+                (cx + sw * 0.46, ul_y),
+                accent,
+                width=2.5,
+            )
+        cv.text(
+            (cx, cy),
+            text,
+            accent,
+            size=font_size,
+            mono=True,
+            anchor="mm",
+            stroke_fill=stroke_col,
+            stroke_width=1.4 if stroke_col else 0.0,
+        )
+    finally:
+        cv.camera = saved_cam
 
 
 def paint_quote_card(
@@ -95,8 +148,8 @@ def paint_quote_card(
     slide = (1.0 - reveal) * float(el.get("slide_px", 34.0))
     y0, y1 = y0 + slide, y1 + slide
 
-    fill_col = el.get("fill", "#111C31")
-    outline_col = el.get("outline", "#2B3A55")
+    fill_col = el.get("fill", "none")
+    outline_col = el.get("outline", "none")
     ink_col = str(el.get("ink_color", INK))
     dim_col = str(el.get("dim_color", DIM))
     accent_col = str(el.get("accent", GOLD))
@@ -104,8 +157,58 @@ def paint_quote_card(
     bold = bool(el.get("bold", True))
     align = str(el.get("align", "left")).lower()
     show_mark = bool(el.get("show_quote_mark", True))
-    card_alpha = float(el.get("alpha", 1.0))
+    card_alpha = float(el.get("alpha", 0.58))
+    stroke_col = el.get("stroke_color", "#05070C")
+    if stroke_col in ("none", ""):
+        stroke_col = None
+    stroke_w = float(el.get("stroke_width", 2.0))
     rad = min(26.0, (y1 - y0) * 0.12)
+
+    inner_w = (x1 - x0) * 0.86
+    glyph_size = int((y1 - y0) * 0.34)
+    font_size = int(el.get("size") or max(13, int((y1 - y0) * 0.115)))
+    font = get_font(font_size, family=family, bold=bold)
+    max_w = inner_w if align == "center" else inner_w - (x1 - x0) * 0.12
+    lines = _wrap_text(quote, font, max_w)[:4]
+    line_step = font_size * 1.32
+
+    if align == "center":
+        total_h = line_step * max(1, len(lines))
+        ty_start = (y0 + y1) * 0.5 - total_h * 0.5 + font_size * 0.45
+        if attribution:
+            ty_start -= font_size * 0.55
+        tx = (x0 + x1) * 0.5
+        anchor = "mm"
+    else:
+        ty_start = y0 + (font_size * 1.45 if show_mark else font_size * 0.85)
+        tx = x0 + (x1 - x0) * 0.075
+        anchor = "lm"
+
+    last_line_y = ty_start + line_step * max(0, len(lines) - 1)
+    attr_text = ""
+    attr_size = 0
+    attr_family = el.get("attribution_family", family)
+    attr_y = last_line_y
+    if attribution:
+        attr_prefix = str(el.get("attribution_prefix", "— "))
+        attr_text = f"{attr_prefix}{attribution}"
+        attr_size = int(el.get("attribution_size") or max(10, int(font_size * 0.68)))
+        max_w_attr = (x1 - x0) * 0.86
+        while (
+            attr_size > 8
+            and get_font(attr_size, family=attr_family, bold=False).getlength(attr_text)
+            > max_w_attr
+        ):
+            attr_size -= 1
+        attr_y = min(y1 - font_size * 0.6, last_line_y + font_size * 0.95)
+
+    content_top = min(
+        y0 + (y1 - y0) * 0.08 if show_mark else ty_start - font_size * 0.6,
+        ty_start - font_size * 0.6,
+    )
+    content_bottom = (
+        attr_y + attr_size * 0.6 if attribution else last_line_y + font_size * 0.6
+    )
 
     # With alpha < 1 the soft-pill card writes straight to cv.image and
     # ignores the world camera, while the card text uses it — under zoom/orbit
@@ -115,10 +218,17 @@ def paint_quote_card(
         cv.camera = None
     try:
         if fill_col not in (None, "", "none"):
+            pad_y = font_size * 0.75
+            card_box = (
+                x0,
+                max(y0, content_top - pad_y),
+                x1,
+                min(y1, content_bottom + pad_y),
+            )
             if card_alpha < 0.999:
                 _paste_soft_pill(
                     cv,
-                    (x0, y0, x1, y1),
+                    card_box,
                     str(fill_col),
                     card_alpha * reveal,
                     rad,
@@ -129,7 +239,7 @@ def paint_quote_card(
                 )
             else:
                 cv.rectangle(
-                    (x0, y0, x1, y1),
+                    card_box,
                     fill=str(fill_col),
                     outline=(
                         None if outline_col in (None, "", "none") else str(outline_col)
@@ -137,10 +247,27 @@ def paint_quote_card(
                     width=2.0,
                     radius=rad,
                 )
+        else:
+            # Boxless editorial pull-quote: sleek accent rule instead of an opaque slab.
+            if align == "center":
+                rule_w = min(72.0, (x1 - x0) * 0.18)
+                rule_y = max(y0 + 4.0, content_top - font_size * 0.35)
+                cv.line(
+                    ((x0 + x1) * 0.5 - rule_w * 0.5, rule_y),
+                    ((x0 + x1) * 0.5 + rule_w * 0.5, rule_y),
+                    accent_col,
+                    width=4.0,
+                )
+            else:
+                bar_x = x0 + (x1 - x0) * 0.035
+                cv.line(
+                    (bar_x, max(y0 + 4.0, content_top)),
+                    (bar_x, min(y1 - 4.0, content_bottom)),
+                    accent_col,
+                    width=4.0,
+                )
 
-        inner_w = (x1 - x0) * 0.86
         if show_mark:
-            glyph_size = int((y1 - y0) * 0.34)
             cv.text(
                 (x0 + (x1 - x0) * 0.055, y0 + (y1 - y0) * 0.16),
                 "“",
@@ -149,24 +276,11 @@ def paint_quote_card(
                 anchor="lm",
                 family=family,
                 bold=bold,
+                stroke_fill=stroke_col,
+                stroke_width=stroke_w if stroke_col else 0.0,
             )
-        font_size = int(el.get("size") or max(13, int((y1 - y0) * 0.115)))
-        font = get_font(font_size, family=family, bold=bold)
-        max_w = inner_w if align == "center" else inner_w - (x1 - x0) * 0.12
-        lines = _wrap_text(quote, font, max_w)
-        line_step = font_size * 1.32
-        if align == "center":
-            total_h = line_step * min(4, len(lines))
-            ty = (y0 + y1) * 0.5 - total_h * 0.5 + font_size * 0.45
-            if attribution:
-                ty -= font_size * 0.55
-            tx = (x0 + x1) * 0.5
-            anchor = "mm"
-        else:
-            ty = y0 + (y1 - y0) * 0.30
-            tx = x0 + (x1 - x0) * 0.075
-            anchor = "lm"
-        for line in lines[:4]:
+        ty = ty_start
+        for line in lines:
             cv.text(
                 (tx, ty),
                 line,
@@ -175,28 +289,15 @@ def paint_quote_card(
                 anchor=anchor,
                 family=family,
                 bold=bold,
+                stroke_fill=stroke_col,
+                stroke_width=stroke_w if stroke_col else 0.0,
             )
             ty += line_step
         if attribution:
-            attr_prefix = str(el.get("attribution_prefix", "— "))
-            attr_text = f"{attr_prefix}{attribution}"
-            attr_size = int(
-                el.get("attribution_size") or max(10, int(font_size * 0.68))
-            )
-            attr_family = el.get("attribution_family", family)
-            max_w_attr = (x1 - x0) * 0.86
-            while (
-                attr_size > 8
-                and get_font(attr_size, family=attr_family, bold=False).getlength(
-                    attr_text
-                )
-                > max_w_attr
-            ):
-                attr_size -= 1
             attr_pos = (
-                ((x0 + x1) * 0.5, ty + font_size * 0.35)
+                ((x0 + x1) * 0.5, attr_y)
                 if align == "center"
-                else (x0 + (x1 - x0) * 0.075, y1 - (y1 - y0) * 0.16)
+                else (x0 + (x1 - x0) * 0.075, attr_y)
             )
             cv.text(
                 attr_pos,
@@ -206,6 +307,8 @@ def paint_quote_card(
                 anchor="mm" if align == "center" else "lm",
                 family=attr_family,
                 bold=False,
+                stroke_fill=stroke_col,
+                stroke_width=max(1.0, stroke_w * 0.75) if stroke_col else 0.0,
             )
     finally:
         if card_alpha < 0.999:
@@ -225,9 +328,9 @@ def paint_kinetic_captions(
     font = get_font(font_size, family=family, bold=bold)
     accent = str(el.get("accent", GOLD))
     ink_color = str(el.get("ink_color", INK))
-    dim_color = str(el.get("dim_color", "#39424F"))
-    bg_color = el.get("bg_color", "#05070C")
-    bg_alpha = float(el.get("bg_alpha", 1.0))
+    dim_color = str(el.get("dim_color", "#C4CDD9"))
+    bg_color = el.get("bg_color", "none")
+    bg_alpha = float(el.get("bg_alpha", 0.52))
     bg_outline = el.get("bg_outline")
     stroke_color = el.get("stroke_color", "#05070C")
     if stroke_color in ("none", ""):
@@ -235,7 +338,7 @@ def paint_kinetic_captions(
     stroke_width = float(el.get("stroke_width", 2.0))
     active_stroke_width = float(
         el.get(
-            "active_stroke_width", max(stroke_width, 3.0 if stroke_width > 0 else 0.0)
+            "active_stroke_width", max(stroke_width, 2.6 if stroke_width > 0 else 0.0)
         )
     )
     pop_scale = float(el.get("pop_scale", 0.09))
@@ -263,6 +366,21 @@ def paint_kinetic_captions(
         else:
             lines.append([i])
             cur_text = tokens[i]
+
+    raw_max_lines = el.get("max_lines", 2)
+    if (
+        raw_max_lines is not None
+        and int(raw_max_lines) >= 1
+        and len(lines) > int(raw_max_lines)
+    ):
+        ml = int(raw_max_lines)
+        target_idx = max(0, current_idx)
+        active_line_idx = next(
+            (li for li, ln in enumerate(lines) if target_idx in ln),
+            len(lines) - 1,
+        )
+        page = active_line_idx // ml
+        lines = lines[page * ml : (page + 1) * ml]
 
     line_boxes: list[tuple[float, float, list[tuple[int, float, float]]]] = []
     space_w = max(font.getlength(" "), font_size * 0.28)
@@ -399,7 +517,9 @@ def paint_source_tag(
     label = str(el.get("label", "SOURCE")).upper()
     ink = str(el.get("ink_color", INK))
     accent = str(el.get("accent", GOLD))
-    fill = str(el.get("fill", "#0B1220"))
+    fill = el.get("fill", "#0B1220")
+    alpha = float(el.get("alpha", 0.48))
+    outline = el.get("outline")
     sx0, sy0, sx1, sy1 = ctx.zones["safe"]
     size = int(el.get("size") or max(13, int(ctx.height * 0.021)))
     family = el.get("font_family")
@@ -419,19 +539,24 @@ def paint_source_tag(
     x0 = sx1 - w if corner.endswith("r") else sx0
     y0 = (sy0 if corner.startswith("t") else sy1 - h) + (1.0 - reveal) * size * 1.2
     box = (x0, y0, x0 + w, y0 + h)
-    _paste_soft_pill(
-        cv,
-        box,
-        fill,
-        float(el.get("alpha", 0.88)) * reveal,
-        h * 0.28,
-        outline=str(el.get("outline", accent)),
-        outline_width=1.2,
-    )
+    if fill not in (None, "", "none") and alpha > 0.01:
+        _paste_soft_pill(
+            cv,
+            box,
+            str(fill),
+            alpha * reveal,
+            h * 0.28,
+            outline=str(outline) if outline not in (None, "", "none") else None,
+            outline_width=1.2 if outline not in (None, "", "none") else 0.0,
+        )
     cy = y0 + h / 2
     saved_cam = cv.camera
     cv.camera = None
     try:
+        bar_x = x0 + pad_x * 0.35
+        cv.line(
+            (bar_x, y0 + pad_y * 0.5), (bar_x, y0 + h - pad_y * 0.5), accent, width=3.0
+        )
         cv.text(
             (x0 + pad_x, cy),
             label,
@@ -440,6 +565,8 @@ def paint_source_tag(
             anchor="lm",
             family=family,
             bold=True,
+            stroke_fill="#05070C",
+            stroke_width=1.4,
         )
         cv.text(
             (x0 + pad_x + label_font.getlength(label) + gap, cy),
@@ -449,6 +576,8 @@ def paint_source_tag(
             anchor="lm",
             family=family,
             bold=False,
+            stroke_fill="#05070C",
+            stroke_width=1.4,
         )
     finally:
         cv.camera = saved_cam

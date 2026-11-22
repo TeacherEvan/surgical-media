@@ -254,7 +254,7 @@ def retention_static_hold(
                 _issue(
                     "retention_static_hold",
                     f"scene {scene.get('scene_id')!r} holds {duration:.1f}s @{aspect} without motion/SFX "
-                    f"(budget {limit:.1f}s); add a camera move, typewriter, pulse, or SFX",
+                    f"(budget {limit:.1f}s); add a camera move, typewriter, or visual motion",
                     "ERROR",
                     scene.get("scene_id"),
                 )

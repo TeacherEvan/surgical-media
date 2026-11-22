@@ -5,8 +5,8 @@ Frames are rendered with SupersampledCanvas (2x supersampled, BOX
 downsampled at integer scale) and streamed as raw RGB straight into an ffmpeg subprocess —
 no intermediate PNGs, no temp frame directories.
 
-Audio is synthesized offline by audio_dsp.build_master_wav (voiceover stems
-ducked under a just-intonation pad, SFX on a frame-accurate timeline,
+Audio is synthesized offline by audio_dsp.build_master_wav (clean voiceover stems
+with optional music_wav or pitchless room_tone, SFX on a frame-accurate timeline,
 -1 dBFS peak ceiling) and muxed with loudnorm (-14 LUFS, TP -2) followed by a
 -1 dBFS alimiter so the encoded master meets the measured -14 +/-1 LUFS and
 <= -1 dBTP contract asserted by qc_gate.py.
@@ -839,16 +839,39 @@ def render(args: argparse.Namespace) -> int:
     width, height, fps = int(fmt["width"]), int(fmt["height"]), int(fmt["fps"])
     seed = int(board.get("meta", {}).get("seed", 20261118))
     audio_cfg = board.get("audio") or {}
-    pad = bool(audio_cfg.get("pad", True))
-    pad_level = float(audio_cfg.get("pad_level", 0.055))
+    pad = bool(audio_cfg.get("pad", False))
+    pad_level = float(audio_cfg.get("pad_level", 0.03))
     duck_depth = float(audio_cfg.get("duck_depth", 0.72))
-    pad_style = str(audio_cfg.get("pad_style", "drone"))
+    pad_style = str(audio_cfg.get("pad_style", "room_tone"))
+    music_wav_raw = audio_cfg.get("music_wav")
+    music_wav: str | None = None
+    if isinstance(music_wav_raw, str) and music_wav_raw.strip():
+        mpath = Path(music_wav_raw)
+        if not mpath.is_absolute():
+            mpath = (board_path.parent / mpath).resolve()
+        music_wav = str(mpath)
+    music_level = float(audio_cfg.get("music_level", 0.14))
+    allow_synth_sfx = bool(audio_cfg.get("allow_synth_sfx", False))
+    allow_synth_pad = bool(audio_cfg.get("allow_synth_pad", False))
 
-    # resolve VO paths relative to the storyboard location
+    # resolve VO and SFX wav paths relative to the storyboard location
     for scene in board["scenes"]:
         vo = scene.get("vo_wav")
         if vo and not Path(vo).is_absolute():
             scene["vo_wav"] = str((board_path.parent / vo).resolve())
+        if scene.get("sfx_events"):
+            resolved_evs = []
+            for ev in scene["sfx_events"]:
+                ev_copy = dict(ev)
+                swav = ev_copy.get("wav")
+                if (
+                    isinstance(swav, str)
+                    and swav.strip()
+                    and not Path(swav).is_absolute()
+                ):
+                    ev_copy["wav"] = str((board_path.parent / swav).resolve())
+                resolved_evs.append(ev_copy)
+            scene["sfx_events"] = resolved_evs
 
     duration = total_duration(board)
     if duration > args.max_seconds:
@@ -878,6 +901,22 @@ def render(args: argparse.Namespace) -> int:
     work_dir.mkdir(parents=True, exist_ok=True)
     master_wav = work_dir / "master.wav"
     build_scenes = [dict(sc) for sc in board["scenes"]]
+    if pad and pad_style in ("drone", "pastel_harp") and not allow_synth_pad:
+        print(
+            f"render_engine: warning — synthetic tonal pad_style {pad_style!r} "
+            "muted by default",
+            file=sys.stderr,
+        )
+    if not allow_synth_sfx and any(
+        ev.get("sfx") != "trauma" and not str(ev.get("wav", "")).strip()
+        for sc in build_scenes
+        for ev in (sc.get("sfx_events") or [])
+    ):
+        print(
+            "render_engine: warning — synthesized sfx_events without 'wav' "
+            "muted by default (use real recorded sfx_events[].wav)",
+            file=sys.stderr,
+        )
     t0 = time.time()
     audio_dsp.build_master_wav(
         build_scenes,
@@ -886,6 +925,10 @@ def render(args: argparse.Namespace) -> int:
         pad_level=pad_level,
         duck_depth=duck_depth,
         pad_style=pad_style,
+        music_wav=music_wav,
+        music_level=music_level,
+        allow_synth_sfx=allow_synth_sfx,
+        allow_synth_pad=allow_synth_pad,
     )
     t_audio = time.time() - t0
 

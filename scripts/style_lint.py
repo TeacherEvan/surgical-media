@@ -18,6 +18,11 @@ any finding. Rules:
 - ``unsourced_claim``  ``newsroom_clean``: quote/chart/stat scene with no
                        ``source_tag``/``attribution``; ``image`` without
                        ``attribution``
+- ``synth_pad_enabled``    ``audio.pad: true`` with synthetic tonal ``pad_style``
+- ``tonal_sfx_overuse``    tonal SFX (chime/confirm/soft_chime/error_buzz) over VO or >2 total
+- ``synth_sfx_used``       procedural SFX without a real recorded ``wav`` file
+- ``opaque_text_box``      ``quote_card``/``kinetic_captions`` with opaque dark box (alpha >= 0.85)
+- ``text_obstructs_visual`` ``quote_card`` overlapping an image/chart/map/3D visual stage (>= 25%)
 """
 
 from __future__ import annotations
@@ -257,6 +262,145 @@ def _check_newsroom_sources(
     return findings
 
 
+_TONAL_SFX = frozenset({"chime", "confirm", "soft_chime", "error_buzz"})
+_VISUAL_STAGE_TYPES = frozenset(
+    {"image", "svg", "scaling_chart", "map", "system_architecture"}
+)
+
+
+def _check_audio_and_overlays(
+    board: dict[str, Any], raw_scenes: list[dict[str, Any]], w: float, h: float
+) -> list[Finding]:
+    findings: list[Finding] = []
+    audio = board.get("audio")
+    if isinstance(audio, dict) and (
+        (
+            audio.get("pad") is True
+            and str(audio.get("pad_style", "room_tone")) in {"drone", "pastel_harp"}
+        )
+        or audio.get("allow_synth_pad") is True
+        or audio.get("allow_synth_sfx") is True
+    ):
+        findings.append(
+            _f(
+                "synth_pad_enabled",
+                "*",
+                f"synthetic audio enabled (pad_style={audio.get('pad_style')!r})",
+            )
+        )
+
+    total_tonal_sfx = 0
+    for scene in raw_scenes:
+        sid = str(scene.get("scene_id", "?"))
+        has_vo = bool(scene.get("vo_wav")) or bool(
+            str(scene.get("narration", "")).strip()
+        )
+        proc_evs = [
+            ev
+            for ev in (scene.get("sfx_events") or [])
+            if isinstance(ev, dict)
+            and ev.get("sfx") != "trauma"
+            and not str(ev.get("wav", "")).strip()
+        ]
+        tonal_in_scene = [ev for ev in proc_evs if ev.get("sfx") in _TONAL_SFX]
+        non_tonal_in_scene = [ev for ev in proc_evs if ev.get("sfx") not in _TONAL_SFX]
+        total_tonal_sfx += len(tonal_in_scene)
+        if has_vo and tonal_in_scene:
+            findings.append(
+                _f(
+                    "tonal_sfx_overuse",
+                    sid,
+                    f"tonal SFX {[e.get('sfx') for e in tonal_in_scene]} over narration",
+                )
+            )
+        if non_tonal_in_scene:
+            findings.append(
+                _f(
+                    "synth_sfx_used",
+                    sid,
+                    f"procedural synth SFX {[e.get('sfx') for e in non_tonal_in_scene]} without real wav file; omit or supply real sfx_events[].wav",
+                )
+            )
+
+        elements = [e for e in (scene.get("elements") or []) if isinstance(e, dict)]
+        visual_boxes: list[tuple[float, float, float, float]] = []
+        if isinstance(scene.get("scene_spec"), dict) and scene.get("scene_spec"):
+            visual_boxes.append((w * 0.15, h * 0.15, w * 0.85, h * 0.75))
+        for el in elements:
+            etype = el.get("type")
+            if etype in _VISUAL_STAGE_TYPES:
+                raw_b = el.get("box")
+                if isinstance(raw_b, list) and len(raw_b) == 4:
+                    bx0, by0, bx1, by1 = (float(v) for v in raw_b)
+                elif etype == "image":
+                    bx0, by0, bx1, by1 = 0.0, 0.0, w, h
+                else:
+                    continue
+                if etype == "image" and el.get("fit") == "backdrop_blur":
+                    bh = by1 - by0
+                    visual_boxes.append((bx0, by0 + 0.15 * bh, bx1, by0 + 0.85 * bh))
+                else:
+                    visual_boxes.append((bx0, by0, bx1, by1))
+
+        for el in elements:
+            etype = el.get("type")
+            if etype == "quote_card":
+                fill = el.get("fill")
+                if (
+                    fill not in (None, "", "none")
+                    and float(el.get("alpha", 0.58)) >= 0.85
+                ):
+                    findings.append(
+                        _f(
+                            "opaque_text_box",
+                            sid,
+                            "quote_card sets opaque fill (alpha >= 0.85)",
+                        )
+                    )
+                raw_qb = el.get("box")
+                if isinstance(raw_qb, list) and len(raw_qb) == 4:
+                    qx0, qy0, qx1, qy1 = (float(v) for v in raw_qb)
+                else:
+                    qx0, qy0, qx1, qy1 = w * 0.16, h * 0.52, w * 0.84, h * 0.78
+                q_area = max(0.0, qx1 - qx0) * max(0.0, qy1 - qy0)
+                if q_area > 0.0:
+                    for vx0, vy0, vx1, vy1 in visual_boxes:
+                        inter = max(0.0, min(qx1, vx1) - max(qx0, vx0)) * max(
+                            0.0, min(qy1, vy1) - max(qy0, vy0)
+                        )
+                        if inter / q_area >= 0.25:
+                            findings.append(
+                                _f(
+                                    "text_obstructs_visual",
+                                    sid,
+                                    "quote_card overlaps visual/photo stage (>= 25%)",
+                                )
+                            )
+                            break
+            elif etype == "kinetic_captions":
+                bg_c = el.get("bg_color")
+                if (
+                    bg_c not in (None, "", "none")
+                    and float(el.get("bg_alpha", 0.52)) >= 0.85
+                ):
+                    findings.append(
+                        _f(
+                            "opaque_text_box",
+                            sid,
+                            "kinetic_captions sets opaque bg_color (bg_alpha >= 0.85)",
+                        )
+                    )
+    if total_tonal_sfx > 2:
+        findings.append(
+            _f(
+                "tonal_sfx_overuse",
+                "*",
+                f"{total_tonal_sfx} tonal SFX across board (max 2)",
+            )
+        )
+    return findings
+
+
 def lint_board(raw: dict[str, Any]) -> list[Finding]:
     board = assign_start_times(raw)  # @refs + style/platform defaults resolved
     fmt = board.get("format") or {}
@@ -284,6 +428,7 @@ def lint_board(raw: dict[str, Any]) -> list[Finding]:
         *_check_motion_and_framing(scenes, raw_scenes, style, w, h),
         *_check_platform_rules(scenes, plat, w, h),
         *_check_newsroom_sources(scenes, style_preset, plat),
+        *_check_audio_and_overlays(board, raw_scenes, w, h),
     ]
 
 
