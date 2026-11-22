@@ -99,3 +99,14 @@ python3 scripts/qc_gate.py --video final.mp4 --format 9:16 --preset strict \
 - `--expect-width/--expect-height` override the format's canonical dimensions for smaller
   smoke renders (CI uses 1280x720 for the 16:9 demo). Default dimensions stay strict.
 - Exit 0 = pass, 3 = fail. Failure means fix the board/audio, never weaken the gate.
+
+## 4. `scripts/tool_probe.py` & `scripts/job_cli.py` — host probe & brief-gated jobs
+
+```bash
+python3 scripts/tool_probe.py --out capabilities.json
+python3 scripts/job_cli.py validate-brief brief.json
+python3 scripts/job_cli.py plan <job_id> --brief brief.json
+```
+
+- `tool_probe.py` emits presence-only host capabilities (Blender, Three.js, GPU, local/cloud TTS, research keys) without leaking secret values.
+- `job_cli.py validate-brief` / `plan --brief` validates `investigation_brief.json` against `schemas/investigation_brief.schema.json` and attaches its SHA-256 + `claim_ids` to `agent_request.json`.

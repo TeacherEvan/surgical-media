@@ -9,6 +9,26 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 (`bash scripts/ci_gates.sh`) are the enforced standard; the GitLab mirror
 (`.gitlab-ci.yml`) is configured, not verified.
 
+## [v3.1.0] — 2026-11-22
+
+### Security & Reliability
+- Hardened `render_engine.py` ffmpeg subprocess lifecycle (pre-render 3D plates before `Popen`, stream `stderr` to `work_dir/ffmpeg_stderr.log`, enforce `wait(timeout=)` + `finally` cleanup + partial MP4 removal), `_safe_child_path` traversal guards, and LRU-bounded `_TRACKS_CACHE`.
+- Fixed `monetization_gate.py` inverted `by`/`by-sa` attribution check, stationary zoom motion detection, and scene-level narration scanning.
+- Enforced `SCENE_ID_RE` (`^[a-z0-9_-]{1,64}$`) and unique `scene_id` checks in `storyboard.py`, plus `if`/`then` `orbit_radius_start` parity in `schemas/storyboard.schema.json`.
+- Added `_HttpsOnlyRedirectHandler` to `fetch_assets.py` and `spec_refresh.py`; hardened `threejs/runner.mjs` against `../` traversal, `URIError`, and CDP hangouts.
+- Standardized atomic writes (`tempfile` + `os.fsync` + `os.replace`) across `job_store.py`, `media_harvester.py`, `qc_gate.py`, `audio_dsp.py`, `blender_runner.py`, and `runner.mjs`.
+
+### Rendering, 3D & Audio Upgrades
+- `audio_dsp.py`: added `@lru_cache` SFX synthesis, true linear-interpolation resampling, smooth 0.45 s ducking release tail in `mix_timeline`, and single-pass continuous ambient pad + global `duck_envelope` in `build_master_wav`.
+- `canvas.py` & `elements/`: added `SupersampledCanvas.final()` bloom fast-path, `bold=False` font weight selection, `default_alpha` color-cache keying, bounded LRU caches + safe `parse_svg_path` in `elements/svg.py`, and painter geometry fixes (`paint_grid`, `paint_leader_arrow`, `paint_scaling_chart`, `paint_map_callout`, `paint_chat_bubble`).
+- 3D backends: fixed `PerspectiveCamera3D` gimbal lock (`software_3d_projection.py`), shared `TorusGeometry` and pre-allocated `Vector3`s in `threejs/scenes.mjs`, extracted `compute_camera_location()` in `blender_runner.py`, and proportional 9:16 HUD scaling in `hybrid_compositor.py`.
+- `verify_output.py`: fixed passing `width`/`height`/`fps` detail strings (`==` on pass).
+
+### Wave 2 Integration, Testing & Installer
+- Wired `investigation_brief` validation into `job_cli.py validate-brief` and `job_cli.py plan --brief`.
+- Added `tests/test_tool_probe.py` and `tests/test_audit_regressions.py` (715 → 772 tests, 12/12 CI gates green, surgical audit score 40 → 97/100).
+- Upgraded `install_surgical_media.sh` to `v3.1.0` with `--all-agents` multi-agent install, stale `.bak-*` cleanup, and v3.1.0 landing verification.
+
 ## [v3.0.1] — 2026-11-22
 
 ### Fixed

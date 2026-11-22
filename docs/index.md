@@ -20,6 +20,7 @@ Entrypoint for surgical-media docs. The contract is code + `tests/`; these docum
 ## 3.0 wave
 
 - [`audits/initial-baseline.md`](audits/initial-baseline.md) — Wave 0 audit (capability inventory, measured baseline)
+- [`audits/surgical-media-surgical-audit-2026-11-22.md`](audits/surgical-media-surgical-audit-2026-11-22.md) — Principal-10 surgical audit & post-remediation delta (40 → 97/100)
 - [`plans/Surgical_Media_3.0_Master_Implementation_Plan.md`](plans/Surgical_Media_3.0_Master_Implementation_Plan.md) — proposal (Waves 2–5 deferred)
 - [`../references/job-workflow.md`](../references/job-workflow.md) — CLI + lifecycle
 
@@ -28,7 +29,7 @@ Entrypoint for surgical-media docs. The contract is code + `tests/`; these docum
 - [`plans/Conversation with Gemini.txt`](plans/Conversation%20with%20Gemini.txt) — multi-engine design conversation behind ADR 0003
 - `../Concept/` — original pipeline design transcript
 
-## Priority pipeline (v3.0.1)
+## Priority pipeline (v3.1.0)
 
 - [`../SKILL.md`](../SKILL.md) — the single entry point: 7-step orchestration from intake to QC
 - [`../references/specs-licensing-compliance.md`](../references/specs-licensing-compliance.md) — platform caps, dual 9:16 safe boxes, 2026 copyright/AI rules, model licenses

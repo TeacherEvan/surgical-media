@@ -1,7 +1,7 @@
 ---
 name: surgical-media
 description: "Use when creating, planning, researching, or rendering social video for YouTube, Facebook or TikTok — including Shorts, Reels, explainers, news, comedy and multi-style hybrids that need real attributed photos, programmatic 2D/3D rendering and hard QC."
-version: 3.0.1
+version: 3.1.0
 author: "TeacherEvan, Hermes Agent"
 license: MIT
 platforms: [linux, macos]
@@ -13,7 +13,7 @@ metadata:
     related_skills: [video-production-pipeline, surgical-investigation, surgical-orchestration, surgical-audit]
 ---
 
-# Surgical Media (v3.0.1) — Priority Social Video Pipeline
+# Surgical Media (v3.1.0) — Priority Social Video Pipeline
 
 Deterministic, monetization-safe, research-backed path from a topic prompt to a verified MP4.
 **This is the priority pipeline for all future surgical-media content.** Every capability below
@@ -89,7 +89,7 @@ originality gate: `references/style-and-architecture.md`.
 
 `scene_spec` routes to `threejs_hybrid|threejs_3d|blender_hybrid|blender_3d|canvas_2d`
 (categories: exploded_hardware_3d, orbital_or_field_3d, organic_serpent_3d,
-network_topology_3d). Stdlib `software_3d_projection.py` always works; Three.js needs Node ≥22
+network_topology_3d, external_asset_3d). Stdlib `software_3d_projection.py` always works; Three.js needs Node ≥22
 + Chromium, Blender ≥3.6 optional. New assets require all three generators + tests + docs.
 ## Hard invariants
 

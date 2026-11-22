@@ -1,6 +1,6 @@
 # Surgical Media — Project Plan & Task Status
 
-**Version:** 3.0.1 · **Updated:** 2026-11-22 · **Owner:** Evan (TeacherEvan), agent-assisted
+**Version:** 3.1.0 · **Updated:** 2026-11-22 · **Owner:** Evan (TeacherEvan), agent-assisted
 **Contract:** code + `tests/` are the contract; this plan is the living map. Verification is local-first — `bash scripts/ci_gates.sh` green *is* the quality bar ([ADR 0002](adr/0002-local-first-verification.md)).
 
 Docs entrypoint: [`docs/index.md`](index.md) · Human manual: [`README.md`](../README.md) · Agent manifest: [`SKILL.md`](../SKILL.md) · Agent rules: [`AGENTS.md`](../AGENTS.md) · Release history: [`CHANGELOG.md`](../CHANGELOG.md)
@@ -33,7 +33,7 @@ motion-tracked HUD — Blender-optional, stdlib software renderer always availab
 
 Examples: [`examples/tri_archetype_storyboard.json`](../examples/tri_archetype_storyboard.json) (generated — regenerate via `scripts/build_demo.py`, never hand-edit) · [`examples/hybrid_3d_storyboard.json`](../examples/hybrid_3d_storyboard.json) (hand-written 3D HUD showcase).
 
-## 3. Priority pipeline (v3.0.1) — merged from the social-media-studio-pro update
+## 3. Priority pipeline (v3.1.0) — merged from the social-media-studio-pro update
 
 | Item | Evidence |
 | :--- | :--- |

@@ -10,8 +10,9 @@ Failure paths: render failure → `FAILED`; audit failure or reviewer rejection 
 
 ```bash
 python3 scripts/job_cli.py validate examples/jobs/horse_tenny.json
+python3 scripts/job_cli.py validate-brief brief.json
 ID=$(python3 scripts/job_cli.py create examples/jobs/horse_tenny.json)
-python3 scripts/job_cli.py plan $ID        # writes jobs/$ID/artifacts/agent_request.json
+python3 scripts/job_cli.py plan $ID [--brief brief.json]  # writes jobs/$ID/artifacts/agent_request.json (+ investigation_brief.json)
 # agent produces storyboard.json from the brief …
 python3 scripts/job_cli.py submit $ID --storyboard board.json
 python3 scripts/job_cli.py preview $ID     # draft render
