@@ -17,6 +17,11 @@ import json
 import sys
 from pathlib import Path
 
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
+
+import investigation_brief
 from job_director import Director
 from job_model import JobError, validate_request
 from job_store import DEFAULT_ROOT, JobStore
@@ -28,8 +33,13 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="cmd", required=True)
     for name in ("validate", "create"):
         sub.add_parser(name).add_argument("job_file", type=Path)
-    for name in ("status", "plan", "preview", "audit", "export", "cancel"):
+    vb = sub.add_parser("validate-brief")
+    vb.add_argument("brief_file", type=Path)
+    for name in ("status", "preview", "audit", "export", "cancel"):
         sub.add_parser(name).add_argument("job_id")
+    pl = sub.add_parser("plan")
+    pl.add_argument("job_id")
+    pl.add_argument("--brief", type=Path, default=None)
     s = sub.add_parser("submit")
     s.add_argument("job_id")
     s.add_argument("--storyboard", type=Path, required=True)
@@ -58,13 +68,20 @@ def main(argv: list[str] | None = None) -> int:
             if errors:
                 return 1
             print(f"OK {args.job_file}")
+        elif args.cmd == "validate-brief":
+            errors = investigation_brief.validate_request(_load(args.brief_file))
+            for err in errors:
+                print(f"FAIL {err}", file=sys.stderr)
+            if errors:
+                return 1
+            print(f"OK {args.brief_file}")
         elif args.cmd == "create":
             print(director.create(_load(args.job_file)))
         elif args.cmd == "status":
             st = director.store.state(args.job_id)
             print(json.dumps({"job_id": args.job_id, "state": st.value}))
         elif args.cmd == "plan":
-            print(director.plan(args.job_id))
+            print(director.plan(args.job_id, brief_path=args.brief))
         elif args.cmd == "submit":
             errors = director.submit(args.job_id, args.storyboard)
             for err in errors:
