@@ -1,7 +1,7 @@
 ---
 name: surgical-media
 description: "Use when creating, planning, researching, or rendering social video for YouTube, Facebook or TikTok — including Shorts, Reels, explainers, news, comedy and multi-style hybrids that need real attributed photos, programmatic 2D/3D rendering and hard QC."
-version: 3.0.0
+version: 3.0.1
 author: "TeacherEvan, Hermes Agent"
 license: MIT
 platforms: [linux, macos]
@@ -13,7 +13,7 @@ metadata:
     related_skills: [video-production-pipeline, surgical-investigation, surgical-orchestration, surgical-audit]
 ---
 
-# Surgical Media (v3.0.0) — Priority Social Video Pipeline
+# Surgical Media (v3.0.1) — Priority Social Video Pipeline
 
 Deterministic, monetization-safe, research-backed path from a topic prompt to a verified MP4.
 **This is the priority pipeline for all future surgical-media content.** Every capability below
@@ -109,8 +109,8 @@ style_lint. A failed gate exits 3.
 ## Gotchas
 
 - `edge-tts` needs network → `--offline` uses WPM estimates; measured WordBoundary beats win.
-- `ImageDraw` has no alpha blend: pre-blend panels; RGB `Image.blend` for fades. Subject photos
-  go through the `image` element (`fit` cover|contain|backdrop_blur, `kb_zoom`, `attribution_y`).
+- SVG `fill-opacity` alpha-composites (`elements/svg.py:_draw_translucent`); never pre-multiply RGB
+  (opaque box). Photos: `image` (cover|contain|backdrop_blur); `Image.blend` for fades.
 - >150 ms A/V drift means `duration_sec` vs VO mismatch — re-run `tts_align.py`, never hand-tweak.
 - Shorts >60 s + commercial music still draws Content ID claims; prefer procedural audio and a
   Private upload pre-check. WebGL must be virtual-clock captured, never screen-recorded.

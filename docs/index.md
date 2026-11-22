@@ -28,7 +28,7 @@ Entrypoint for surgical-media docs. The contract is code + `tests/`; these docum
 - [`plans/Conversation with Gemini.txt`](plans/Conversation%20with%20Gemini.txt) — multi-engine design conversation behind ADR 0003
 - `../Concept/` — original pipeline design transcript
 
-## Priority pipeline (v3.0.0)
+## Priority pipeline (v3.0.1)
 
 - [`../SKILL.md`](../SKILL.md) — the single entry point: 7-step orchestration from intake to QC
 - [`../references/specs-licensing-compliance.md`](../references/specs-licensing-compliance.md) — platform caps, dual 9:16 safe boxes, 2026 copyright/AI rules, model licenses

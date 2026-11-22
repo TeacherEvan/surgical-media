@@ -1,4 +1,4 @@
-# Surgical Media (`v3.0.0`)
+# Surgical Media (`v3.0.1`)
 
 **The priority pipeline for surgical-media content generation.** A deterministic, QC-gated,
 research-backed workflow that turns a topic prompt into a social-ready MP4 — mandatory
@@ -23,7 +23,7 @@ python3 scripts/render_engine.py --demo --output demo_showcase.mp4    # ~70s on 
 
 `demo_showcase.mp4` is a 14.4 s / 1280x720 / 30 fps three-scene showcase (`geometry_rig` → `doc_essay` → `code_report`). The render ends with an ffprobe QC pass; a failed gate exits 3.
 
-Produce an actual video through the v3.0.0 pipeline:
+Produce an actual video through the v3.0.1 pipeline:
 
 ```bash
 python3 scripts/tts_normalizer.py --input script.json --output script.spoken.json --report normalization.json
@@ -42,7 +42,7 @@ read `references/specs-licensing-compliance.md` and re-check live platform rules
 
 | Component | Purpose |
 | :--- | :--- |
-| [`SKILL.md`](SKILL.md) | **Priority pipeline** (v3.0.0): 7-step orchestration, invariants, gotchas (≤120 lines) |
+| [`SKILL.md`](SKILL.md) | **Priority pipeline** (v3.0.1): 7-step orchestration, invariants, gotchas (≤120 lines) |
 | [`references/specs-licensing-compliance.md`](references/specs-licensing-compliance.md) | Platform caps, dual 9:16 safe boxes, 2026 copyright/AI rules, commercial TTS + renderer licenses |
 | [`references/style-and-architecture.md`](references/style-and-architecture.md) | 7-style execution matrix, single locked timeline, originality gate |
 | [`references/pipeline-scripts.md`](references/pipeline-scripts.md) / [`references/render-templates.md`](references/render-templates.md) | CLI index for the merged utilities; pro templates mapped to shipped code |

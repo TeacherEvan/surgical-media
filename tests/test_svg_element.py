@@ -179,6 +179,53 @@ def test_svg_20_chromium_rasterizes_gradients_and_filters():
     )  # real gradient + shadow, not flat fill
 
 
+def test_svg_fill_opacity_composites_over_backdrop_not_black_box():
+    """Regression: fill-opacity must let the image beneath show through.
+
+    The old renderer pre-multiplied RGB by opacity via ``ImageDraw`` (which has
+    no alpha blending), so a translucent scrim over a photo became a solid
+    near-black rectangle that obscured the picture.
+    """
+    cv = SupersampledCanvas(120, 80, scale=1, background="#FFFFFF")
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80">'
+        '<rect x="20" y="20" width="80" height="40" fill="#000000" '
+        'fill-opacity="0.5"/></svg>'
+    )
+    render_element(
+        cv,
+        {
+            "type": "svg",
+            "svg": svg,
+            "box": [0, 0, 120, 80],
+            "render_mode": "vector",
+        },
+        _ctx(t=1.0),
+    )
+    px = cv.final().getpixel((60, 40))
+    # 50% black over white is mid-grey; a solid black box would be (0, 0, 0).
+    assert all(100 <= c <= 155 for c in px), px
+
+
+def test_svg_fill_opacity_is_in_between_even_at_full_element_opacity():
+    cv = SupersampledCanvas(120, 80, scale=1, background="#FFFFFF")
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80">'
+        '<rect x="20" y="20" width="80" height="40" fill="#FF0000" '
+        'fill-opacity="0.25"/></svg>'
+    )
+    render_element(
+        cv,
+        {"type": "svg", "svg": svg, "box": [0, 0, 120, 80], "render_mode": "vector"},
+        _ctx(t=1.0),
+    )
+    r, g, b = cv.final().getpixel((60, 40))
+    # 25% red over white -> (255, 191, 191), never solid red (255, 0, 0).
+    assert r >= 250, (r, g, b)
+    assert 180 <= g <= 205, (r, g, b)
+    assert 180 <= b <= 205, (r, g, b)
+
+
 def test_svg_rejects_unsafe_doctype_entity(capsys):
     unsafe = '<!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><svg/>'
     cv = SupersampledCanvas(320, 180, scale=1, background="#000000")

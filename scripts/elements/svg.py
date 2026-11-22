@@ -30,7 +30,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-from canvas import SupersampledCanvas, parse_color, rgb
+from canvas import SupersampledCanvas, _Draw, parse_color, rgb
 from easings import ease_in_out_cubic, ease_out_expo, spring_pop
 from PIL import Image, ImageFilter
 
@@ -193,11 +193,70 @@ def _parse_style_dict(elem: ET.Element, parent_style: dict[str, str]) -> dict[st
 
 
 def _blend_opacity(color_hex: str, opacity: float) -> str:
+    """Pre-blend a colour toward black (used for additive bloom tones only).
+
+    Pillow's ``ImageDraw`` cannot alpha-composite, so this used to be applied to
+    every translucent fill/stroke. That made ``fill-opacity`` scrims render as
+    solid near-black rectangles which hid photos underneath. Fills and strokes
+    now go through :func:`_draw_translucent` (real alpha); this helper remains
+    only for the additive bloom buffer, where darkening a glow is harmless.
+    """
     op = max(0.0, min(1.0, opacity))
     if op >= 0.999:
         return color_hex
     r, g, b = parse_color(color_hex)[:3]
     return f"#{int(r * op):02X}{int(g * op):02X}{int(b * op):02X}"
+
+
+def _shift_points(points: list[Pt2], shift: Pt2) -> list[Pt2]:
+    return [(x - shift[0], y - shift[1]) for x, y in points]
+
+
+def _draw_translucent(
+    cv: SupersampledCanvas,
+    painter: Any,
+    alpha: float,
+    points: list[Pt2] | None = None,
+) -> None:
+    """Draw ``painter(draw, shift)`` with real alpha over the canvas.
+
+    ``ImageDraw`` writes opaque pixels and cannot blend into an existing
+    buffer: pre-multiplying RGB by opacity merely paints a darker colour. A
+    translucent scrim over a photo therefore became a solid black box. Drawing
+    the primitive onto a transparent RGBA layer and compositing that layer in
+    place preserves painter order and lets the backdrop show through.
+
+    ``painter`` receives a ``_Draw`` bound to the temporary layer plus a design
+    space ``shift`` that maps the original design coordinates into that cropped
+    layer. ``points`` (design space) is used to compute the crop.
+    """
+    a = round(max(0.0, min(1.0, alpha)) * 255)
+    if a >= 255:
+        painter(cv.draw_, (0.0, 0.0))
+        return
+
+    x0 = y0 = 0
+    x1, y1 = cv.image.width, cv.image.height
+    if points:
+        px = [cv.draw_._tp(x, y) for x, y in points]
+        if not px:
+            return
+        pad = 6.0 * cv.scale + 2.0
+        x0 = max(0, math.floor(min(p[0] for p in px) - pad))
+        y0 = max(0, math.floor(min(p[1] for p in px) - pad))
+        x1 = min(x1, math.ceil(max(p[0] for p in px) + pad))
+        y1 = min(y1, math.ceil(max(p[1] for p in px) + pad))
+    if x1 <= x0 or y1 <= y0:
+        return
+
+    layer = Image.new("RGBA", (x1 - x0, y1 - y0), (0, 0, 0, 0))
+    zoom = cv._z if cv.camera else 1.0
+    factor = zoom * cv.scale
+    painter(_Draw(cv, layer), (x0 / factor, y0 / factor))
+    mask = layer.getchannel("A")
+    if a != 255:
+        mask = mask.point(lambda p: p * a // 255)
+    cv.image.paste(layer.convert("RGB"), (x0, y0), mask)
 
 
 # ---------------------------------------------------------------------------
@@ -928,12 +987,23 @@ def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -
                 eff_op *= _smoothstep(0.55, 0.95, draw_progress)
             if eff_op <= 0.02:
                 continue
-            cv.text(
-                prim["pos"],
-                str(prim["text"]),
-                size=max(8.0, float(prim["size"])),
-                fill=_blend_opacity(fill_hex, eff_op),
-                anchor=str(prim["anchor"]),
+            t_pos = prim["pos"]
+            t_text = str(prim["text"])
+            t_size = max(8.0, float(prim["size"]))
+            t_fill = fill_hex
+            t_anchor = str(prim["anchor"])
+            _draw_translucent(
+                cv,
+                lambda d, sh, pos=t_pos, text=t_text, size=t_size, fill=t_fill, anchor=t_anchor: (
+                    d.text(
+                        (pos[0] - sh[0], pos[1] - sh[1]),
+                        text,
+                        size=size,
+                        fill=fill,
+                        anchor=anchor,
+                    )
+                ),
+                eff_op,
             )
             continue
 
@@ -944,6 +1014,8 @@ def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -
         fill_hex = tint if (tint and fill_raw) else fill_raw
         stroke_hex = tint if (tint and stroke_raw) else stroke_raw
         sw = max(1.0, float(prim["stroke_width"]) * avg_scale * stroke_scale)
+        fill_alpha = total_opacity * float(prim["fill_opacity"])
+        stroke_alpha = total_opacity * float(prim["stroke_opacity"])
 
         if reveal_mode == "draw":
             # Progressive stroke draw; fills fade in smoothly after 60% stroke
@@ -951,39 +1023,69 @@ def paint_svg(cv: SupersampledCanvas, el: dict[str, Any], ctx: ElementContext) -
             trimmed = _trim_polyline(draw_pts, draw_progress)
             fill_reveal = _smoothstep(0.58, 1.0, draw_progress)
             if fill_hex and closed and fill_reveal > 0.02:
-                col = _blend_opacity(
-                    str(fill_hex),
-                    total_opacity * float(prim["fill_opacity"]) * fill_reveal,
+                _draw_translucent(
+                    cv,
+                    lambda d, sh, poly=pts, fill=fill_hex: d.polygon(
+                        _shift_points(poly, sh), fill=fill
+                    ),
+                    fill_alpha * fill_reveal,
+                    points=pts,
                 )
-                cv.polygon(pts, fill=col)
             outline_col = stroke_hex or fill_hex
             if outline_col and len(trimmed) >= 2:
-                col = _blend_opacity(
-                    str(outline_col), total_opacity * float(prim["stroke_opacity"])
+                _draw_translucent(
+                    cv,
+                    lambda d, sh, line=trimmed, col=outline_col, width=sw: d.polyline(
+                        _shift_points(line, sh), col, width=width
+                    ),
+                    stroke_alpha,
+                    points=trimmed,
                 )
-                cv.polyline(trimmed, col, width=sw)
                 if glow:
-                    cv.bloom_polyline(trimmed, col, width=max(1.5, sw * 1.15))
+                    cv.bloom_polyline(
+                        trimmed,
+                        _blend_opacity(str(outline_col), stroke_alpha),
+                        width=max(1.5, sw * 1.15),
+                    )
         else:
             if closed and fill_hex:
-                f_col = _blend_opacity(
-                    str(fill_hex), total_opacity * float(prim["fill_opacity"])
+                _draw_translucent(
+                    cv,
+                    lambda d, sh, poly=pts, fill=fill_hex: d.polygon(
+                        _shift_points(poly, sh), fill=fill
+                    ),
+                    fill_alpha,
+                    points=pts,
                 )
-                o_col = (
-                    _blend_opacity(
-                        str(stroke_hex), total_opacity * float(prim["stroke_opacity"])
+                if stroke_hex:
+                    _draw_translucent(
+                        cv,
+                        lambda d, sh, poly=pts, col=stroke_hex: d.polygon(
+                            _shift_points(poly, sh), outline=col
+                        ),
+                        stroke_alpha,
+                        points=pts,
                     )
-                    if stroke_hex
-                    else None
-                )
-                cv.polygon(pts, fill=f_col, outline=o_col)
                 if glow:
-                    cv.bloom_polygon(pts, outline=o_col or f_col)
+                    cv.bloom_polygon(
+                        pts,
+                        outline=_blend_opacity(
+                            str(stroke_hex or fill_hex), stroke_alpha or fill_alpha
+                        ),
+                    )
             elif stroke_hex:
-                s_col = _blend_opacity(
-                    str(stroke_hex), total_opacity * float(prim["stroke_opacity"])
-                )
                 draw_pts = pts + [pts[0]] if closed else pts
-                cv.polyline(draw_pts, s_col, width=sw)
+                _draw_translucent(
+                    cv,
+                    lambda d, sh, line=draw_pts, col=stroke_hex, width=sw: d.polyline(
+                        _shift_points(line, sh), col, width=width
+                    ),
+                    stroke_alpha,
+                    points=draw_pts,
+                )
                 if glow:
-                    cv.bloom_polyline(draw_pts, s_col, width=max(1.5, sw * 1.15))
+                    cv.bloom_polyline(
+                        draw_pts,
+                        _blend_opacity(str(stroke_hex), stroke_alpha),
+                        width=max(1.5, sw * 1.15),
+                    )

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install_surgical_media.sh — Installs or refreshes the surgical-media skill cleanly.
 #
-# v3.0.0 is the priority social-video pipeline. Installs:
+# v3.0.1 is the priority social-video pipeline. Installs:
 #   SKILL.md, README.md, LICENSE, AGENTS.md, CHANGELOG.md, SECURITY.md
 #   pyproject.toml, requirements*.txt (so README's install commands work in-place)
 #   scripts/ (all runtime CLIs + engine library, including spec_refresh,
@@ -25,8 +25,11 @@ set -euo pipefail
 HERMES_SKILL_DIR="${1:-${HOME}/.hermes/skills/creative/surgical-media}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "[install_surgical_media] Installing Surgical Media (v3.0.0) to:"
+echo "[install_surgical_media] Installing Surgical Media (v3.0.1) to:"
 echo "  ${HERMES_SKILL_DIR}"
+echo
+echo "[install_surgical_media] v3.0.1: SVG fill-opacity now alpha-composites over"
+echo "  backdrops instead of painting opaque black boxes (scripts/elements/svg.py)."
 echo
 
 mkdir -p \
@@ -75,6 +78,16 @@ cp "${SCRIPT_DIR}/docs/index.md" "${SCRIPT_DIR}/docs/project-plan.md" "${HERMES_
 if command -v npm >/dev/null 2>&1; then
   (cd "${HERMES_SKILL_DIR}/scripts/threejs" && npm install --no-audit --no-fund --silent)
 fi
+
+# Stamp the installed version and verify the patched SVG painter actually
+# landed. A stale pre-v3.0.1 install would otherwise keep rendering black boxes.
+echo "3.0.1" > "${HERMES_SKILL_DIR}/.installed_version"
+SVG_PAINTER="${HERMES_SKILL_DIR}/scripts/elements/svg.py"
+if ! grep -q "_draw_translucent" "${SVG_PAINTER}"; then
+  echo "[install_surgical_media] ERROR: patched SVG painter missing from ${SVG_PAINTER}" >&2
+  exit 3
+fi
+echo "[install_surgical_media] Verified alpha-compositing SVG painter (v3.0.1)."
 
 echo "[install_surgical_media] Done."
 echo "Verify with:"

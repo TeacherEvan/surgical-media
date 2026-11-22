@@ -9,6 +9,23 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 (`bash scripts/ci_gates.sh`) are the enforced standard; the GitLab mirror
 (`.gitlab-ci.yml`) is configured, not verified.
 
+## [v3.0.1] — 2026-11-22
+
+### Fixed
+- **Black text boxes over photos.** The pure-Python SVG painter pre-multiplied RGB by
+  `fill-opacity` and drew with `ImageDraw`, which has no alpha blend — so a translucent scrim
+  became a solid near-black rectangle that hid the image beneath. `elements/svg.py` now draws
+  translucent fills, strokes and text onto a transparent RGBA layer and alpha-composites it in
+  place (bounding-box scoped), preserving painter order and letting backdrops show through.
+  `_blend_opacity` is retained only for the additive bloom buffer.
+- Regression tests added for `fill-opacity` over a backdrop (`tests/test_svg_element.py`).
+- `SKILL.md` gotcha now points to the alpha-compositing renderer instead of advising pre-blended panels.
+
+### Changed
+- Version 3.0.0 → 3.0.1 (pyproject, SKILL, README, AGENTS, docs, installer banner).
+- `install_surgical_media.sh` now verifies the patched SVG painter is present after install and
+  stamps an installed version file, so a stale install is detectable. Full suite: 715 tests green.
+
 ## [v3.0.0] — 2026-11-21
 
 ### Added
