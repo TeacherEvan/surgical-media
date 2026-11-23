@@ -37,9 +37,14 @@ def _board(
                 "duration_sec": intro_sec,
                 "elements": [
                     {
+                        "type": "image",
+                        "src": "assets/hook.jpg",
+                        "attribution": "A · CC BY",
+                    },
+                    {
                         "type": "kinetic_captions",
                         "words": [{"word": "hook", "start": 0.0, "end": 1.0}],
-                    }
+                    },
                 ],
                 "narration": "Here is the hook.",
             },
@@ -47,7 +52,15 @@ def _board(
                 "scene_id": "body",
                 "archetype": "doc_essay",
                 "duration_sec": 20.0,
-                "elements": [{"type": "background", "color": "#0A0E17"}],
+                "elements": [
+                    {"type": "background", "color": "#0A0E17"},
+                    {
+                        "type": "image",
+                        "src": "assets/subject.jpg",
+                        "fit": "backdrop_blur",
+                        "attribution": "Example Author — Subject · CC BY 4.0 · https://example.org",
+                    },
+                ],
             },
             {
                 "scene_id": "outro",
@@ -55,10 +68,15 @@ def _board(
                 "duration_sec": 3.0,
                 "elements": [
                     {
+                        "type": "image",
+                        "src": "assets/outro.jpg",
+                        "attribution": "A · CC BY",
+                    },
+                    {
                         "type": "source_tag",
                         "text": "Source: Example (Nov 2026)",
                         "corner": "bl",
-                    }
+                    },
                 ],
                 "narration": "Follow for more;",
             },
@@ -261,3 +279,73 @@ def test_cli_board_mode_exit_codes(
         == 3
     )
     assert "topic_matched_intro" in capsys.readouterr().err
+
+
+# -- image-first subject_imagery gate -----------------------------------------
+def test_subject_imagery_passes_with_photo() -> None:
+    ok, detail = pf.check_subject_imagery(_board(), _brief())
+    assert ok and "3/3 scenes" in detail and "100%" in detail
+
+
+def test_subject_imagery_fails_on_filler_only_board() -> None:
+    board = _board()
+    board["scenes"][1]["elements"] = [
+        {"type": "background", "color": "#0A0E17"},
+        {"type": "stick_rig", "placeholder": True},
+        {"type": "kinetic_captions"},
+    ]
+    ok, detail = pf.check_subject_imagery(board, _brief())
+    assert not ok and "generic filler still on screen" in detail
+    intake = pf.build_intake(25, "comedic", "tiktok")
+    rep = pf.check_board(board, intake, _brief())
+    assert not rep["ok"]
+    assert not next(c for c in rep["checks"] if c["check"] == "subject_imagery")["ok"]
+
+
+def test_subject_imagery_fails_when_one_photo_carries_nine_slop_scenes() -> None:
+    """The exact complaint: one hero plate + procedural+caption beats is not enough."""
+    board = _board()
+    for scene in board["scenes"][1:]:
+        scene["elements"] = [
+            {"type": "background", "color": "#0A0E17"},
+            {"type": "tesseract", "placeholder": True},
+            {"type": "kinetic_captions"},
+        ]
+    ok, detail = pf.check_subject_imagery(board, _brief())
+    assert not ok and "1/3 scenes" in detail and "60%" in detail
+
+
+def test_subject_imagery_accepts_svg_and_3d() -> None:
+    board = _board()
+    board["scenes"][1]["elements"] = [{"type": "svg", "svg": "<svg/>"}]
+    assert pf.check_subject_imagery(board, _brief())[0]
+    board["scenes"][1]["elements"] = [{"type": "background", "color": "#000000"}]
+    board["scenes"][1]["scene_spec"] = {"category": "orbital_or_field_3d"}
+    assert pf.check_subject_imagery(board, _brief())[0]
+
+
+def test_subject_imagery_visual_intent_opt_out() -> None:
+    board = _board()
+    for scene in board["scenes"]:
+        scene["elements"] = [{"type": "background", "color": "#0A0E17"}]
+    assert not pf.check_subject_imagery(board, _brief())[0]
+    board["meta"]["visual_intent"] = "procedural_showcase"
+    ok, detail = pf.check_subject_imagery(board, _brief())
+    assert ok and "exempt" in detail
+
+
+def test_subject_imagery_brief_assets_must_be_shown() -> None:
+    brief = _brief()
+    brief["visual_assets"] = [
+        {
+            "file": "assets/01_penguin.jpg",
+            "license": "by",
+            "attribution": "A — Penguin · CC BY 4.0 · https://example.org",
+        }
+    ]
+    # board shows a different plate — fetched asset never appears
+    ok, detail = pf.check_subject_imagery(_board(), brief)
+    assert not ok and "none appear on screen" in detail
+    board = _board()
+    board["scenes"][1]["elements"][1]["src"] = "assets/01_penguin.jpg"
+    assert pf.check_subject_imagery(board, brief)[0]

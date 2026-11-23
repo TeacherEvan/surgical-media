@@ -1,120 +1,120 @@
 ---
 name: surgical-media
-description: "Use when creating, planning, researching, or rendering social video for YouTube, Facebook or TikTok — including Shorts, Reels, explainers, news, comedy and multi-style hybrids that need real attributed photos, programmatic 2D/3D rendering and hard QC."
-version: 3.1.0
+description: "Use when creating, planning, researching, or rendering social video for YouTube, Facebook or TikTok — including Shorts, Reels, explainers, news, comedy and multi-style hybrids that must show their real subject with attributed licensed photography, plus optional programmatic 2D/3D, TTS and hard QC."
+version: 3.2.0
 author: "TeacherEvan, Hermes Agent"
 license: MIT
 platforms: [linux, macos]
 metadata:
   hermes:
     category: creative
-    tags: [video, social-media, shorts, reels, tiktok, youtube, research, attribution, ffmpeg, pillow, threejs, blender, tts, storyboard, safe-zones, licensing, qc]
+    tags: [video, social-media, shorts, reels, tiktok, youtube, research, attribution, photography, image-first, ffmpeg, pillow, threejs, blender, tts, storyboard, safe-zones, licensing, qc]
     requires_tools: [terminal, read_file, write_file, search_files, web_search]
     related_skills: [video-production-pipeline, surgical-investigation, surgical-orchestration, surgical-audit]
 ---
 
-# Surgical Media (v3.1.0) — Priority Social Video Pipeline
+# Surgical Media (v3.2.0) — Image-First Social Video Pipeline
 
-Deterministic, monetization-safe, research-backed path from a topic prompt to a verified MP4.
-**This is the priority pipeline for all future surgical-media content.** Every capability below
-ships as tested code (`tests/`); prose never outruns implementation.
+Deterministic, monetization-safe path from a topic prompt to a verified MP4.
+**The subject must be on screen.** Every capability ships as tested code (`tests/`).
 ## Step 1 — Mandatory intake
 
 Before research or render, confirm three inputs; ask only for what is missing:
-- **Time**: target runtime (30 s, 60 s, 90 s, 3 min, 10 min).
-- **Style**: Comedic, Serious, Formal, Catchy, Poetic, Artistic, or all of the above (propose a tonal arc for hybrids).
+- **Time**: 30 s / 60 s / 90 s / 3 min / 10 min.
+- **Style**: Comedic, Serious, Formal, Catchy, Poetic, Artistic, or a tonal arc.
 - **Platform**: YouTube Long 16:9 / Shorts 9:16, Facebook Feed 4:5 / Reels 9:16, TikTok 9:16, or master + adapted exports.
-Resolve into a locked contract: `python3 scripts/pipeline_preflight.py --time 60 --style comedic --platform tiktok --intake-out intake.json`
+Resolve the contract: `python3 scripts/pipeline_preflight.py --time 60 --style comedic --platform tiktok --intake-out intake.json`
 ## Step 2 — Live spec & technique refresh
 
-Verify the baked spec baseline, then web-search current caps, Content ID / originality /
-AI-disclosure rules and library releases:
 `python3 scripts/spec_refresh.py --check [--fetch] --out spec_report.json` (exit 3 = drift).
-Probe the host with `python3 scripts/tool_probe.py --out capabilities.json`. Update the
-reference's date when anything changed; never render against an unverified assumption.
-## Step 3 — Research, real people, subtle attribution
+Probe the host with `python3 scripts/tool_probe.py --out capabilities.json`. Never
+render against an unverified assumption.
+## Step 3 — Research & acquire subject imagery (BEFORE scripting)
 
-Emit a brief against `schemas/investigation_brief.schema.json` (≥3 sourced facts → visual
-anchors). Fetch licensed subject imagery **before** writing the script:
-`python3 scripts/fetch_assets.py --query "<subject>" --out-dir assets --count 3`.
-Named real people require authentic high-res photos (Wikimedia/Wikipedia/press rooms), never AI
-stand-ins without approval. For portraits with safe-zone credit badges use
-`python3 scripts/media_harvester.py --query "<person>" --people "<person>" --out-dir assets --aspect 9:16`.
-Log outlet, headline, date and URL for every claim; keep `credits.json` + `CREDITS.md` with
-AI-disclosure flags.
-## Step 4 — Collaboration & tooling pitch
+Emit a brief against `schemas/investigation_brief.schema.json` (≥3 sourced facts →
+visual anchors + `visual_assets`). Fetch licensed subject photographs **before** writing
+narration — one query per beat, not one for the whole video:
+`python3 scripts/fetch_scene_assets.py --input script.json --out-dir assets --subject "<subject>" --count 3`
+(`--dry-run` prints the derived query plan; explicit per-scene `visual.query` wins).
+Named real people require authentic photos (Wikimedia/Wikipedia/press rooms), never
+AI stand-ins without approval: `scripts/media_harvester.py`. Log outlet/headline/date/URL
+per claim; keep `credits.json` + `CREDITS.md` with AI-disclosure flags.
+## Step 4 — Write an image-directed beat script
 
-After research, **pause and pitch**: flag ambiguity or sensitive claims, propose a sharper hook,
-visual metaphor, 3D hero shot or pacing change, and recommend an optional engine (Blender, Three.js,
-Revideo, Manim, WhisperX, Kokoro/Qwen3-TTS) with a payoff. Install only after confirmation;
-licensing: `references/specs-licensing-compliance.md`.
-## Step 5 — Audio-first multi-engine production
+`schemas/script.schema.json` now supports `subject` and per-scene `visual`:
+`{"kind":"photo","query":"emperor penguin","fit":"backdrop_blur"}`.
+`visual.image` pins a specific plate; `kind: "svg"|"3d"|"procedural"` opts a beat
+out of auto-imagery only when the visual itself carries meaning. One `visual.query`
+per distinct subject angle — never leave every scene to generic filler.
+## Step 5 — Audio-first timing + image wiring
 
-Never lock frames before audio. Normalize spoken text, then time the board:
+Never lock frames before audio. Then wire the fetched plates into the board:
 ```
-python3 scripts/tts_normalizer.py --input script.json --output script.spoken.json --report normalization.json
-python3 scripts/tts_align.py --input script.spoken.json --output storyboard.json --voice en-US-ChristopherNeural --aspect 9:16   # --offline if no network
-python3 scripts/style_apply.py --intake intake.json --board storyboard.json --out storyboard.styled.json --report style_changes.json
+python3 scripts/tts_normalizer.py --input script.json --output script.spoken.json
+python3 scripts/tts_align.py --input script.spoken.json --output storyboard.json \
+    --voice en-US-ChristopherNeural --aspect 9:16 \
+    --subject "<subject>" --assets-manifest assets/manifest.json --brief investigation.json   # --offline if no network
+python3 scripts/style_apply.py --intake intake.json --board storyboard.json --out storyboard.styled.json
 python3 scripts/storyboard.py storyboard.styled.json
 ```
-`storyboard.styled.json` is the single locked timeline (fps, bt709, word spans, SFX); `style_apply.py`
-writes the 7-style matrix into it, `pipeline_preflight.py` verifies it. Engines: `references/style-and-architecture.md` §4 —
-Pillow/`elements/` for 2D, `blender_runner.py`/`threejs_bridge.py` for 3D (stdlib fallback), external Revideo/Manim only when justified. Then:
+`tts_align` strips generic `placeholder: true` filler, inserts full-bleed subject
+plates with Ken Burns + manifest attribution, and warns on unplated scenes. Standalone
+boards: `python3 scripts/asset_wire.py --board board.json --manifest assets/manifest.json --out board.wired.json`.
+`storyboard.styled.json` is the single locked timeline. Then estimate → thumbnails → render:
 ```
 python3 scripts/render_engine.py --storyboard storyboard.styled.json --estimate
 python3 scripts/render_engine.py --storyboard storyboard.styled.json --thumbnails /tmp/thumbs
 python3 scripts/render_engine.py --storyboard storyboard.styled.json --output final.mp4 --quality final
 ```
-## Step 6 — Mandatory topic-matched intro & outro
+## Step 6 — Topic-matched intro & outro
 
-No generic bumper. Short-form: fuse the intro into a 0.5–3 s hook + kinetic topic stamp that
-reads with audio muted; close with a callback or loop back to Frame 1. Long-form: 3–10 s
-thematic cold-open; close with payoff, one CTA and a compact credit roll from `CREDITS.md`.
-## Step 7 — Hard QC gate
+No generic bumper. Short-form: 0.5–3 s hook + kinetic topic stamp readable muted;
+close with a callback/loop. Long-form: 3–10 s thematic cold-open; close with payoff,
+one CTA and a credit roll from `CREDITS.md`.
+## Step 7 — Hard QC gate (image-first is enforced)
 ```
 python3 scripts/pipeline_preflight.py --board storyboard.styled.json --intake intake.json --brief investigation.json
+python3 scripts/style_lint.py storyboard.styled.json --manifest assets/manifest.json
 python3 scripts/qc_gate.py --video final.mp4 --format 9:16 --preset strict --frames-dir qc_frames --credits CREDITS.md --json qc_report.json
 python3 scripts/monetization_gate.py --board storyboard.json --manifest assets/manifest.json --script script.spoken.json
 python3 scripts/thumbnail_gen.py --storyboard storyboard.json --out publish/thumbnail.jpg
 ```
-`qc_gate.py` exit 3 = do not deliver. Inspect the red-overlay PNGs (Frame 1 / mid / outro) for
-faces, captions and credits inside the safe box, and confirm every asset is in `CREDITS.md`.
+`pipeline_preflight` fails (`subject_imagery`) if <60% of scenes show the subject, if
+filler remains without its own visual, or if brief `visual_assets` are never shown.
+`style_lint` flags `no_subject_imagery`, `low_visual_coverage`, `placeholder_visual`,
+`unused_assets`. Inspect the audit PNGs (Frame 1 / mid / outro) for safe-box compliance.
 ## Style archetypes
 
-Blend per scene via `archetype`: `geometry_rig` (IK stick figure, spiral, tesseract; SFX-locked),
-`doc_essay` (charts + glass quote cards; 150–165 WPM), `code_report` (DAG cascade, diff terminal,
-trauma shake; 175–195 WPM), `mixed`. Field guide: `references/archetypes.md`; 7-style matrix and
-originality gate: `references/style-and-architecture.md`.
-## 3D backends (optional)
+Per-scene `archetype`: `geometry_rig` (fast kinetic gags), `doc_essay` (photo essay +
+charts), `code_report` (DAGs/diffs), `mixed`. Archetypes are **overlays on photos**,
+not replacements. Field guide: `references/archetypes.md`; matrix: `references/style-and-architecture.md`.
+## 3D backends (optional accent only — never the default)
 
-`scene_spec` routes to `threejs_hybrid|threejs_3d|blender_hybrid|blender_3d|canvas_2d`
-(categories: exploded_hardware_3d, orbital_or_field_3d, organic_serpent_3d,
-network_topology_3d, external_asset_3d). Stdlib `software_3d_projection.py` always works; Three.js needs Node ≥22
-+ Chromium, Blender ≥3.6 optional. New assets require all three generators + tests + docs.
+`scene_spec` routes to `threejs_*`/`blender_*`/`canvas_2d` (categories: exploded_hardware_3d,
+orbital_or_field_3d, organic_serpent_3d, network_topology_3d, external_asset_3d).
+Use one hero 3D beat when it explains structure a photo cannot; never fill a whole
+video with procedural geometry. Stdlib `software_3d_projection.py` always works.
 ## Hard invariants
 
-1. **yuv420p or nothing** — RGBA/yuv444p fails iOS/IG/TikTok.
-2. **Audio before frames** — counts from measured VO or explicit beats, never guessed.
-3. **No linear motion** — use `easings.py`; `linear` is debug-only.
-4. **2x supersample floor** — `SupersampledCanvas(scale>=2)`.
-5. **Safe zones are load-bearing** — organic `(84,220)→(w-150,h-440)`; strict ad-safe
-   `x=65..888, y=288..1248` on 1080x1920 (see `references/specs-licensing-compliance.md`).
-6. **Claims = code** — if it is not in `tests/` and green, it does not ship. No NumPy in
-   audio/geometry; Three.js/Blender optional.
+1. **Subject on screen** — photo/SVG/map/mockup or authored 3D in ≥60% of scenes; no filler-only beats. No default-3D-and-captions videos.
+2. **yuv420p or nothing** — RGBA/yuv444p fails iOS/IG/TikTok.
+3. **Audio before frames** — counts from measured VO or explicit beats.
+4. **No linear motion** (`easings.py`); **2x supersample floor**; **safe zones load-bearing** (organic 9:16 `(84,220)→(w-150,h-440)`; strict ad-safe `x=65..888, y=288..1248`).
+5. **Credits travel with plates** — manifest attribution on every `image`; captions/credits stay boxless.
+6. **Claims = code** — no NumPy in audio/geometry; Three.js/Blender optional; tests green before ship.
 ## Verification
 
-`bash scripts/ci_gates.sh` — storyboard → ruff → format → mypy --strict → full `pytest` →
-schema metaschema → example validation → thumbnails → draft render + ffprobe QC → advisory
-style_lint. A failed gate exits 3.
+`bash scripts/ci_gates.sh` — examples → ruff → format → mypy --strict → pytest →
+schema metaschema → thumbnails (2D + **photo** + hybrid 3D + Three.js 3D) → draft
+render + ffprobe QC → style_lint (advisory) → jobs → loudness/safe-zone audit. Exit 3 = fail.
 ## Gotchas
 
 - `edge-tts` needs network → `--offline` uses WPM estimates; measured WordBoundary beats win.
-- SVG `fill-opacity` alpha-composites (`elements/svg.py:_draw_translucent`); never pre-multiply RGB
-  (opaque box). Photos: `image` (cover|contain|backdrop_blur); `Image.blend` for fades.
-- >150 ms A/V drift means `duration_sec` vs VO mismatch — re-run `tts_align.py`, never hand-tweak.
-- Clean audio by default: `audio.pad` defaults to `false` and `render_engine.py` mutes synthesized SFX/tonal pads (`pipeline_preflight.py` hard-fails on them). Never emit procedural `sfx_events` (`pop`/`chime`/`confirm`/`whoosh`/`type_click`/`error_buzz`/`thud`) or tonal pads; use clean VO, real `audio.music_wav`, real `sfx_events[].wav`, or camera-only `trauma`.
-- No black text boxes over visuals: `kinetic_captions` and `quote_card` default to boxless stroked typography (`bg_color: "none"`, `fill: "none"`, 2-line paged captions); never stack `quote_card` or opaque dark boxes on top of photos or 3D subjects. WebGL must be virtual-clock captured, never screen-recorded.
+- No word re-splitting: wrap the measured token stream.
+- Photos: `image` (cover|contain|backdrop_blur) + `kb_zoom`; `Image.blend` fades. 9:16 default `backdrop_blur`; auto credit at y≈1060 sits **above** captions (`y_anchor≈0.6`) — do not move it to 1150.
+- Never stack opaque `quote_card`/dark boxes on a photo; captions and credits are stroked, boxless.
+- Clean audio: no synthetic pads or procedural SFX (`pop`/`chime`/…) without a real `wav`; use `trauma` for camera-only shake.
+- `meta.visual_intent` (`procedural_showcase`/`style_reference`/`abstract_art`) is the **only** imagery-gate opt-out, for genuine abstract work.
 ## References
 
-`references/specs-licensing-compliance.md` (caps/safe zones/licenses) ·
-`{style-and-architecture,pipeline-scripts,render-templates,storyboard-guide,archetypes,ffmpeg-encoding,job-workflow}.md` (matrix, CLI, engine map, elements, personas, encoder, jobs).
+`references/specs-licensing-compliance.md` · `{style-and-architecture,pipeline-scripts,render-templates,storyboard-guide,archetypes,ffmpeg-encoding,job-workflow}.md` · `examples/photo_essay_storyboard.json` (image-first reference).

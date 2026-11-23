@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install_surgical_media.sh — Installs or refreshes the surgical-media skill cleanly.
 #
-# v3.1.0 is the priority social-video pipeline. Installs:
+# v3.2.0 is the priority social-video pipeline. Installs:
 #   SKILL.md, README.md, LICENSE, AGENTS.md, CHANGELOG.md, SECURITY.md
 #   pyproject.toml, requirements*.txt (so README's install commands work in-place)
 #   scripts/ (all runtime CLIs + ci_gates.sh + engine library)
@@ -22,7 +22,7 @@
 
 set -euo pipefail
 
-VERSION="3.1.0"
+VERSION="3.2.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 install_one_target() {
@@ -38,6 +38,7 @@ install_one_target() {
     "${target_dir}/references" \
     "${target_dir}/schemas" \
     "${target_dir}/examples/jobs" \
+    "${target_dir}/examples/assets" \
     "${target_dir}/docs/adr" \
     "${target_dir}/docs/audits"
 
@@ -77,6 +78,8 @@ install_one_target() {
   cp -r "${SCRIPT_DIR}/assets/styles/"* "${target_dir}/assets/styles/"
   cp "${SCRIPT_DIR}/examples/"*.json "${target_dir}/examples/"
   cp "${SCRIPT_DIR}/examples/jobs/"*.json "${target_dir}/examples/jobs/"
+  cp "${SCRIPT_DIR}/examples/assets/"*.jpg "${SCRIPT_DIR}/examples/assets/README.md" \
+    "${target_dir}/examples/assets/"
   cp "${SCRIPT_DIR}/docs/adr/"*.md "${target_dir}/docs/adr/"
   cp "${SCRIPT_DIR}/docs/audits/"*.md "${target_dir}/docs/audits/"
   cp "${SCRIPT_DIR}/docs/index.md" "${SCRIPT_DIR}/docs/project-plan.md" "${target_dir}/docs/"
@@ -93,21 +96,33 @@ install_one_target() {
 
   echo "${VERSION}" > "${target_dir}/.installed_version"
 
-  # Verify v3.1.0 markers landed cleanly
+  # Verify v3.2.0 markers landed cleanly
+  grep -q "def derive_queries" "${target_dir}/scripts/fetch_scene_assets.py" || {
+    echo "[install_surgical_media] ERROR: v3.2.0 per-beat fetcher missing in ${target_dir}" >&2
+    exit 3
+  }
+  grep -q "def wire_board" "${target_dir}/scripts/asset_wire.py" || {
+    echo "[install_surgical_media] ERROR: v3.2.0 asset_wire.py (image-first wiring) missing in ${target_dir}" >&2
+    exit 3
+  }
+  grep -q "subject_imagery" "${target_dir}/scripts/pipeline_preflight.py" || {
+    echo "[install_surgical_media] ERROR: v3.2.0 image-first preflight gate missing in ${target_dir}" >&2
+    exit 3
+  }
   grep -q "_draw_translucent" "${target_dir}/scripts/elements/svg.py" || {
     echo "[install_surgical_media] ERROR: patched SVG painter missing in ${target_dir}" >&2
     exit 3
   }
   grep -q "_safe_child_path" "${target_dir}/scripts/render_engine.py" || {
-    echo "[install_surgical_media] ERROR: v3.1.0 render_engine.py missing in ${target_dir}" >&2
+    echo "[install_surgical_media] ERROR: v3.2.0 render_engine.py missing in ${target_dir}" >&2
     exit 3
   }
   grep -q "ATTRIBUTION_REQUIRED_LICENSES" "${target_dir}/scripts/monetization_gate.py" || {
-    echo "[install_surgical_media] ERROR: v3.1.0 monetization_gate.py missing in ${target_dir}" >&2
+    echo "[install_surgical_media] ERROR: v3.2.0 monetization_gate.py missing in ${target_dir}" >&2
     exit 3
   }
   grep -q "validate-brief" "${target_dir}/scripts/job_cli.py" || {
-    echo "[install_surgical_media] ERROR: v3.1.0 job_cli.py missing in ${target_dir}" >&2
+    echo "[install_surgical_media] ERROR: v3.2.0 job_cli.py missing in ${target_dir}" >&2
     exit 3
   }
   echo "[install_surgical_media] Verified v${VERSION} in ${target_dir}."

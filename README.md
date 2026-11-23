@@ -1,4 +1,4 @@
-# Surgical Media (`v3.1.0`)
+# Surgical Media (`v3.2.0`)
 
 **The priority pipeline for surgical-media content generation.** A deterministic, QC-gated,
 research-backed workflow that turns a topic prompt into a social-ready MP4 — mandatory
@@ -23,15 +23,31 @@ python3 scripts/render_engine.py --demo --output demo_showcase.mp4    # ~70s on 
 
 `demo_showcase.mp4` is a 14.4 s / 1280x720 / 30 fps three-scene showcase (`geometry_rig` → `doc_essay` → `code_report`). The render ends with an ffprobe QC pass; a failed gate exits 3.
 
-Produce an actual video through the v3.1.0 pipeline:
+Produce an actual video through the v3.2.0 image-first pipeline:
 
 ```bash
+# 1. Write script.json with subject + per-scene visual hints (see schemas/script.schema.json)
+
+# 2. Fetch licensed photographs — one query PER BEAT, not one for the whole video
+python3 scripts/fetch_scene_assets.py --input script.json --out-dir assets \
+  --subject "<subject>" --count 3     # --dry-run prints the derived query plan
+
+# 3. Voice + wire plates into the board (generic filler flagged placeholder:true is stripped)
 python3 scripts/tts_normalizer.py --input script.json --output script.spoken.json --report normalization.json
-python3 scripts/tts_align.py --input script.spoken.json --output storyboard.json --aspect 9:16
+python3 scripts/tts_align.py --input script.spoken.json --output storyboard.json --aspect 9:16 \
+  --subject "<subject>" --assets-manifest assets/manifest.json --brief investigation.json
 python3 scripts/storyboard.py storyboard.json
 python3 scripts/render_engine.py --storyboard storyboard.json --output final.mp4 --quality final
 python3 scripts/qc_gate.py --video final.mp4 --format 9:16 --preset strict --frames-dir qc_frames --credits CREDITS.md --json qc_report.json
 ```
+
+**Image-first is enforced.** `pipeline_preflight.py --board … --brief …` fails unless ≥60% of
+scenes show the subject and no beat shows filler-only visuals (`subject_imagery`);
+`style_lint.py --manifest assets/manifest.json` flags `no_subject_imagery`,
+`low_visual_coverage`, `placeholder_visual` and `unused_assets`. Standalone boards use
+`python3 scripts/asset_wire.py --board board.json --manifest assets/manifest.json --brief investigation.json --out board.wired.json`.
+See [`examples/photo_essay_storyboard.json`](examples/photo_essay_storyboard.json) for a
+rendering reference (full-bleed `cover`, 9:16 `backdrop_blur`, safe-zone credits).
 
 For named real people use `scripts/media_harvester.py` (authentic portraits, face-centered
 reframing, subtle safe-zone credit badges, `credits.json` + `CREDITS.md`). Before any render,
@@ -42,12 +58,16 @@ read `references/specs-licensing-compliance.md` and re-check live platform rules
 
 | Component | Purpose |
 | :--- | :--- |
-| [`SKILL.md`](SKILL.md) | **Priority pipeline** (v3.1.0): 7-step orchestration, invariants, gotchas (≤120 lines) |
+| [`SKILL.md`](SKILL.md) | **Priority pipeline** (v3.2.0): image-first 8-step orchestration, invariants, gotchas (≤120 lines) |
+| [`scripts/fetch_scene_assets.py`](scripts/fetch_scene_assets.py) | Per-beat licensed imagery acquisition: derives one query per scene, dedupes, merges into one manifest |
+| [`scripts/asset_wire.py`](scripts/asset_wire.py) | Missing link: scores manifest plates against narration/`visual.query`/brief anchors, strips placeholder filler, inserts credited subject imagery into board |
+| [`examples/photo_essay_storyboard.json`](examples/photo_essay_storyboard.json) | Image-first rendering reference — subject plates on every scene, no 3D slop |
 | [`references/specs-licensing-compliance.md`](references/specs-licensing-compliance.md) | Platform caps, dual 9:16 safe boxes, 2026 copyright/AI rules, commercial TTS + renderer licenses |
 | [`references/style-and-architecture.md`](references/style-and-architecture.md) | 7-style execution matrix, single locked timeline, originality gate |
 | [`references/pipeline-scripts.md`](references/pipeline-scripts.md) / [`references/render-templates.md`](references/render-templates.md) | CLI index for the merged utilities; pro templates mapped to shipped code |
 | [`scripts/spec_refresh.py`](scripts/spec_refresh.py) | Executable Step 2: verifies the baked platform/licensing baseline and (optionally) probes live sources; exit 3 on drift |
-| [`scripts/pipeline_preflight.py`](scripts/pipeline_preflight.py) | Executable intake/style mapping + structure gate: 7-style matrix, intro/outro contract, sourced-brief originality check |
+| [`scripts/pipeline_preflight.py`](scripts/pipeline_preflight.py) | Executable intake/style mapping + structure gate: 7-style matrix, intro/outro contract, sourced-brief originality check, image-first `subject_imagery` check |
+| [`scripts/style_lint.py`](scripts/style_lint.py) | Advisory anti-slop lint: adds `no_subject_imagery`, `placeholder_visual`, `unused_assets` (pass `--manifest`) |
 | [`scripts/style_apply.py`](scripts/style_apply.py) | Writes the 7-style matrix into a timed board (presets, archetypes, intro window, outro scaffolding); idempotent, reports all changes |
 | [`scripts/tts_normalizer.py`](scripts/tts_normalizer.py) | Dates/numbers/currency/hashtags → spoken words before local TTS, with reviewable change report |
 | [`scripts/media_harvester.py`](scripts/media_harvester.py) | Authentic real-person portraits, face-centered reframing, subtle safe-zone credit badges, `credits.json` + `CREDITS.md` |

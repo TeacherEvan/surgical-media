@@ -163,3 +163,230 @@ def test_validate_pitch_accepts_edge_tts_form(pitch):
 def test_validate_pitch_rejects_bad_form(pitch):
     with pytest.raises(argparse.ArgumentTypeError):
         validate_pitch(pitch)
+
+
+# -- image-first wiring (v3.2.0) ----------------------------------------------
+def _wire_script(tmp_path, scenes):
+    script = tmp_path / "script.json"
+    script.write_text(
+        json.dumps({"title": "wire", "subject": "emperor penguin", "scenes": scenes}),
+        encoding="utf-8",
+    )
+    return script
+
+
+def _wire_manifest(tmp_path):
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "assets": [
+                    {
+                        "file": "01_penguin.jpg",
+                        "title": "Emperor penguin colony",
+                        "license": "by",
+                        "attribution": "A — Penguin · CC BY 4.0 · https://example.org",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "01_penguin.jpg").write_bytes(b"fixture")
+    return manifest
+
+
+def test_default_elements_flag_generic_filler_as_placeholder():
+    from tts_align import DEFAULT_ELEMENTS
+
+    for archetype, elements in DEFAULT_ELEMENTS.items():
+        for el in elements:
+            if el["type"] in ("background", "kinetic_captions"):
+                assert not el.get("placeholder")
+            elif archetype != "mixed":
+                assert el.get("placeholder") is True, (archetype, el["type"])
+
+
+def test_assets_manifest_wires_subject_plate(tmp_path):
+    from tts_align import main as align_main
+
+    script = _wire_script(
+        tmp_path,
+        [
+            {
+                "scene_id": "s1",
+                "archetype": "doc_essay",
+                "narration": "The emperor penguin endures the winter.",
+            }
+        ],
+    )
+    manifest = _wire_manifest(tmp_path)
+    out = tmp_path / "board.json"
+    assert (
+        align_main(
+            [
+                "--input",
+                str(script),
+                "--output",
+                str(out),
+                "--offline",
+                "--aspect",
+                "9:16",
+                "--assets-manifest",
+                str(manifest),
+            ]
+        )
+        == 0
+    )
+    board = json.loads(out.read_text(encoding="utf-8"))
+    els = board["scenes"][0]["elements"]
+    types = [e["type"] for e in els]
+    assert "image" in types and "scaling_chart" not in types
+    plate = next(e for e in els if e["type"] == "image")
+    assert plate["src"] == "01_penguin.jpg"
+    assert plate["attribution"]
+    assert plate["fit"] == "backdrop_blur"  # 9:16 portrait default
+    assert plate["attribution_y"] == 1060.0
+
+
+def test_visual_image_pin_without_manifest(tmp_path):
+    from tts_align import main as align_main
+
+    script = _wire_script(
+        tmp_path,
+        [
+            {
+                "scene_id": "s1",
+                "narration": "A pinned plate.",
+                "visual": {
+                    "image": "press/photo.jpg",
+                    "attribution": "Press — Photo · licensed",
+                },
+            }
+        ],
+    )
+    out = tmp_path / "board.json"
+    assert align_main(["--input", str(script), "--output", str(out), "--offline"]) == 0
+    board = json.loads(out.read_text(encoding="utf-8"))
+    plate = next(e for e in board["scenes"][0]["elements"] if e["type"] == "image")
+    assert plate["src"] == "press/photo.jpg"
+    assert plate["attribution"] == "Press — Photo · licensed"
+
+
+def test_visual_opt_out_keeps_filler_and_warns(tmp_path, capsys):
+    from tts_align import main as align_main
+
+    script = _wire_script(
+        tmp_path,
+        [
+            {
+                "scene_id": "s1",
+                "archetype": "code_report",
+                "narration": "An abstract beat.",
+                "visual": {"kind": "procedural"},
+            }
+        ],
+    )
+    manifest = _wire_manifest(tmp_path)
+    out = tmp_path / "board.json"
+    assert (
+        align_main(
+            [
+                "--input",
+                str(script),
+                "--output",
+                str(out),
+                "--offline",
+                "--assets-manifest",
+                str(manifest),
+            ]
+        )
+        == 0
+    )
+    board = json.loads(out.read_text(encoding="utf-8"))
+    types = [e["type"] for e in board["scenes"][0]["elements"]]
+    assert "image" not in types and "system_architecture" in types
+    assert "generic filler" in capsys.readouterr().err
+
+
+def test_brief_anchors_steer_tts_align_wiring(tmp_path):
+    from tts_align import main as align_main
+
+    script = _wire_script(
+        tmp_path,
+        [
+            {
+                "scene_id": "s1",
+                "archetype": "doc_essay",
+                "narration": "A bird on the ice.",
+            },
+            {
+                "scene_id": "s2",
+                "archetype": "geometry_rig",
+                "narration": "Cold water churns.",
+            },
+        ],
+    )
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "assets": [
+                    {
+                        "file": "bird.jpg",
+                        "title": "penguin portrait",
+                        "attribution": "A",
+                    },
+                    {"file": "ice.jpg", "title": "glacier water", "attribution": "B"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    brief = tmp_path / "brief.json"
+    brief.write_text(
+        json.dumps(
+            {
+                "subject": "antarctica",
+                "visual_anchors": [
+                    {"claim_index": 0, "primitive": "penguin portrait"},
+                    {"claim_index": 1, "primitive": "glacier water"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    out = tmp_path / "board.json"
+    assert (
+        align_main(
+            [
+                "--input",
+                str(script),
+                "--output",
+                str(out),
+                "--offline",
+                "--assets-manifest",
+                str(manifest),
+                "--brief",
+                str(brief),
+            ]
+        )
+        == 0
+    )
+    board = json.loads(out.read_text(encoding="utf-8"))
+    plates = [
+        next(e for e in s["elements"] if e["type"] == "image") for s in board["scenes"]
+    ]
+    assert [p["src"] for p in plates] == ["bird.jpg", "ice.jpg"]
+
+
+def test_no_manifest_warns_about_filler(tmp_path, capsys):
+    from tts_align import main as align_main
+
+    script = _wire_script(
+        tmp_path,
+        [{"scene_id": "s1", "archetype": "doc_essay", "narration": "No assets here."}],
+    )
+    out = tmp_path / "board.json"
+    assert align_main(["--input", str(script), "--output", str(out), "--offline"]) == 0
+    assert "fetch_assets.py" in capsys.readouterr().err

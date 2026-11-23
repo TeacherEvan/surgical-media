@@ -18,7 +18,12 @@
         "title": { "type": "string", "minLength": 1, "maxLength": 200 },
         "author": { "type": "string", "maxLength": 120 },
         "description": { "type": "string", "maxLength": 400 },
-        "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295 }
+        "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "visual_intent": {
+          "type": "string",
+          "enum": ["procedural_showcase", "style_reference", "abstract_art"],
+          "description": "Explicit opt-out from the image-first subject_imagery gate. Only for genuine non-photographic showcases/style references/abstract art — never to silence the gate on a real subject production."
+        }
       }
     },
     "format": {
@@ -44,6 +49,19 @@
           "scene_id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z0-9_-]+$" },
           "archetype": { "type": "string", "enum": ["geometry_rig", "doc_essay", "code_report", "mixed"] },
           "narration": { "type": "string", "maxLength": 2000 },
+          "visual": {
+            "type": "object",
+            "unevaluatedProperties": false,
+            "description": "Per-scene art direction for image-first wiring (scripts/asset_wire.py). kind=photo (default) wires a licensed subject plate; svg/3d/procedural opt out of auto-imagery.",
+            "properties": {
+              "kind": { "type": "string", "enum": ["photo", "svg", "3d", "procedural"], "default": "photo" },
+              "image": { "type": "string", "minLength": 1, "maxLength": 512, "description": "Explicit asset path (relative to the board/script file or absolute)." },
+              "query": { "type": "string", "minLength": 1, "maxLength": 200, "description": "Subject query used to match manifest assets (and to drive fetch_assets.py)." },
+              "fit": { "type": "string", "enum": ["cover", "contain", "backdrop_blur"] },
+              "note": { "type": "string", "maxLength": 400 },
+              "attribution": { "type": "string", "maxLength": 500, "description": "Credit line for an explicit image that is not in the assets manifest." }
+            }
+          },
           "backend": {
             "type": "string",
             "enum": [

@@ -1,6 +1,6 @@
 # Surgical Media — Project Plan & Task Status
 
-**Version:** 3.1.0 · **Updated:** 2026-11-22 · **Owner:** Evan (TeacherEvan), agent-assisted
+**Version:** 3.2.0 · **Updated:** 2026-11-23 · **Owner:** Evan (TeacherEvan), agent-assisted
 **Contract:** code + `tests/` are the contract; this plan is the living map. Verification is local-first — `bash scripts/ci_gates.sh` green *is* the quality bar ([ADR 0002](adr/0002-local-first-verification.md)).
 
 Docs entrypoint: [`docs/index.md`](index.md) · Human manual: [`README.md`](../README.md) · Agent manifest: [`SKILL.md`](../SKILL.md) · Agent rules: [`AGENTS.md`](../AGENTS.md) · Release history: [`CHANGELOG.md`](../CHANGELOG.md)
@@ -33,7 +33,7 @@ motion-tracked HUD — Blender-optional, stdlib software renderer always availab
 
 Examples: [`examples/tri_archetype_storyboard.json`](../examples/tri_archetype_storyboard.json) (generated — regenerate via `scripts/build_demo.py`, never hand-edit) · [`examples/hybrid_3d_storyboard.json`](../examples/hybrid_3d_storyboard.json) (hand-written 3D HUD showcase).
 
-## 3. Priority pipeline (v3.1.0) — merged from the social-media-studio-pro update
+## 3. Priority pipeline (v3.2.0) — image-first; v3.1.0 merged from social-media-studio-pro
 
 | Item | Evidence |
 | :--- | :--- |
@@ -52,7 +52,29 @@ The pipeline deliberately keeps all new work stdlib+Pillow-only: OpenCV is an op
 face-detection accelerator, never a dependency, and no second timeline file is introduced —
 `storyboard.json` remains the single source of truth.
 
-## 3a. Task status — v1.3.0 wave
+## 3a. v3.2.0 wave — image-first (completed 2026-11-23)
+
+Root cause fixed: `fetch_assets.py` downloaded licensed photos but nothing ever
+wired them into the storyboard; `tts_align.DEFAULT_ELEMENTS` stamped the same
+topic-agnostic filler (COMPUTE chart / EXCHANGE diagram / stick rig) on every
+subject, and no gate checked that the subject was on screen. All 8 examples had
+zero `image` elements.
+
+| Item | Evidence |
+| :--- | :--- |
+| `fetch_assets.py` manifest → board wiring (keyword scoring, round-robin reuse, explicit pins, placeholder stripping, safe-zone credits) | `scripts/asset_wire.py`, `tests/test_asset_wire.py` (27 tests) |
+| Beat script art-direction (`subject`, per-scene `visual`: image/query/kind/fit/note/attribution) | `schemas/script.schema.json`, `schemas/storyboard.schema.json`, `scripts/storyboard.py`, `tests/test_schemas_contract.py` |
+| `tts_align.py --assets-manifest` wires plates; generic filler flagged `placeholder: true`; warns on unplated scenes | `scripts/tts_align.py`, `tests/test_tts_align.py` |
+| Hard `subject_imagery` preflight gate (no imagery / brief assets never shown) | `scripts/pipeline_preflight.py`, `tests/test_pipeline_preflight.py` |
+| Anti-slop lint: `no_subject_imagery`, `placeholder_visual`, `unused_assets` | `scripts/style_lint.py`, `tests/test_lint_and_kit.py` |
+| Photo-led reference board + committed CC0 sample plates; CI thumbnail smoke | `examples/photo_essay_storyboard.json`, `examples/assets/`, `scripts/ci_gates.sh` gate 8 |
+| Credit line clears `y_anchor≈0.6` captions (y≈1060), stays inside safe x, ellipsises long attributions | `scripts/asset_wire.py`, `scripts/elements/media.py`, `tests/test_elements.py` |
+| Per-beat query derivation + fetch (no one-query-for-whole-video); live fetch verified against Commons/Openverse/iNaturalist | `scripts/fetch_scene_assets.py`, `tests/test_fetch_scene_assets.py`, manifest `query` provenance in `fetch_assets.py` + test |
+| Brief `visual_anchors` / `visual_assets` drive plate choice | `asset_wire.py`, `tts_align.py --brief`, tests in `test_asset_wire.py` / `test_tts_align.py` |
+| Coverage gate: ≥60% of scenes plated, zero filler-only beats | `storyboard.MIN_VISUAL_COVERAGE`, `pipeline_preflight.check_subject_imagery`, `style_lint.low_visual_coverage` |
+| Full gate green: 12/12, 860 tests | `bash scripts/ci_gates.sh` run 2026-11-23 |
+
+### Task status — v1.3.0 wave
 
 ### Done (verified locally)
 
@@ -136,7 +158,7 @@ The full list lives in [`AGENTS.md`](../AGENTS.md) → "Hard-won invariants" and
 ## 5. Verification contract
 
 ```bash
-bash scripts/ci_gates.sh   # 12 gates: boards → ruff → format → mypy --strict → 772 tests → metaschema → example-vs-schema → thumbnails (2D + hybrid + Three.js) → draft render + ffprobe QC → style_lint (report) → production-job examples → qc_gate (ebur128/dead-air/safe-zone)
+bash scripts/ci_gates.sh   # 12 gates: boards → ruff → format → mypy --strict → 860 tests → metaschema → example-vs-schema → thumbnails (2D + photo + hybrid + Three.js) → draft render + ffprobe QC → style_lint (report) → production-job examples → qc_gate (ebur128/dead-air/safe-zone)
 ```
 
 Single gate detail and the local-first decision: [ADR 0002](adr/0002-local-first-verification.md). Test counts quoted in docs must match the current suite run (constant-sweep rule in the documentation-maintenance workflow).

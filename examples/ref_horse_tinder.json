@@ -2,7 +2,8 @@
   "meta": {
     "title": "Ref — Horse Tender (punchy short)",
     "author": "surgical-media",
-    "description": "Comedy short-form reference: hook text on frame 0, sticker captions with pop, swipe lead-in, loop-able ending."
+    "description": "Comedy short-form reference: hook text on frame 0, sticker captions with pop, swipe lead-in, loop-able ending.",
+    "visual_intent": "style_reference"
   },
   "format": {
     "width": 1080,

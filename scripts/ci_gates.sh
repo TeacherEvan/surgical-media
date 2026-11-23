@@ -31,8 +31,9 @@ check-jsonschema --check-metaschema schemas/*.schema.json
 echo "== gate 7/12: example storyboards validate against their JSON Schema =="
 check-jsonschema --schemafile schemas/storyboard.schema.json examples/*.json
 
-echo "== gate 8/12: thumbnail smoke gate (visual path, 2D + hybrid 3D + Three.js 3D) =="
+echo "== gate 8/12: thumbnail smoke gate (visual path, 2D + photo + hybrid 3D + Three.js 3D) =="
 python3 scripts/render_engine.py --demo --thumbnails /tmp/sm_thumbs
+python3 scripts/render_engine.py --storyboard examples/photo_essay_storyboard.json --thumbnails /tmp/sm_photo_thumbs
 python3 scripts/render_engine.py --storyboard examples/hybrid_3d_storyboard.json --thumbnails /tmp/sm_hybrid_thumbs
 python3 scripts/render_engine.py --storyboard examples/threejs_3d_storyboard.json --thumbnails /tmp/sm_threejs_thumbs
 

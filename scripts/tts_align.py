@@ -7,6 +7,12 @@ words-per-minute estimate), probes the *exact* voiced duration, and emits a
 storyboard.json whose scene windows and per-word timestamps are locked to
 that audio. Visuals are then derived from audio — never the other way round.
 
+Image-first (v3.2.0): with ``--assets-manifest`` (fetch_assets.py output),
+every scene is wired with a licensed subject plate via ``asset_wire.py``;
+per-scene ``visual`` hints (image/query/kind/fit) art-direct the wiring.
+Without a manifest, scenes fall back to generic archetype templates whose
+filler elements are flagged ``placeholder: true`` and warned about.
+
 Two timing paths:
 
 * Online (edge-tts reachable): word timings come from the service's measured
@@ -34,7 +40,8 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from storyboard import SCENE_ID_RE, assign_start_times
+from asset_wire import load_manifest, wire_board
+from storyboard import SCENE_ID_RE, assign_start_times, scene_has_subject_visual
 
 ASPECTS = {
     "16:9": (1920, 1080),
@@ -42,22 +49,34 @@ ASPECTS = {
     "1:1": (1080, 1080),
     "4:5": (1440, 1800),
 }
+# Archetype fallback templates — GENERIC filler, flagged ``placeholder: true``
+# so asset_wire.py strips it when a licensed subject plate is wired in, and
+# style_lint.py flags it when a board ships without subject imagery.
+# Image-first: pass --assets-manifest (fetch_assets.py output) so every scene
+# shows the subject instead of these topic-agnostic stand-ins.
 DEFAULT_ELEMENTS = {
     "geometry_rig": [
         {"type": "background", "color": "#050508"},
-        {"type": "phi_divider", "box": [260, 380, 1400, 700]},
+        {"type": "phi_divider", "box": [260, 380, 1400, 700], "placeholder": True},
         {
             "type": "stick_rig",
             "x": 960,
             "y": 940,
             "height": 420,
             "reach_to": [960, 470],
+            "placeholder": True,
         },
         {"type": "kinetic_captions"},
     ],
     "doc_essay": [
         {"type": "background", "color": "#0A0E17"},
-        {"type": "grid", "spacing": 90, "color": "#1E293B", "alpha": 0.5},
+        {
+            "type": "grid",
+            "spacing": 90,
+            "color": "#1E293B",
+            "alpha": 0.5,
+            "placeholder": True,
+        },
         {
             "type": "scaling_chart",
             "box": [220, 260, 1480, 620],
@@ -66,6 +85,7 @@ DEFAULT_ELEMENTS = {
             "odometer_to": 500.0,
             "accent": "#38BDF8",
             "label": "COMPUTE",
+            "placeholder": True,
         },
         {"type": "kinetic_captions"},
     ],
@@ -82,6 +102,7 @@ DEFAULT_ELEMENTS = {
             ],
             "cascade_start": 1.2,
             "cascade_step": 0.7,
+            "placeholder": True,
         },
         {"type": "kinetic_captions"},
     ],
@@ -360,6 +381,25 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Directory for voice stems (default: <output dir>/audio)",
     )
+    parser.add_argument(
+        "--assets-manifest",
+        type=Path,
+        default=None,
+        help="fetch_assets.py manifest.json — wire licensed subject plates into "
+        "every scene (image-first). Without it, scenes fall back to generic "
+        "archetype filler flagged placeholder:true.",
+    )
+    parser.add_argument(
+        "--subject",
+        default="",
+        help="Board subject for keyword-matching manifest plates to scenes",
+    )
+    parser.add_argument(
+        "--brief",
+        type=Path,
+        default=None,
+        help="investigation_brief.json — visual_anchors steer per-scene plate choice",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -469,6 +509,9 @@ def main(argv: list[str] | None = None) -> int:
             ),
             "sfx_events": [],
         }
+        visual = raw.get("visual")
+        if isinstance(visual, dict) and visual:
+            scene["visual"] = visual
         if vo_rel:
             scene["vo_wav"] = vo_rel
         scenes_out.append(scene)
@@ -486,9 +529,67 @@ def main(argv: list[str] | None = None) -> int:
             "sample_rate": 48000,
         },
     }
+    # Image-first wiring: licensed subject plates replace generic archetype
+    # filler. Runs when a manifest is supplied OR any scene pins visual.image.
+    has_explicit = any(
+        isinstance(sc.get("visual"), dict) and sc["visual"].get("image")
+        for sc in scenes_out
+    )
+    if args.assets_manifest is not None or has_explicit or args.brief is not None:
+        assets = (
+            load_manifest(args.assets_manifest)
+            if args.assets_manifest is not None
+            else []
+        )
+        subject = args.subject or str(script.get("subject") or "")
+        brief: dict[str, Any] | None = None
+        if args.brief is not None:
+            try:
+                loaded = json.loads(args.brief.read_text(encoding="utf-8"))
+                brief = loaded if isinstance(loaded, dict) else None
+            except (OSError, json.JSONDecodeError) as exc:
+                print(
+                    f"tts_align: cannot read brief {args.brief}: {exc}", file=sys.stderr
+                )
+                return 2
+        storyboard, wire_report = wire_board(
+            storyboard,
+            assets,
+            manifest_dir=(
+                args.assets_manifest.resolve().parent
+                if args.assets_manifest is not None
+                else out_dir_resolved
+            ),
+            board_dir=out_dir_resolved,
+            subject=subject,
+            brief=brief,
+        )
+        wired_n = sum(
+            1 for r in wire_report if r["action"] in ("wired", "explicit", "reused")
+        )
+        print(
+            f"tts_align: image-first wiring — {wired_n}/{len(scenes_out)} scenes plated"
+        )
     storyboard = assign_start_times(storyboard)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(storyboard, indent=2), encoding="utf-8")
+
+    filler = [
+        str(sc.get("scene_id"))
+        for sc in storyboard["scenes"]
+        if not scene_has_subject_visual(sc)
+        and any(
+            isinstance(e, dict) and e.get("placeholder") is True
+            for e in sc.get("elements", [])
+        )
+    ]
+    if filler:
+        print(
+            f"tts_align: WARNING — {len(filler)} scene(s) show generic filler, not the "
+            f"subject ({', '.join(filler)}). Fetch licensed imagery "
+            f"(fetch_assets.py) and re-run with --assets-manifest.",
+            file=sys.stderr,
+        )
 
     total = sum(sc["duration_sec"] for sc in storyboard["scenes"])
     voiced = sum(1 for sc in storyboard["scenes"] if sc.get("vo_wav"))

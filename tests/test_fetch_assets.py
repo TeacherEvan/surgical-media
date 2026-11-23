@@ -112,8 +112,41 @@ def test_build_manifest_structure():
     asset = manifest["assets"][0]
     assert asset["file"] == "01_t.jpg"
     assert asset["license"] == "by"
+    # Provenance travels onto each plate: Commons titles are often Latin
+    # binomials, so this is the keyword bridge used by asset_wire scoring.
+    assert asset["query"] == "emperor penguin"
     assert "c — t" in asset["attribution"]
     assert json.loads(json.dumps(manifest))["count"] == 1
+
+
+def test_openverse_false_positive_rejected_by_query_relevance():
+    bad = {
+        "source": "openverse",
+        "license": "by",
+        "url": "https://images.example.org/parade.jpg",
+        "title": "Pennsylvania National Guard ceremony",
+        "creator": "The National Guard",
+        "foreign_landing_url": "https://www.flickr.com/photos/12345",
+        "width": 1600,
+    }
+    good = dict(bad, title="Emperor penguin colony at Snow Hill Island")
+    assert not fetch_assets.relevant_to_query("freezing emperor penguin ocean", bad)
+    assert fetch_assets.relevant_to_query("emperor penguin", good)
+    kept = fetch_assets.filter_results(
+        [bad, good], min_width=800, query="emperor penguin"
+    )
+    assert [r["title"] for r in kept] == [good["title"]]
+
+
+def test_taxonomy_sources_trusted_despite_latin_binomial_titles():
+    item = {
+        "source": "commons",
+        "license": "by",
+        "url": "https://upload.wikimedia.org/x.jpg",
+        "title": "Aptenodytes forsteri -Antarctica -blizzard-8.jpg",
+        "width": 2048,
+    }
+    assert fetch_assets.relevant_to_query("emperor penguin", item)
 
 
 def test_decode_to_ext_roundtrip_and_garbage():
@@ -128,7 +161,7 @@ def test_download_assets_offline(tmp_path, monkeypatch):
     search_payload = {
         "results": [
             {
-                "title": "Good Shot",
+                "title": "Good emperor penguin Shot",
                 "url": "https://img/good.jpg",
                 "width": 2000,
                 "height": 1500,
@@ -139,7 +172,7 @@ def test_download_assets_offline(tmp_path, monkeypatch):
                 "foreign_landing_url": "https://src/good",
             },
             {
-                "title": "Broken",
+                "title": "Broken emperor penguin",
                 "url": "https://img/broken.jpg",
                 "width": 1500,
                 "height": 1000,
@@ -150,7 +183,7 @@ def test_download_assets_offline(tmp_path, monkeypatch):
                 "foreign_landing_url": "https://src/broken",
             },
             {
-                "title": "Second Good",
+                "title": "Second Good penguin",
                 "url": "https://img/second.jpg",
                 "width": 1200,
                 "height": 900,

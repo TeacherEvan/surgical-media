@@ -23,6 +23,13 @@ any finding. Rules:
 - ``synth_sfx_used``       procedural SFX without a real recorded ``wav`` file
 - ``opaque_text_box``      ``quote_card``/``kinetic_captions`` with opaque dark box (alpha >= 0.85)
 - ``text_obstructs_visual`` ``quote_card`` overlapping an image/chart/map/3D visual stage (>= 25%)
+- ``no_subject_imagery``   image-first: no scene shows the subject (photo/SVG/map/
+                           mockup/3D) and no ``meta.visual_intent`` opt-out
+- ``low_visual_coverage``  fewer than 60% of scenes carry subject imagery
+- ``placeholder_visual``   generic archetype filler (``placeholder: true``) still on
+                           screen — wire licensed plates via ``asset_wire.py``
+- ``unused_assets``        ``--manifest``: fetched plates never referenced by any
+                           ``image`` element (fetched-but-never-shown)
 """
 
 from __future__ import annotations
@@ -401,7 +408,80 @@ def _check_audio_and_overlays(
     return findings
 
 
-def lint_board(raw: dict[str, Any]) -> list[Finding]:
+def _check_subject_imagery(
+    raw: dict[str, Any],
+    scenes: list[dict[str, Any]],
+    manifest_path: Path | None,
+) -> list[Finding]:
+    """Image-first rules: the subject must be on screen, filler must go."""
+    from asset_wire import load_manifest
+    from storyboard import (
+        MIN_VISUAL_COVERAGE,
+        VISUAL_INTENTS,
+        scene_has_subject_visual,
+    )
+
+    findings: list[Finding] = []
+    meta = raw.get("meta")
+    meta = meta if isinstance(meta, dict) else {}
+    plated = sum(1 for s in scenes if scene_has_subject_visual(s))
+    exempt = meta.get("visual_intent") in VISUAL_INTENTS
+    if not plated and not exempt:
+        findings.append(
+            _f(
+                "no_subject_imagery",
+                "*",
+                "no scene shows the subject (photo/SVG/map/mockup/3D) — fetch "
+                "licensed imagery and wire it (asset_wire.py), or declare "
+                "meta.visual_intent for genuine abstract work",
+            )
+        )
+    elif scenes and not exempt and plated / len(scenes) < MIN_VISUAL_COVERAGE:
+        findings.append(
+            _f(
+                "low_visual_coverage",
+                "*",
+                f"only {plated}/{len(scenes)} scenes carry subject imagery "
+                f"(< {MIN_VISUAL_COVERAGE:.0%}) — one hero plate cannot carry "
+                "a whole video; wire per-beat plates",
+            )
+        )
+    for scene in scenes:
+        sid = str(scene.get("scene_id", "?"))
+        filler = [
+            str(e.get("type"))
+            for e in scene.get("elements", []) or []
+            if isinstance(e, dict) and e.get("placeholder") is True
+        ]
+        if filler:
+            findings.append(
+                _f(
+                    "placeholder_visual",
+                    sid,
+                    f"generic archetype filler on screen ({', '.join(filler)}) — "
+                    "wire a licensed subject plate (asset_wire.py)",
+                )
+            )
+    if manifest_path is not None:
+        assets = load_manifest(manifest_path)
+        shown: set[str] = set()
+        for scene in scenes:
+            for el in scene.get("elements", []) or []:
+                if isinstance(el, dict) and el.get("type") == "image":
+                    shown.add(Path(str(el.get("src", ""))).name)
+        unused = [str(a.get("file")) for a in assets if str(a.get("file")) not in shown]
+        if unused:
+            findings.append(
+                _f(
+                    "unused_assets",
+                    "*",
+                    f"{len(unused)} fetched plate(s) never shown: {unused[:3]}",
+                )
+            )
+    return findings
+
+
+def lint_board(raw: dict[str, Any], manifest_path: Path | None = None) -> list[Finding]:
     board = assign_start_times(raw)  # @refs + style/platform defaults resolved
     fmt = board.get("format") or {}
     w, h = float(fmt.get("width", 1280)), float(fmt.get("height", 720))
@@ -429,6 +509,7 @@ def lint_board(raw: dict[str, Any]) -> list[Finding]:
         *_check_platform_rules(scenes, plat, w, h),
         *_check_newsroom_sources(scenes, style_preset, plat),
         *_check_audio_and_overlays(board, raw_scenes, w, h),
+        *_check_subject_imagery(raw, scenes, manifest_path),
     ]
 
 
@@ -441,11 +522,19 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("boards", nargs="+", type=Path)
     ap.add_argument("--strict", action="store_true", help="exit 1 on any finding")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
+    ap.add_argument(
+        "--manifest",
+        type=Path,
+        default=None,
+        help="assets/manifest.json — also flag fetched plates never shown (unused_assets)",
+    )
     args = ap.parse_args(argv)
     report: dict[str, Any] = {}
     for path in args.boards:
         try:
-            findings = lint_board(json.loads(path.read_text(encoding="utf-8")))
+            findings = lint_board(
+                json.loads(path.read_text(encoding="utf-8")), args.manifest
+            )
         except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
             print(f"style_lint: cannot lint {path}: {exc}", file=sys.stderr)
             return 2

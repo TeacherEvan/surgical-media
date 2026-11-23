@@ -2,7 +2,8 @@
   "meta": {
     "title": "Ref — Geopolitics Explainer (neutral, 16:9)",
     "author": "surgical-media",
-    "description": "Companion reference: newsroom_clean, safe lower-thirds with source cards, schematic world map, sourced data chart, neutral facts."
+    "description": "Companion reference: newsroom_clean, safe lower-thirds with source cards, schematic world map, sourced data chart, neutral facts.",
+    "visual_intent": "style_reference"
   },
   "format": {
     "width": 1920,

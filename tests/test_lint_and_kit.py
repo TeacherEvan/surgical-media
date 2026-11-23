@@ -125,3 +125,79 @@ def test_publish_kit_generates_chapters_credits_and_thumbnail(tmp_path):
     assert "Photo by Alice (CC-BY)" in md
     assert "`s1.png`" in md
     assert "AI / synthetic-content disclosure" in md
+
+
+# -- image-first anti-slop rules (v3.2.0) -------------------------------------
+def test_lint_flags_board_with_no_subject_imagery():
+    b = _board()
+    b["meta"].pop("visual_intent", None)
+    for s in b["scenes"]:
+        s.pop("scene_spec", None)
+        s["elements"] = [
+            e for e in s["elements"] if e.get("type") not in ("image", "svg", "map")
+        ]
+    rules = {f["rule"] for f in style_lint.lint_board(b)}
+    assert "no_subject_imagery" in rules
+
+
+def test_lint_visual_intent_opt_out_silences_no_subject_imagery():
+    b = _board()
+    for s in b["scenes"]:
+        s.pop("scene_spec", None)
+        s["elements"] = [
+            e for e in s["elements"] if e.get("type") not in ("image", "svg", "map")
+        ]
+    b["meta"]["visual_intent"] = "procedural_showcase"
+    rules = {f["rule"] for f in style_lint.lint_board(b)}
+    assert "no_subject_imagery" not in rules
+
+
+def test_lint_flags_low_visual_coverage():
+    b = _board()
+    b["meta"].pop("visual_intent", None)
+    b["scenes"][0]["elements"].insert(
+        0, {"type": "image", "src": "assets/a.jpg", "attribution": "A"}
+    )
+    for s in b["scenes"][1:]:
+        s.pop("scene_spec", None)
+        s["elements"] = [
+            e for e in s["elements"] if e.get("type") not in ("image", "svg", "map")
+        ]
+    rules = {f["rule"] for f in style_lint.lint_board(b)}
+    assert "low_visual_coverage" in rules
+    assert "no_subject_imagery" not in rules
+
+
+def test_lint_flags_placeholder_filler():
+    b = _board()
+    b["scenes"][0]["elements"].append(
+        {"type": "scaling_chart", "label": "COMPUTE", "placeholder": True}
+    )
+    findings = style_lint.lint_board(b)
+    ph = [f for f in findings if f["rule"] == "placeholder_visual"]
+    assert ph and ph[0]["scene"] == b["scenes"][0]["scene_id"]
+
+
+def test_lint_photo_board_has_no_imagery_findings():
+    photo = REPO / "examples" / "photo_essay_storyboard.json"
+    b = json.loads(photo.read_text(encoding="utf-8"))
+    rules = {f["rule"] for f in style_lint.lint_board(b)}
+    assert "no_subject_imagery" not in rules
+    assert "placeholder_visual" not in rules
+
+
+def test_lint_unused_assets_flagged_with_manifest(tmp_path):
+    b = _board()
+    b["scenes"][0]["elements"].append(
+        {"type": "image", "src": "assets/shown.jpg", "attribution": "A"}
+    )
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps({"assets": [{"file": "shown.jpg"}, {"file": "never_shown.jpg"}]}),
+        encoding="utf-8",
+    )
+    findings = style_lint.lint_board(b, manifest)
+    unused = [f for f in findings if f["rule"] == "unused_assets"]
+    assert unused and "never_shown.jpg" in unused[0]["message"]
+    # without the manifest flag the rule stays silent
+    assert not [f for f in style_lint.lint_board(b) if f["rule"] == "unused_assets"]

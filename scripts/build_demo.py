@@ -42,6 +42,7 @@ def main() -> None:
             "title": "Surgical Media — Three Archetypes",
             "author": "surgical-media",
             "seed": 20261118,
+            "visual_intent": "procedural_showcase",
         },
         "format": {"width": W, "height": H, "fps": FPS},
         "scenes": [

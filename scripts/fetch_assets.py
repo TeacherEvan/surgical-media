@@ -83,14 +83,70 @@ def _safe_int(value: Any) -> int:
         return 0
 
 
+def _content_tokens(text: str) -> set[str]:
+    return {
+        t
+        for t in re.findall(r"[a-z0-9]+", str(text).lower())
+        if len(t) > 2
+        and t
+        not in {
+            "the",
+            "and",
+            "for",
+            "with",
+            "from",
+            "this",
+            "that",
+            "www",
+            "http",
+            "https",
+            "com",
+            "org",
+            "jpg",
+            "jpeg",
+            "png",
+            "file",
+            "photo",
+        }
+    }
+
+
+def relevant_to_query(query: str, item: dict[str, Any]) -> bool:
+    """Cheap free-text sanity check for Openverse/Flickr-style results.
+
+    Commons and iNaturalist results are taxonomy-grounded (their titles are
+    often Latin binomials like ``Aptenodytes forsteri``), so they are trusted.
+    Openverse keyword search, however, returns obvious false positives — a
+    "freezing emperor penguin ocean" query once yielded a Pennsylvania
+    National Guard parade photo. Require at least one content token from the
+    query in the title/creator/landing page/meta for non-taxonomy sources.
+    """
+    if str(item.get("source", "openverse")) != "openverse":
+        return True
+    want = _content_tokens(query)
+    if not want:
+        return True
+    haystack = " ".join(
+        str(item.get(k, ""))
+        for k in ("title", "creator", "description", "foreign_landing_url", "url")
+    )
+    return bool(want & _content_tokens(haystack))
+
+
 def filter_results(
-    results: list[dict[str, Any]], min_width: int = 800
+    results: list[dict[str, Any]], min_width: int = 800, query: str = ""
 ) -> list[dict[str, Any]]:
-    """Allowlisted licenses only, verified dimensions, deduped, largest first."""
+    """Allowlisted licenses only, verified dimensions, deduped, largest first.
+
+    With ``query`` set, free-text (Openverse) results must share a content
+    token with it; taxonomy sources are trusted unchanged.
+    """
     seen: set[str] = set()
     kept: list[dict[str, Any]] = []
     for r in results:
         if license_key(r.get("license")) is None:
+            continue
+        if query and not relevant_to_query(query, r):
             continue
         url = str(r.get("url", ""))
         if not url.startswith(("http://", "https://")) or url in seen:
@@ -124,6 +180,11 @@ def build_manifest(query: str, items: list[dict[str, Any]]) -> dict[str, Any]:
                 "file": item["_saved_as"],
                 "title": str(item.get("title", "")),
                 "creator": str(item.get("creator", "")),
+                # Provenance: the query that found this plate. Commons titles
+                # are often Latin binomials ("Aptenodytes forsteri"), so this
+                # is the only reliable keyword bridge to "emperor penguin"
+                # when asset_wire scores plates against narration.
+                "query": str(query),
                 "license": lic,
                 "license_version": str(item.get("license_version", "")),
                 "license_url": str(item.get("license_url", "")),
@@ -401,7 +462,11 @@ def search_openverse(
     payload = json.loads(raw.decode("utf-8", errors="replace"))
     results = list(payload.get("results", []))
     for item in results:
-        item.setdefault("source", "openverse")
+        # Openverse payloads carry their own `source` (e.g. "flickr"). That is
+        # the *provider*, not the API tier — overwriting it is what lets the
+        # free-text relevance filter distinguish Openverse from the
+        # taxonomy-grounded Commons/iNaturalist searches.
+        item["source"] = "openverse"
     return results
 
 
@@ -422,7 +487,7 @@ def download_assets(
         print("fetch_assets: all searches failed or returned nothing", file=sys.stderr)
         return 2
 
-    candidates = filter_results(results, min_width=min_width)
+    candidates = filter_results(results, min_width=min_width, query=query)
     if not candidates:
         print("fetch_assets: no open-licensed candidates found", file=sys.stderr)
         return 2

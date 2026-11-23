@@ -1,0 +1,249 @@
+{
+  "meta": {
+    "title": "Photo Essay — Image-First Showcase",
+    "author": "surgical-media",
+    "description": "The image-first reference: every scene carries a subject plate (cover + backdrop_blur on 9:16), Ken Burns drift, safe-zone credits, boxless captions. Plates are CC0 fixtures — real productions wire fetch_assets.py manifests via asset_wire.py."
+  },
+  "format": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30
+  },
+  "platform": {
+    "preset": "shorts_tiktok_reels"
+  },
+  "scenes": [
+    {
+      "scene_id": "hook_dawn",
+      "archetype": "doc_essay",
+      "narration": "Dawn does not wait for you to be ready.",
+      "duration_sec": 3.0,
+      "start_sec": 0.0,
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.04,
+        "easing": "ease_out_expo"
+      },
+      "elements": [
+        {
+          "type": "image",
+          "src": "assets/sample_01_dawn.jpg",
+          "box": [
+            0,
+            0,
+            1080,
+            1920
+          ],
+          "fit": "cover",
+          "kb_zoom": 1.1,
+          "fade_in_sec": 0.5,
+          "attribution": "SAMPLE PLATE · dawn ridge · CC0 fixture (not a photograph)",
+          "attribution_y": 1060
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "words": [
+        {
+          "word": "Dawn",
+          "start": 0.0,
+          "end": 0.33
+        },
+        {
+          "word": "does",
+          "start": 0.33,
+          "end": 0.6
+        },
+        {
+          "word": "not",
+          "start": 0.6,
+          "end": 0.9
+        },
+        {
+          "word": "wait",
+          "start": 0.9,
+          "end": 1.3
+        },
+        {
+          "word": "for",
+          "start": 1.3,
+          "end": 1.6
+        },
+        {
+          "word": "you",
+          "start": 1.6,
+          "end": 1.9
+        },
+        {
+          "word": "to",
+          "start": 1.9,
+          "end": 2.2
+        },
+        {
+          "word": "be",
+          "start": 2.2,
+          "end": 2.6
+        },
+        {
+          "word": "ready.",
+          "start": 2.6,
+          "end": 3.0
+        }
+      ],
+      "sfx_events": []
+    },
+    {
+      "scene_id": "body_storm",
+      "archetype": "doc_essay",
+      "narration": "The storm front arrives in minutes, not hours.",
+      "duration_sec": 6.0,
+      "start_sec": 3.0,
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.03,
+        "easing": "ease_in_out_sine"
+      },
+      "elements": [
+        {
+          "type": "image",
+          "src": "assets/sample_02_storm.jpg",
+          "box": [
+            0,
+            0,
+            1080,
+            1920
+          ],
+          "fit": "backdrop_blur",
+          "radius": 28,
+          "kb_zoom": 1.08,
+          "fade_in_sec": 0.6,
+          "attribution": "SAMPLE PLATE · storm front · CC0 fixture (not a photograph)",
+          "attribution_y": 1060
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "words": [
+        {
+          "word": "The",
+          "start": 0.0,
+          "end": 0.4
+        },
+        {
+          "word": "storm",
+          "start": 0.4,
+          "end": 1.0
+        },
+        {
+          "word": "front",
+          "start": 1.0,
+          "end": 1.6
+        },
+        {
+          "word": "arrives",
+          "start": 1.6,
+          "end": 2.4
+        },
+        {
+          "word": "in",
+          "start": 2.4,
+          "end": 2.8
+        },
+        {
+          "word": "minutes,",
+          "start": 2.8,
+          "end": 3.6
+        },
+        {
+          "word": "not",
+          "start": 3.6,
+          "end": 4.2
+        },
+        {
+          "word": "hours.",
+          "start": 4.2,
+          "end": 5.2
+        }
+      ],
+      "sfx_events": []
+    },
+    {
+      "scene_id": "outro_dusk",
+      "archetype": "doc_essay",
+      "narration": "Follow for the full field guide.",
+      "duration_sec": 4.0,
+      "start_sec": 9.0,
+      "camera": {
+        "zoom_start": 1.0,
+        "zoom_end": 1.05,
+        "easing": "ease_out_expo"
+      },
+      "elements": [
+        {
+          "type": "image",
+          "src": "assets/sample_03_dusk.jpg",
+          "box": [
+            0,
+            0,
+            1080,
+            1920
+          ],
+          "fit": "backdrop_blur",
+          "radius": 28,
+          "kb_zoom": 1.06,
+          "fade_in_sec": 0.6,
+          "attribution": "SAMPLE PLATE · dusk calm · CC0 fixture (not a photograph)",
+          "attribution_y": 1060
+        },
+        {
+          "type": "source_tag",
+          "text": "Plates: surgical-media CC0 fixtures — replace via fetch_assets.py",
+          "corner": "bl"
+        },
+        {
+          "type": "kinetic_captions"
+        }
+      ],
+      "words": [
+        {
+          "word": "Follow",
+          "start": 0.0,
+          "end": 0.7
+        },
+        {
+          "word": "for",
+          "start": 0.7,
+          "end": 1.0
+        },
+        {
+          "word": "the",
+          "start": 1.0,
+          "end": 1.3
+        },
+        {
+          "word": "full",
+          "start": 1.3,
+          "end": 1.8
+        },
+        {
+          "word": "field",
+          "start": 1.8,
+          "end": 2.4
+        },
+        {
+          "word": "guide.",
+          "start": 2.4,
+          "end": 3.2
+        }
+      ],
+      "sfx_events": []
+    }
+  ],
+  "audio": {
+    "pad": false,
+    "duck_depth": 0.72,
+    "sample_rate": 48000
+  }
+}

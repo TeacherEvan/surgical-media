@@ -29,9 +29,9 @@ Entrypoint for surgical-media docs. The contract is code + `tests/`; these docum
 - [`plans/Conversation with Gemini.txt`](plans/Conversation%20with%20Gemini.txt) — multi-engine design conversation behind ADR 0003
 - `../Concept/` — original pipeline design transcript
 
-## Priority pipeline (v3.1.0)
+## Priority pipeline (v3.2.0 — image-first)
 
-- [`../SKILL.md`](../SKILL.md) — the single entry point: 7-step orchestration from intake to QC
+- [`../SKILL.md`](../SKILL.md) — the single entry point: 8-step image-first orchestration from intake to QC
 - [`../references/specs-licensing-compliance.md`](../references/specs-licensing-compliance.md) — platform caps, dual 9:16 safe boxes, 2026 copyright/AI rules, model licenses
 - [`../references/style-and-architecture.md`](../references/style-and-architecture.md) — 7-style execution matrix, locked timeline, originality gate
 - [`../references/pipeline-scripts.md`](../references/pipeline-scripts.md) — CLI index for the three merged utilities
@@ -43,7 +43,7 @@ Entrypoint for surgical-media docs. The contract is code + `tests/`; these docum
 - [`../references/archetypes.md`](../references/archetypes.md) — visual archetype field guide
 - [`../references/ffmpeg-encoding.md`](../references/ffmpeg-encoding.md) — encoder/loudness/QC reference
 - [`../schemas/`](../schemas/) — Draft 2020-12 contracts (investigation brief, beat script, storyboard)
-- [`../examples/`](../examples/) — renderable boards: `tri_archetype_storyboard.json` (generated), `hybrid_3d_storyboard.json` (3D HUD showcase)
+- [`../examples/`](../examples/) — renderable boards: **`photo_essay_storyboard.json` (image-first reference)**, `tri_archetype_storyboard.json` (generated showcase), `hybrid_3d_storyboard.json` (optional 3D HUD showcase)
 
 ## Project surfaces
 

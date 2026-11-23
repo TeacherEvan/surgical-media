@@ -6,8 +6,9 @@ Turns the prose parts of the v3.0.0 pipeline into code:
 * intake mode resolves Time + Style + Platform into a validated ``intake.json``
   (locked format, style preset, archetype, cadence, intro/outro contract);
 * board mode checks a storyboard against that intake — schema validity, format,
-  style/platform blocks, topic-matched intro and outro, duration cap, and a
-  sourced research brief (originality gate).
+  style/platform blocks, topic-matched intro and outro, duration cap, a
+  sourced research brief (originality gate), and the image-first
+  ``subject_imagery`` gate (the subject must appear on screen).
 
 Stdlib-only. Exit 0 = pass, 2 = bad invocation, 3 = a check failed.
 
@@ -292,6 +293,78 @@ def check_no_synthetic_tones(board: dict[str, Any]) -> tuple[bool, str]:
     return True, "no synthetic tones or procedural SFX"
 
 
+def check_subject_imagery(
+    board: dict[str, Any], brief: dict[str, Any]
+) -> tuple[bool, str]:
+    """Image-first gate: the subject must actually appear on screen.
+
+    A production board needs subject visuals (licensed photo, SVG art, map,
+    comedy mockup or an explicit 3D scene_spec) in at least
+    ``storyboard.MIN_VISUAL_COVERAGE`` of its scenes. A scene may not show
+    generic ``placeholder: true`` filler without its own subject visual —
+    one hero photo plus nine procedural+caption beats still fails.
+    Boards that declare ``meta.visual_intent`` (showcases / style references /
+    abstract art) are exempt. When the brief lists ``visual_assets``, at least
+    one of those plates must be referenced by an ``image`` element —
+    fetched-but-never-shown is a failure.
+    """
+    meta = board.get("meta")
+    meta = meta if isinstance(meta, dict) else {}
+    intent = meta.get("visual_intent")
+    if intent in storyboard.VISUAL_INTENTS:
+        return True, f"exempt: meta.visual_intent={intent}"
+    scenes = [s for s in board.get("scenes") or [] if isinstance(s, dict)]
+    if not scenes:
+        return False, "no scenes"
+    plated = [s for s in scenes if storyboard.scene_has_subject_visual(s)]
+    coverage = len(plated) / len(scenes)
+    if coverage < storyboard.MIN_VISUAL_COVERAGE:
+        return (
+            False,
+            (
+                f"subject imagery in only {len(plated)}/{len(scenes)} scenes "
+                f"({coverage:.0%} < {storyboard.MIN_VISUAL_COVERAGE:.0%}) — wire "
+                "licensed plates (asset_wire.py / tts_align --assets-manifest) "
+                "or declare meta.visual_intent"
+            ),
+        )
+    slop = [
+        str(s.get("scene_id", "?"))
+        for s in scenes
+        if not storyboard.scene_has_subject_visual(s)
+        and any(
+            isinstance(e, dict) and e.get("placeholder") is True
+            for e in s.get("elements", [])
+        )
+    ]
+    if slop:
+        return (
+            False,
+            f"generic filler still on screen with no subject visual in: {', '.join(slop)}",
+        )
+    assets = brief.get("visual_assets")
+    if isinstance(assets, list) and assets:
+        wanted = {
+            Path(str(a.get("file", ""))).name
+            for a in assets
+            if isinstance(a, dict) and str(a.get("file", "")).strip()
+        }
+        shown: set[str] = set()
+        for scene in scenes:
+            for el in scene.get("elements") or []:
+                if isinstance(el, dict) and el.get("type") == "image":
+                    shown.add(Path(str(el.get("src", ""))).name)
+        if wanted and not (wanted & shown):
+            return (
+                False,
+                f"brief lists {len(wanted)} visual_assets but none appear on screen",
+            )
+    return (
+        True,
+        f"{len(plated)}/{len(scenes)} scenes carry subject visuals ({coverage:.0%})",
+    )
+
+
 def check_board(
     board: dict[str, Any], intake: dict[str, Any], brief: dict[str, Any]
 ) -> dict[str, Any]:
@@ -349,6 +422,9 @@ def check_board(
 
     synth_ok, synth_detail = check_no_synthetic_tones(board)
     add("no_synthetic_tones", synth_ok, synth_detail)
+
+    imagery_ok, imagery_detail = check_subject_imagery(board, brief)
+    add("subject_imagery", imagery_ok, imagery_detail)
 
     ok = all(c["ok"] for c in checks)
     return {

@@ -78,6 +78,46 @@ KNOWN_ELEMENTS = {
 }
 MIN_DIM, MAX_DIM = 160, 3840
 
+# Image-first contract (v3.2.0): a production board must put the subject on
+# screen. These element types count as subject visuals; pure procedural
+# filler (stick_rig, tesseract, default COMPUTE charts, EXCHANGE diagrams)
+# does not. scene_spec (3D) counts — it is an explicit authored choice.
+SUBJECT_VISUAL_TYPES = {
+    "image",
+    "svg",
+    "map",
+    "map_callout",
+    "phone_frame",
+    "swipe_card",
+    "social_post",
+    "chat_bubble",
+    "app_toast",
+}
+# Explicit board-level opt-outs for genuinely non-photographic work
+# (archetype showcases, style references, abstract art). Never use these
+# to silence the gate on a real subject production.
+VISUAL_INTENTS = {"procedural_showcase", "style_reference", "abstract_art"}
+# A real subject production cannot pass on a single hero photo. At least this
+# share of scenes must carry authored subject imagery, and no scene may show
+# generic archetype filler (placeholder:true) without its own subject visual.
+MIN_VISUAL_COVERAGE = 0.6
+VALID_VISUAL_KINDS = {"photo", "svg", "3d", "procedural"}
+VALID_IMAGE_FITS = {"cover", "contain", "backdrop_blur"}
+
+
+def scene_has_subject_visual(scene: Any) -> bool:
+    """True when a scene carries authored subject imagery (photo/SVG/map/
+    comedy mockup) or an explicit 3D scene_spec — not generic filler."""
+    if not isinstance(scene, dict):
+        return False
+    if isinstance(scene.get("scene_spec"), dict) and scene.get("scene_spec"):
+        return True
+    for el in scene.get("elements") or []:
+        if isinstance(el, dict) and el.get("type") in SUBJECT_VISUAL_TYPES:
+            return True
+    return False
+
+
 VALID_BACKENDS = {
     "auto",
     "blender_hybrid",
@@ -277,6 +317,39 @@ def lint_storyboard(data: Any, board_dir: Path | None = None) -> list[str]:
 def _validate_meta(meta: Any, errors: list[str]) -> None:
     if not isinstance(meta, dict) or not str(meta.get("title", "")).strip():
         errors.append("meta.title is required (non-empty string)")
+        return
+    intent = meta.get("visual_intent")
+    if intent is not None and intent not in VISUAL_INTENTS:
+        errors.append(f"meta.visual_intent must be one of {sorted(VISUAL_INTENTS)}")
+
+
+def _validate_visual(visual: Any, where: str, errors: list[str]) -> None:
+    """Optional per-scene art direction (image-first wiring contract)."""
+    if visual is None:
+        return
+    if not isinstance(visual, dict):
+        errors.append(f"{where}: visual must be an object")
+        return
+    unknown = set(visual) - {"kind", "image", "query", "fit", "note", "attribution"}
+    if unknown:
+        errors.append(f"{where}: visual has unknown keys: {sorted(unknown)}")
+    kind = visual.get("kind")
+    if kind is not None and kind not in VALID_VISUAL_KINDS:
+        errors.append(
+            f"{where}: visual.kind must be one of {sorted(VALID_VISUAL_KINDS)}"
+        )
+    fit = visual.get("fit")
+    if fit is not None and fit not in VALID_IMAGE_FITS:
+        errors.append(f"{where}: visual.fit must be one of {sorted(VALID_IMAGE_FITS)}")
+    for key, limit in (
+        ("image", 512),
+        ("query", 200),
+        ("note", 400),
+        ("attribution", 500),
+    ):
+        value = visual.get(key)
+        if value is not None and (not isinstance(value, str) or len(value) > limit):
+            errors.append(f"{where}: visual.{key} must be a string of <= {limit} chars")
 
 
 def _validate_format(fmt: Any, errors: list[str]) -> None:
@@ -583,6 +656,7 @@ def _validate_scene(scene: Any, i: int, errors: list[str]) -> None:
         errors.append(f"{where}: transition_sec must be in [0, 3]")
 
     _validate_camera(scene.get("camera"), where, errors)
+    _validate_visual(scene.get("visual"), where, errors)
 
     backend = scene.get("backend")
     if backend is not None and backend not in VALID_BACKENDS:

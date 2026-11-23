@@ -2,7 +2,8 @@
   "meta": {
     "title": "Surgical Media \u2014 Three Archetypes",
     "author": "surgical-media",
-    "seed": 20261118
+    "seed": 20261118,
+    "visual_intent": "procedural_showcase"
   },
   "format": {
     "width": 1280,

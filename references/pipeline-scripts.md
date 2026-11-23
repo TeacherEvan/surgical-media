@@ -64,6 +64,48 @@ python3 scripts/tts_normalizer.py --text 'Meta raised $3.2B on 2026-11-21 #AI' -
 - `--report` writes a field-by-field change log so the script can be reviewed, not trusted
   blindly. Always skim the report for proper nouns before rendering.
 
+## 1.5. `scripts/fetch_assets.py` + `scripts/asset_wire.py` — image-first board assembly
+
+Downloading is not enough: a manifest left on disk produces exactly the "3D slop +
+captions" failure this wave fixes. Always wire it into the board.
+
+```bash
+# One query per beat — explicit visual.query wins, otherwise derived from narration
+python3 scripts/fetch_scene_assets.py --input script.spoken.json --out-dir assets \
+    --subject "emperor penguin" --count 3     # --dry-run prints the query plan
+python3 scripts/tts_align.py --input script.spoken.json --output storyboard.json \
+    --aspect 9:16 --subject "emperor penguin" --assets-manifest assets/manifest.json \
+    --brief investigation.json
+# standalone boards:
+python3 scripts/asset_wire.py --board storyboard.json --manifest assets/manifest.json \
+    --out storyboard.wired.json --report wire_report.json
+```
+
+- `fetch_scene_assets.py` derives a distinct query for each scene and calls `fetch_assets.py`
+  per query into a single shared manifest; duplicate queries collapse. This is what stops
+  a whole video reusing the same three plates. A beat that returns nothing retries once with
+  the broad board subject so it gets a different relevant plate, not the hero image again.
+- Openverse free-text results must share a content token with their query — otherwise a
+  "freezing emperor penguin ocean" query can yield an unrelated parade photo. Commons and
+  iNaturalist are taxonomy-grounded and trusted despite Latin-binomial titles.
+- `fetch_assets.py` searches Openverse + Commons + iNaturalist (allowlist `by|by-sa|cc0|pdm`),
+  verifies decodability with Pillow, merges manifests, emits per-image `attribution`, and
+  stamps each plate with its originating `query` (Commons titles are often Latin binomials —
+  that provenance is the keyword bridge for `asset_wire` scoring).
+- `asset_wire.py` scores each plate against the scene's narration + `visual.query` + board
+  subject; best unused plate wins, then round-robin reuse. Filler elements marked
+  `placeholder: true` are stripped (background stays as a load-failure fallback).
+- 9:16 plates default to `fit: backdrop_blur` (whole landscape photo, blurred bleed behind),
+  landscape/square to `cover`; `kb_zoom: 1.08`, `fade_in_sec: 0.6`, credit at `attribution_y≈1060`
+  (above `y_anchor≈0.6` captions) clamped inside the safe x-box with ellipsis for long strings.
+- Explicit `visual.image` pins a plate; `visual.kind: svg|3d|procedural` opts out of auto-
+  imagery. Scenes with authored imagery (photo/SVG/map/mockup/3D `scene_spec`) are never overwritten.
+- `--brief investigation.json` lets `visual_anchors[].primitive` steer per-scene plate choice
+  and adds `visual_assets` to the plate pool (manifest wins on duplicate filenames).
+- `pipeline_preflight.py:subject_imagery` requires imagery in ≥60% of scenes, rejects
+  filler-only beats, and fails when brief `visual_assets` are fetched but never shown.
+  `style_lint.py --manifest` adds `low_visual_coverage` alongside the other anti-slop rules.
+
 ## 2. `scripts/media_harvester.py` — authentic portraits + subtle credits
 
 ```bash

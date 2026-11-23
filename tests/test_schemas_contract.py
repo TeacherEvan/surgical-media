@@ -82,6 +82,11 @@ MUTATIONS = {
     ),
     "unknown audio key": lambda d: d.setdefault("audio", {}).update(bogus=1),
     "orbit missing radius": lambda d: d["scenes"][0].update(camera={"mode": "orbit"}),
+    "bad visual kind": lambda d: d["scenes"][0].update(visual={"kind": "hologram"}),
+    "bad visual fit": lambda d: d["scenes"][0].update(visual={"fit": "stretch"}),
+    "unknown visual key": lambda d: d["scenes"][0].update(visual={"bogus": 1}),
+    "visual not object": lambda d: d["scenes"][0].update(visual="photo"),
+    "bad visual_intent": lambda d: d["meta"].update(visual_intent="slop"),
 }
 
 
@@ -124,3 +129,46 @@ def test_room_tone_music_wav_and_thud_pass_both_validators():
     assert storyboard.validate_storyboard(data) == []
     pytest.importorskip("jsonschema")
     assert list(_validator().iter_errors(data)) == []
+
+
+def test_valid_visual_and_visual_intent_pass_both_validators():
+    data = _example()
+    data["meta"]["visual_intent"] = "procedural_showcase"
+    data["scenes"][0]["visual"] = {
+        "kind": "photo",
+        "image": "assets/plate.jpg",
+        "query": "emperor penguin",
+        "fit": "backdrop_blur",
+        "note": "hero plate",
+        "attribution": "A — Plate · CC BY 4.0 · https://example.org",
+    }
+    assert storyboard.validate_storyboard(data) == []
+    pytest.importorskip("jsonschema")
+    assert list(_validator().iter_errors(data)) == []
+
+
+def test_script_schema_accepts_visual_art_direction():
+    jsonschema = pytest.importorskip("jsonschema")
+    schema = json.loads(
+        (REPO / "schemas" / "script.schema.json").read_text(encoding="utf-8")
+    )
+    validator = jsonschema.Draft202012Validator(schema)
+    script = {
+        "title": "penguin",
+        "subject": "emperor penguin",
+        "scenes": [
+            {
+                "scene_id": "s1",
+                "narration": "The emperor penguin endures.",
+                "visual": {"kind": "photo", "query": "emperor penguin"},
+            },
+            {
+                "scene_id": "s2",
+                "narration": "An abstract beat.",
+                "visual": {"kind": "procedural"},
+            },
+        ],
+    }
+    assert list(validator.iter_errors(script)) == []
+    script["scenes"][0]["visual"]["kind"] = "hologram"
+    assert list(validator.iter_errors(script))

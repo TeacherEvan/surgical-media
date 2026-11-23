@@ -19,6 +19,10 @@ ships in this repository (`scripts/style.py`, `assets/styles/`, `scripts/platfor
 
 Implementation notes:
 
+- **Image-first (v3.2.0):** the archetype is an *overlay on licensed subject photography*,
+  not a replacement for it. Wire `fetch_assets.py` output via `tts_align.py --assets-manifest`
+  or `asset_wire.py`; `pipeline_preflight.py:subject_imagery` fails a board without imagery.
+  3D `scene_spec` is an optional accent for structural explanations, not a default filler.
 - `archetype` is validated against `geometry_rig | doc_essay | code_report | mixed`.
 - `style.preset` is one of `soft_clay | punchy_pop | newsroom_clean | noir_restraint |
   risograph | tech_blueprint` (files in `assets/styles/`). Comedy → `punchy_pop`,

@@ -248,7 +248,7 @@ def test_download_assets_all_records_sources(tmp_path, monkeypatch):
         "api.openverse.org": {
             "results": [
                 {
-                    "title": "OV Plate",
+                    "title": "OV Plate — emperor penguin",
                     "url": "https://img/ov.jpg",
                     "width": 2000,
                     "height": 1500,

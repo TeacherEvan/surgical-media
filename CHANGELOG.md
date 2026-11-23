@@ -9,6 +9,48 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 (`bash scripts/ci_gates.sh`) are the enforced standard; the GitLab mirror
 (`.gitlab-ci.yml`) is configured, not verified.
 
+## [v3.2.0] — 2026-11-23
+
+### Image-first (breaking behaviour change)
+- **The subject must be on screen.** `fetch_assets.py` downloads were never wired into
+  boards; every subject got the same stick rig / COMPUTE chart / EXCHANGE diagram
+  plus captions. New `scripts/asset_wire.py` closes the loop: scores manifest plates
+  against narration + `visual.query`, strips `placeholder: true` filler, inserts full-bleed
+  credited imagery (Ken Burns, 9:16 `backdrop_blur`, safe-zone credit at y≈1060), reuses
+  plates round-robin when the pool is small, and never clobbers authored SVG/3D visuals.
+- `tts_align.py` gained `--assets-manifest` / `--subject` and passes per-scene `visual`
+  hints through; it warns loudly when scenes still show generic filler.
+- Beat scripts + boards gained `subject` and `visual` (`image`/`query`/`kind`/`fit`/`note`/
+  `attribution`) art-direction, schema-validated in both `script.schema.json` and
+  `storyboard.schema.json` (runtime parity preserved).
+- `pipeline_preflight.py` gained the hard `subject_imagery` check; `style_lint.py` gained
+  `no_subject_imagery`, `placeholder_visual`, `unused_assets` (pass `--manifest`).
+  `meta.visual_intent` is the sole opt-out, for genuine showcases/abstract work.
+- 3D demoted from implied default to optional accent — `SKILL.md` rewritten as an
+  image-first 8-step orchestration (119 lines).
+- Added `examples/photo_essay_storyboard.json` (image-first reference with committed
+  CC0 fixtures) to CI thumbnail smoke gate; `scripts/elements/media.py` now keeps long
+  attributions inside the safe box (ellipsis) and above captions.
+- **Per-beat acquisition:** `scripts/fetch_scene_assets.py` derives a distinct query per
+  scene (explicit `visual.query` wins, else informative narration words), dedupes, and
+  fetches into one shared manifest. `fetch_assets.py` now stamps each plate with its
+  originating query — real Commons titles are Latin binomials (`Aptenodytes forsteri`),
+  so that provenance is the keyword bridge that keeps "emperor penguin" matching locally.
+- **Brief-aware wiring:** `asset_wire.py` / `tts_align.py --brief` use
+  `investigation_brief.visual_anchors` as per-scene queries and `visual_assets` as an
+  additional plate pool (manifest wins on duplicate filenames).
+- **Coverage gate hardened:** one hero photo no longer passes a video. At least 60% of
+  scenes must carry subject imagery and no filler-only beat is allowed;
+  `low_visual_coverage` added to `style_lint.py`.
+- **Live-data hardening:** Openverse payloads were mislabelled `source: "flickr"`, bypassing
+  the new relevance filter and producing a Pennsylvania National Guard photo for a penguin
+  query. Openverse results are now stamped `source: "openverse"` and free-text plates must
+  share a content token with their query (Commons/iNaturalist stay trusted: Latin binomials).
+  A beat whose focused query returns nothing retries with the broad subject, so beats get
+  distinct relevant plates instead of round-robining the single hero image. Verified end-to-end
+  against live Openverse/Commons/iNaturalist.
+- 772 → 860 tests; 12/12 local gates green.
+
 ## [v3.1.0] — 2026-11-22
 
 ### Security & Reliability

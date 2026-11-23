@@ -8,6 +8,7 @@
   "required": ["scenes"],
   "properties": {
     "title": { "type": "string", "maxLength": 200 },
+    "subject": { "type": "string", "minLength": 1, "maxLength": 300, "description": "The video's subject (e.g. 'emperor penguin'). Used to match licensed manifest imagery to scenes when a scene has no visual.query." },
     "voice": { "type": "string", "minLength": 3, "maxLength": 80, "default": "en-US-ChristopherNeural" },
     "voices": {
       "type": "object",
@@ -26,7 +27,20 @@
         "properties": {
           "scene_id": { "type": "string", "pattern": "^[a-z0-9_-]+$", "maxLength": 64 },
           "archetype": { "type": "string", "enum": ["geometry_rig", "doc_essay", "code_report", "mixed"], "default": "doc_essay" },
-          "narration": { "type": "string", "minLength": 1, "maxLength": 2000 }
+          "narration": { "type": "string", "minLength": 1, "maxLength": 2000 },
+          "visual": {
+            "type": "object",
+            "unevaluatedProperties": false,
+            "description": "Per-scene art direction. Default image-first: tts_align wires a licensed subject plate from --assets-manifest. kind=svg/3d/procedural opts out; visual.image pins an explicit plate.",
+            "properties": {
+              "kind": { "type": "string", "enum": ["photo", "svg", "3d", "procedural"], "default": "photo" },
+              "image": { "type": "string", "minLength": 1, "maxLength": 512, "description": "Explicit asset path (relative to the script file or absolute)." },
+              "query": { "type": "string", "minLength": 1, "maxLength": 200, "description": "Subject query used to match manifest assets (and to drive fetch_assets.py)." },
+              "fit": { "type": "string", "enum": ["cover", "contain", "backdrop_blur"] },
+              "note": { "type": "string", "maxLength": 400 },
+              "attribution": { "type": "string", "maxLength": 500, "description": "Credit line for an explicit image that is not in the assets manifest." }
+            }
+          }
         }
       }
     }

@@ -185,11 +185,21 @@ def paint_image(
         # screen-fixed draw on the buffer — the camera would push an
         # edge-anchored credit off-canvas (it transforms position, not just scale)
         size = max(9, int((y1 - y0) * 0.020)) * scale
-        max_w = int((x1 - x0) * scale) - int(24 * scale)
+        # Keep the credit inside the *safe* box horizontally: a manifest
+        # attribution can be long, and full-bleed plates start at x=0.
+        safe_x1 = ctx.zones["safe"][2] if ctx.zones else x1
+        max_w = int((min(x1, safe_x1) - x0) * scale) - int(24 * scale)
         font = get_font(int(size))
         while size > 8 * scale and font.getlength(str(attribution)) > max_w:
             size -= max(1, round(0.5 * scale))
             font = get_font(int(size))
+        # Floor on font size: a very long attribution would still overflow,
+        # so ellipsise it rather than let credits escape the safe box.
+        credit_text = str(attribution)
+        if font.getlength(credit_text) > max_w > 0:
+            while len(credit_text) > 1 and font.getlength(credit_text + "…") > max_w:
+                credit_text = credit_text[:-1]
+            credit_text += "…"
         attr_y = el.get("attribution_y")
         if attr_y is not None:
             # explicit design-space y (e.g. 9:16 safe-zone above Shorts bottom chrome)
@@ -199,7 +209,7 @@ def paint_image(
         draw = ImageDraw.Draw(cv.image)
         draw.text(
             (int(x0 * scale) + int(12 * scale), credit_y),
-            str(attribution),
+            credit_text,
             font=font,
             fill="#C7CEDE",
             anchor="ld",

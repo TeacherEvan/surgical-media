@@ -232,6 +232,37 @@ def test_image_painter_paints_real_plate(tmp_path):
     assert before != after
 
 
+def test_image_credit_stays_inside_safe_box(tmp_path):
+    """Long manifest attributions must not run off the right edge of a
+    full-bleed 9:16 plate (safe box is inset from the canvas)."""
+    plate = tmp_path / "plate.png"
+    Image.new("RGB", (64, 48), (40, 40, 40)).save(plate)
+    ctx = _ctx()
+    cv = _canvas()
+    render_element(
+        cv,
+        {
+            "type": "image",
+            "src": str(plate),
+            "box": [0, 0, W, H],
+            "fit": "cover",
+            "attribution": "A Very Long Contributor Name — An Exceptionally Long Work Title · CC BY-SA 4.0 · https://example.org/a/very/long/path",
+            "attribution_y": H * 0.55,
+        },
+        ctx,
+    )
+    px = cv.final().convert("RGB").load()
+    safe_x1 = ctx.zones["safe"][2]
+    # credit ink is near #C7CEDE; assert none of it appears right of the safe box
+    right_ink = [
+        x
+        for y in range(int(H * 0.45), int(H * 0.6))
+        for x in range(safe_x1 + 1, W)
+        if all(abs(px[x, y][i] - (199, 206, 222)[i]) <= 12 for i in range(3))
+    ]
+    assert right_ink == []
+
+
 def test_gradient_and_vignette_masks_are_cached():
     """paint_background rebuilds gradient/vignette per frame — now cached."""
     from elements.scenes import _render_gradient, _vignette_mask
