@@ -14,6 +14,7 @@ skill rather than shipped as a second overlapping video skill.
 python3 -m pip install -r requirements.txt          # Pillow ≥ 10
 python3 -m pip install -r requirements-tts.txt      # optional: edge-tts voice synthesis
 python3 -m pip install -r requirements-dev.txt      # hacking on this repo: pytest/jsonschema/ruff/mypy/check-jsonschema
+bash scripts/setup_kokoro.sh                        # optional: local Kokoro-82M voice (preferred by default once installed)
 (cd scripts/threejs && npm install)                 # optional: headless Three.js WebGL 3D backend (requires Node >=22 + Chromium)
 
 python3 scripts/build_demo.py                       # (re)generate the example board
@@ -72,7 +73,8 @@ read `references/specs-licensing-compliance.md` and re-check live platform rules
 | [`scripts/tts_normalizer.py`](scripts/tts_normalizer.py) | Dates/numbers/currency/hashtags → spoken words before local TTS, with reviewable change report |
 | [`scripts/media_harvester.py`](scripts/media_harvester.py) | Authentic real-person portraits, face-centered reframing, subtle safe-zone credit badges, `credits.json` + `CREDITS.md` |
 | [`scripts/qc_gate.py`](scripts/qc_gate.py) | Hard gate: ebur128, dead-air, dual safe-zone audit overlays, credits check; exit 3 on failure |
-| [`scripts/tts_align.py`](scripts/tts_align.py) | Beat script → timing-locked storyboard (edge-tts + ffprobe, or offline WPM estimate; syllable-weighted word allocation) |
+| [`scripts/tts_align.py`](scripts/tts_align.py) | Beat script → timing-locked storyboard (local Kokoro by default, edge-tts or offline WPM fallback; phoneme/syllable-weighted word allocation) |
+| [`scripts/kokoro_voice.py`](scripts/kokoro_voice.py) · [`scripts/setup_kokoro.sh`](scripts/setup_kokoro.sh) | Local Kokoro-82M voice engine + one-time installer (default `af_heart`, 48 kHz stems, no network at render time) |
 | [`scripts/storyboard.py`](scripts/storyboard.py) | Stdlib storyboard validator & timeline helpers |
 | [`scripts/render_engine.py`](scripts/render_engine.py) | Storyboard → MP4. Supersampled frames stream raw into ffmpeg; QC runs inline |
 | [`scripts/elements/`](scripts/elements/) | Painter package split by family: `scenes`, `text`, `dataviz`, `code` (with syntax highlighting), `figures`, `media`, `svg` (inline/file SVG vector art + animated line-drawing + bloom), `visual` (`orb_pulse`, `dot_field`, `orbit_ring`, `equalizer`, `typewriter_text`, `leader_arrow` — personality painters) — registry re-exported from `elements/__init__.py` |
@@ -134,6 +136,7 @@ URL-safety issues via GitHub advisories or labeled issues.
 - **Three.js** (MIT) is optional and installed locally under `scripts/threejs/` (`npm install`), driven offline via headless Chromium over Node ≥ 22 native CDP — zero browser-automation npm dependencies; MIT license unchanged ([ADR 0004](docs/adr/0004-optional-threejs-webgl-backend.md)).
 - **Blender** (GNU GPL, Blender Foundation) is optional and invoked only as an external subprocess (`blender -b -P scripts/blender_runner.py`); nothing here imports `bpy` or links Blender, so the MIT footprint is unchanged ([ADR 0003](docs/adr/0003-optional-3d-scene-backends.md)).
 - **edge-tts** (LGPL-3.0) is an optional, user-installed extra (`requirements-tts.txt`) for the online voice path only — never bundled; the offline timing path is stdlib.
+- **Kokoro-82M** (MIT, hexgrad) is an optional local voice installed by `scripts/setup_kokoro.sh` into `~/.cache/surgical-media/kokoro`; model/voice weights are downloaded from Hugging Face at setup time and never committed. `kokoro-onnx` + `onnxruntime` run in their own venv, so the pipeline stays stdlib-only.
 - Bundled fonts: OFL-1.1 (Inter, JetBrains Mono), licenses verbatim in [`assets/fonts/`](assets/fonts/).
 
 ## Design Notes

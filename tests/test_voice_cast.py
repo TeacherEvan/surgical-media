@@ -50,6 +50,8 @@ def test_scene_voice_override_wins(monkeypatch, tmp_path):
             str(path),
             "--output",
             str(out),
+            "--engine",
+            "edge",
             "--media-dir",
             str(tmp_path / "audio"),
         ]
@@ -75,6 +77,8 @@ def test_cli_voice_wins_over_script_voice(monkeypatch, tmp_path):
             str(path),
             "--output",
             str(out),
+            "--engine",
+            "edge",
             "--voice",
             "en-AU-Natasha-neural",
         ]
@@ -96,6 +100,8 @@ def test_scene_override_beats_cli(monkeypatch, tmp_path):
             str(path),
             "--output",
             str(out),
+            "--engine",
+            "edge",
             "--voice",
             "en-AU-Natasha-neural",
         ]
@@ -111,6 +117,8 @@ def test_script_voice_wins_over_default(monkeypatch, tmp_path):
     seen: list[str] = []
     monkeypatch.setattr(tts_align, "synthesize_voice", _recorder(seen))
     out = tmp_path / "board.json"
-    rc = tts_align.main(["--input", str(path), "--output", str(out)])
+    rc = tts_align.main(
+        ["--input", str(path), "--output", str(out), "--engine", "edge"]
+    )
     assert rc == 0
     assert seen == ["en-GB-Abbi-neural"], seen

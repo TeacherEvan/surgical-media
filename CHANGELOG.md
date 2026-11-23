@@ -9,6 +9,19 @@ removed 2026-11-18 (billing-locked; jobs never started). Local gates
 (`bash scripts/ci_gates.sh`) are the enforced standard; the GitLab mirror
 (`.gitlab-ci.yml`) is configured, not verified.
 
+## [Unreleased]
+
+### Local Kokoro voice engine
+- New `scripts/kokoro_voice.py` + `scripts/setup_kokoro.sh`: `tts_align.py --engine auto`
+  now prefers local Kokoro-82M (`af_heart`) over edge-tts when the runtime is installed.
+  No network, API key, or hosted TTS at render time; one-time setup downloads the
+  quantised ONNX model and an openly licensed voice bank into `~/.cache/surgical-media/kokoro`.
+- The ONNX export has no duration output, so word spans are allocated from the model's
+  own phoneme lengths (`weighted_words`) with punctuation pause bonuses. `--engine edge`
+  preserves the measured WordBoundary path; `--offline` keeps the WPM estimate.
+- `tts_align` records the chosen engine/voice in `meta.description`; added
+  `tests/test_kokoro_voice.py` (pure functions + subprocess fallback, no model needed).
+
 ## [v3.2.0] — 2026-11-23
 
 ### Image-first (breaking behaviour change)

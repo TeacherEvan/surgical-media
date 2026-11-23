@@ -60,6 +60,15 @@ python3 scripts/storyboard.py storyboard.styled.json
 `tts_align` strips generic `placeholder: true` filler, inserts full-bleed subject
 plates with Ken Burns + manifest attribution, and warns on unplated scenes. Standalone
 boards: `python3 scripts/asset_wire.py --board board.json --manifest assets/manifest.json --out board.wired.json`.
+
+**Local voice (default when installed).** `tts_align --engine auto` prefers the
+local Kokoro-82M engine over edge-tts — no network, no API key, default voice
+`af_heart`. One-time setup: `bash scripts/setup_kokoro.sh` (creates a Python 3.12
+venv, downloads the 89 MB quantised ONNX model + voice bank to
+`~/.cache/surgical-media/kokoro`). Override with `--engine kokoro --kokoro-voice
+af_heart` (or a script-level `kokoro_voice` field). Kokoro's export has no duration
+output, so word spans are allocated from the model's own phoneme lengths. Keep
+`--engine edge` for the old network path, or `--offline` for WPM estimates.
 `storyboard.styled.json` is the single locked timeline. Then estimate → thumbnails → render:
 ```
 python3 scripts/render_engine.py --storyboard storyboard.styled.json --estimate
@@ -109,7 +118,7 @@ schema metaschema → thumbnails (2D + **photo** + hybrid 3D + Three.js 3D) → 
 render + ffprobe QC → style_lint (advisory) → jobs → loudness/safe-zone audit. Exit 3 = fail.
 ## Gotchas
 
-- `edge-tts` needs network → `--offline` uses WPM estimates; measured WordBoundary beats win.
+- `edge-tts` needs network → local Kokoro (`--engine auto`/`kokoro`) is preferred when installed; `--offline` uses WPM estimates. Measured WordBoundary beats win on the edge path.
 - No word re-splitting: wrap the measured token stream.
 - Photos: `image` (cover|contain|backdrop_blur) + `kb_zoom`; `Image.blend` fades. 9:16 default `backdrop_blur`; auto credit at y≈1060 sits **above** captions (`y_anchor≈0.6`) — do not move it to 1150.
 - Never stack opaque `quote_card`/dark boxes on a photo; captions and credits are stroked, boxless.

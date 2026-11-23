@@ -2,10 +2,10 @@
 """tts_align.py — audio-first timing generator for surgical-media.
 
 Reads a beat script (schemas/script.schema.json), voices each scene
-(edge-tts when available and network permits, otherwise an offline
-words-per-minute estimate), probes the *exact* voiced duration, and emits a
-storyboard.json whose scene windows and per-word timestamps are locked to
-that audio. Visuals are then derived from audio — never the other way round.
+(edge-tts, or the local Kokoro-82M engine when installed, otherwise an
+offline words-per-minute estimate), probes the *exact* voiced duration, and
+emits a storyboard.json whose scene windows and per-word timestamps are
+locked to that audio. Visuals are derived from audio — never the other way.
 
 Image-first (v3.2.0): with ``--assets-manifest`` (fetch_assets.py output),
 every scene is wired with a licensed subject plate via ``asset_wire.py``;
@@ -19,6 +19,9 @@ Two timing paths:
   WordBoundary events (100 ns ticks) — kinetic captions highlight the word
   that is actually being spoken. Stems are transcoded as-is (silence is NOT
   stripped, because word offsets are relative to the untrimmed stem).
+* Local Kokoro (--engine kokoro / auto when the runtime is installed): a
+  48 kHz stem from Kokoro-82M (default voice ``af_heart``) with word spans
+  allocated from the model's own phoneme lengths. No network or API key.
 * Offline (--offline, or any TTS failure): syllable-weighted duration
   allocation plus punctuation pause bonuses — long multisyllabic words get
   proportionally more time and sentence boundaries get a real beat of
@@ -41,6 +44,9 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from asset_wire import load_manifest, wire_board
+from kokoro_voice import DEFAULT_VOICE as KOKORO_DEFAULT_VOICE
+from kokoro_voice import is_available as kokoro_available
+from kokoro_voice import runtime_python as kokoro_runtime_python
 from storyboard import SCENE_ID_RE, assign_start_times, scene_has_subject_visual
 
 ASPECTS = {
@@ -306,6 +312,61 @@ def synthesize_voice(
     return wav_out, duration, words
 
 
+def synthesize_kokoro_voice(
+    text: str,
+    voice: str,
+    media_dir: Path,
+    scene_id: str,
+) -> tuple[Path | None, float | None, list[dict[str, Any]] | None]:
+    """Render a beat through the local Kokoro engine and return its timing.
+
+    Kokoro runs in its own venv, so this is a subprocess call. The helper
+    prints one JSON line with the measured duration and phoneme-weighted
+    word spans.
+    """
+    wav_out = media_dir / f"{scene_id}.wav"
+    helper = Path(__file__).resolve().with_name("kokoro_voice.py")
+    cmd = [
+        str(kokoro_runtime_python()),
+        str(helper),
+        "--text",
+        text,
+        "--out",
+        str(wav_out),
+        "--voice",
+        voice,
+    ]
+    try:
+        proc = subprocess.run(
+            cmd,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        payload: dict[str, Any] | None = None
+        for line in reversed(proc.stdout.strip().splitlines()):
+            try:
+                candidate = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(candidate, dict):
+                payload = candidate
+                break
+        if payload is None:
+            raise ValueError("Kokoro helper produced no JSON payload")
+        duration = float(payload["duration"])
+        words = list(payload["words"])
+    except (subprocess.SubprocessError, OSError, KeyError, ValueError) as exc:
+        print(
+            f"tts_align: local Kokoro failed for {scene_id!r} "
+            f"({exc.__class__.__name__}: {exc}); using offline estimate",
+            file=sys.stderr,
+        )
+        return None, None, None
+    return wav_out, duration, words
+
+
 RATE_RE = re.compile(r"^[+-]\d+%$")
 PITCH_RE = re.compile(r"^[+-]\d+Hz$")
 
@@ -343,6 +404,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--voice", default=None, help="edge-tts voice (overrides script voice)"
+    )
+    parser.add_argument(
+        "--engine",
+        choices=("auto", "edge", "kokoro"),
+        default="auto",
+        help="voice engine: auto prefers local Kokoro when installed (default)",
+    )
+    parser.add_argument(
+        "--kokoro-voice",
+        default=KOKORO_DEFAULT_VOICE,
+        help=f"local Kokoro voice (default: {KOKORO_DEFAULT_VOICE})",
     )
     parser.add_argument(
         "--rate",
@@ -401,6 +473,9 @@ def main(argv: list[str] | None = None) -> int:
         help="investigation_brief.json — visual_anchors steer per-scene plate choice",
     )
     args = parser.parse_args(argv)
+    engine = args.engine
+    if engine == "auto":
+        engine = "kokoro" if kokoro_available() else "edge"
 
     try:
         script = json.loads(args.input.read_text(encoding="utf-8"))
@@ -446,15 +521,25 @@ def main(argv: list[str] | None = None) -> int:
         duration = None
         boundary_words = None
         if not args.offline:
-            wav_path, duration, boundary_words = synthesize_voice(
-                narration,
-                scene_voice,
-                media_dir,
-                scene_id,
-                args.trim_silence,
-                rate=args.rate,
-                pitch=args.pitch,
-            )
+            if engine == "kokoro":
+                local_voice = str(
+                    raw.get("kokoro_voice")
+                    or script.get("kokoro_voice")
+                    or args.kokoro_voice
+                )
+                wav_path, duration, boundary_words = synthesize_kokoro_voice(
+                    narration, local_voice, media_dir, scene_id
+                )
+            else:
+                wav_path, duration, boundary_words = synthesize_voice(
+                    narration,
+                    scene_voice,
+                    media_dir,
+                    scene_id,
+                    args.trim_silence,
+                    rate=args.rate,
+                    pitch=args.pitch,
+                )
             if wav_path is not None:
                 vo_rel = Path(
                     os.path.relpath(wav_path.resolve(), out_dir_resolved)
@@ -516,7 +601,7 @@ def main(argv: list[str] | None = None) -> int:
             scene["vo_wav"] = vo_rel
         scenes_out.append(scene)
 
-    storyboard = {
+    storyboard: dict[str, Any] = {
         "meta": {
             "title": str(script.get("title") or args.input.stem),
             "seed": 20261118,
@@ -529,6 +614,19 @@ def main(argv: list[str] | None = None) -> int:
             "sample_rate": 48000,
         },
     }
+    actual_voice = (
+        ""
+        if args.offline
+        else (
+            str(script.get("kokoro_voice") or args.kokoro_voice)
+            if engine == "kokoro"
+            else voice
+        )
+    )
+    if not args.offline:
+        provenance = f"Voice: {engine}/{actual_voice}."
+        previous = str(storyboard["meta"].get("description", ""))
+        storyboard["meta"]["description"] = (previous + " " + provenance).strip()[:400]
     # Image-first wiring: licensed subject plates replace generic archetype
     # filler. Runs when a manifest is supplied OR any scene pins visual.image.
     has_explicit = any(
@@ -595,7 +693,8 @@ def main(argv: list[str] | None = None) -> int:
     voiced = sum(1 for sc in storyboard["scenes"] if sc.get("vo_wav"))
     print(
         f"tts_align: wrote {args.output} — {len(scenes_out)} scenes, "
-        f"{total:.2f}s total, {voiced} voiced / {len(scenes_out) - voiced} estimated, voice={voice}"
+        f"{total:.2f}s total, {voiced} voiced / {len(scenes_out) - voiced} estimated, "
+        f"engine={'offline' if args.offline else engine}, voice={actual_voice}"
     )
     return 0
 
