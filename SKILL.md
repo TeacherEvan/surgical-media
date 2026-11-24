@@ -39,6 +39,15 @@ narration — one query per beat, not one for the whole video:
 Named real people require authentic photos (Wikimedia/Wikipedia/press rooms), never
 AI stand-ins without approval: `scripts/media_harvester.py`. Log outlet/headline/date/URL
 per claim; keep `credits.json` + `CREDITS.md` with AI-disclosure flags.
+
+**User preference — maximise real imagery.** Always aim for a real licensed photo in
+**every** scene (100% coverage), not the 60% gate minimum. AI slop is rampant when
+real images are absent; procedural overlays are accents **on** photographs, never a
+substitute. Never satisfy the image-first gate with fabricated `chat_bubble` /
+`social_post` / `map` mockups standing in for a person. `media_harvester.py` rejects
+mononyms (`Sneako`, `Asmongold`, `Tectone`, `QTCinderella`, `Emiru`) — use
+`fetch_assets.py --query` with a verified full name, and **visually curate every
+result** (keyword search returns false positives). See `references/lessons-learned.md`.
 ## Step 4 — Write an image-directed beat script
 
 `schemas/script.schema.json` now supports `subject` and per-scene `visual`:
@@ -69,6 +78,16 @@ venv, downloads the 89 MB quantised ONNX model + voice bank to
 af_heart` (or a script-level `kokoro_voice` field). Kokoro's export has no duration
 output, so word spans are allocated from the model's own phoneme lengths. Keep
 `--engine edge` for the old network path, or `--offline` for WPM estimates.
+
+**Verify pronunciation before any long render.** Kokoro mangles proper nouns — the
+user heard `lawyers` as "liers". Check suspect words with Kokoro's own phonemiser
+(`engine.tokenizer.phonemize(word, "en-us")`) and respell **only** where the default
+is demonstrably wrong (`lawyers → law-yers`, `Hasan → ha-sahn`, `Kabul → kah-bul`);
+over-aggressive hyphenation makes things worse. Apply respellings to the spoken
+script only and restore correct spellings in `narration` / `words[].word`. Render a
+short sample (hook + names), give the user the path and get approval before shipping
+a full render. See `references/lessons-learned.md`.
+
 `storyboard.styled.json` is the single locked timeline. Then estimate → thumbnails → render:
 ```
 python3 scripts/render_engine.py --storyboard storyboard.styled.json --estimate
@@ -105,7 +124,7 @@ Use one hero 3D beat when it explains structure a photo cannot; never fill a who
 video with procedural geometry. Stdlib `software_3d_projection.py` always works.
 ## Hard invariants
 
-1. **Subject on screen** — photo/SVG/map/mockup or authored 3D in ≥60% of scenes; no filler-only beats. No default-3D-and-captions videos.
+1. **Real subject photography on screen** — a licensed photograph in **every** scene where possible (target 100%; ≥60% is only the hard floor). SVG/map/mockup/3D are overlays, not substitutes; no filler-only beats and no default-3D-and-captions videos. Never game this gate with UI-card mockups.
 2. **yuv420p or nothing** — RGBA/yuv444p fails iOS/IG/TikTok.
 3. **Audio before frames** — counts from measured VO or explicit beats.
 4. **No linear motion** (`easings.py`); **2x supersample floor**; **safe zones load-bearing** (organic 9:16 `(84,220)→(w-150,h-440)`; strict ad-safe `x=65..888, y=288..1248`).
@@ -124,6 +143,10 @@ render + ffprobe QC → style_lint (advisory) → jobs → loudness/safe-zone au
 - Never stack opaque `quote_card`/dark boxes on a photo; captions and credits are stroked, boxless.
 - Clean audio: no synthetic pads or procedural SFX (`pop`/`chime`/…) without a real `wav`; use `trauma` for camera-only shake.
 - `meta.visual_intent` (`procedural_showcase`/`style_reference`/`abstract_art`) is the **only** imagery-gate opt-out, for genuine abstract work.
+- **No black/opaque text boxes on photographs.** Set `hud_badge` / `source_tag` `fill: "none"` (boxless stroked text + underline); remove `map`, `code_terminal`, `social_post`, `chat_bubble`, `phone_frame`, `app_toast`, `scaling_chart`, `system_architecture` cards instead of layering them on a photo.
+- Run full `render_engine.py` jobs **sequentially** — parallel encoders can kill ffmpeg mid-render.
+- Files in Trash are an intentional rejection, not cleanup: ask why before restoring them.
+- One natural ~0.7 s narration pause is acceptable; do not add a synthetic pad to silence it.
 ## References
 
-`references/specs-licensing-compliance.md` · `{style-and-architecture,pipeline-scripts,render-templates,storyboard-guide,archetypes,ffmpeg-encoding,job-workflow}.md` · `examples/photo_essay_storyboard.json` (image-first reference).
+`references/lessons-learned.md` (**user preferences + field fixes — read first**) · `references/mcp-toolkit.md` (MCP tools for research, 3D, browser verification, licensing and repo work) · `references/specs-licensing-compliance.md` · `{style-and-architecture,pipeline-scripts,render-templates,storyboard-guide,archetypes,ffmpeg-encoding,job-workflow}.md` · `examples/photo_essay_storyboard.json` (image-first reference).

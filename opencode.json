@@ -1,14 +1,67 @@
 {
+  "$schema": "https://opencode.ai/config.json",
   "mcp": {
-    "servers": {
-      "context7": {
-        "type": "local",
-        "command": [
-          "npx",
-          "-y",
-          "@upstash/context7-mcp@4.7.3"
-        ]
-      }
+    "context7": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@upstash/context7-mcp@4.7.3"
+      ],
+      "enabled": true
+    },
+    "blender": {
+      "type": "local",
+      "command": [
+        "/home/leandi-duplessis/.local/bin/mcp-for-blender"
+      ],
+      "enabled": true
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ],
+      "enabled": true
+    },
+    "firecrawl": {
+      "type": "remote",
+      "url": "https://mcp.firecrawl.dev/v2/mcp-oauth",
+      "enabled": true
+    },
+    "GitKraken": {
+      "type": "local",
+      "command": [
+        "/home/leandi-duplessis/.config/Cursor/User/globalStorage/eamodio.gitlens/gk",
+        "mcp",
+        "--host=opencode",
+        "--source=gitlens",
+        "--scheme=cursor"
+      ],
+      "enabled": true
+    },
+    "huggingface": {
+      "type": "remote",
+      "url": "https://huggingface.co/mcp",
+      "headers": {
+        "Authorization": "Bearer {env:HF_TOKEN}"
+      },
+      "enabled": true
+    },
+    "supabase": {
+      "type": "remote",
+      "url": "https://mcp.supabase.com/mcp?project_ref={env:SUPABASE_PROJECT_REF}&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions",
+      "enabled": true
+    },
+    "tinyfish": {
+      "type": "remote",
+      "url": "https://agent.tinyfish.ai/mcp?source=tinyfish_cli&client=opencode",
+      "headers": {
+        "X-API-Key": "{env:TINYFISH_API_KEY}"
+      },
+      "enabled": true
     }
   }
 }
